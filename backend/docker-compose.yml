@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  postgres_db:
+    image: postgres:16-alpine
+    container_name: gkce_postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: gkce_admin
+      POSTGRES_PASSWORD: gkce_password_2026
+      POSTGRES_DB: gkce_dsa_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gkce_admin -d gkce_dsa_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gkce_fastapi_backend
+    restart: always
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://gkce_admin:gkce_password_2026@postgres_db:5432/gkce_dsa_db
+      JWT_SECRET_KEY: gkce-dsa-super-secret-jwt-key-2026-production-ready-32bytes-min
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      CORS_ORIGINS: '["http://localhost:3000","http://localhost:5173"]'
+      ENVIRONMENT: production
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "alembic upgrade head &&
+             python -m scripts.seed_data &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4"
+
+volumes:
+  postgres_data:
