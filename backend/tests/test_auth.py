@@ -17,9 +17,10 @@ def test_login_success_dean(client: TestClient):
 
 
 def test_login_success_student(client: TestClient):
+    # 1. Login with full named email
     response = client.post(
         "/api/auth/login",
-        json={"email": "23f81a0502@gkce.edu.in", "password": STUDENT_PASSWORD},
+        json={"email": "ananthalakshmi23f81a0502@gkce.edu.in", "password": STUDENT_PASSWORD},
     )
     assert response.status_code == 200
     data = response.json()
@@ -27,6 +28,13 @@ def test_login_success_student(client: TestClient):
     assert data["user"]["role"] == "STUDENT"
     assert data["user"]["roll_number"] == "23F81A0502"
     assert data["user"]["team_id"] == 1
+
+    # 2. Login with roll number variation
+    resp_roll = client.post(
+        "/api/auth/login",
+        json={"email": "23F81A0502", "password": STUDENT_PASSWORD},
+    )
+    assert resp_roll.status_code == 200
 
 
 def test_login_invalid_password(client: TestClient):

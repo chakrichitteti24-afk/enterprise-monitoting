@@ -187,8 +187,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             <button
               type="button"
               onClick={() => {
-                setEmail('chakri.24f81a0522@gkce.edu.in');
-                setPassword('Student@GKCE2026');
+                setEmail('chakri24f81a0522@gkce.edu.in');
+                setPassword('gkce@1234');
               }}
               className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-900 border border-slate-700/70 hover:border-emerald-500/50 text-left transition-all active:scale-98 cursor-pointer group"
             >

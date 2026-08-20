@@ -53,14 +53,14 @@ def mentor_team2_token(client: TestClient) -> str:
 
 @pytest.fixture
 def student_1_token(client: TestClient) -> str:
-    return get_token(client, "23f81a0502@gkce.edu.in", STUDENT_PASSWORD)
+    return get_token(client, "ananthalakshmi23f81a0502@gkce.edu.in", STUDENT_PASSWORD)
 
 
 @pytest.fixture
 def student_2_token(client: TestClient) -> str:
-    return get_token(client, "23f81a0507@gkce.edu.in", STUDENT_PASSWORD)
+    return get_token(client, "devika23f81a0507@gkce.edu.in", STUDENT_PASSWORD)
 
 
 @pytest.fixture
 def student_team2_token(client: TestClient) -> str:
-    return get_token(client, "23f81a0510@gkce.edu.in", STUDENT_PASSWORD)
+    return get_token(client, "habeeba23f81a0510@gkce.edu.in", STUDENT_PASSWORD)

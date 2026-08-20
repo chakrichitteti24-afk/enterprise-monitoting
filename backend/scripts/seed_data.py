@@ -1,6 +1,7 @@
 import sys
 import os
 import random
+import re
 from datetime import datetime, timezone, timedelta
 
 # Ensure UTF-8 output encoding on Windows consoles
@@ -35,7 +36,7 @@ from app.models.note import MentorNote
 # Demo credentials for institutional access
 DEAN_PASSWORD = "Dean@GKCE2026"
 MENTOR_PASSWORD = "Mentor@GKCE2026"
-STUDENT_PASSWORD = "Student@GKCE2026"
+STUDENT_PASSWORD = "gkce@1234"
 
 # 20 Mentors metadata
 MENTORS_DATA = [
@@ -291,15 +292,31 @@ def seed(db_session: Session = None):
         student_users = []
         student_profiles = []
 
+        def make_clean_student_email(roll: str, name: str) -> str:
+            clean = re.sub(r'\(.*?\)', '', name).strip()
+            words = [re.sub(r'[^a-zA-Z0-9]', '', w) for w in clean.split() if w]
+            sig = [w for w in words if len(w) > 2]
+            name_map = {
+                'KUTLURU DIVYA SRI': 'divyasri',
+                'B. KISHORE NAIK': 'kishore',
+                'P. PRASANNA KUMAR': 'prasanna',
+                'D. HIMA VARSHA': 'himavarsha',
+            }
+            if name in name_map:
+                target = name_map[name]
+            elif sig:
+                target = sig[-1].lower() if len(sig) > 1 and len(sig[0]) > 2 and len(sig[-1]) > 2 else (sig[-1].lower() if len(sig) > 1 else sig[0].lower())
+            else:
+                target = words[0].lower()
+            return f"{target}{roll.lower()}@gkce.edu.in"
+
         for idx, s_info in enumerate(REAL_GKCE_STUDENTS, 1):
             team_id = s_info["team"]
             team_obj = team_objs[team_id - 1]
             roll_no = s_info["roll"]
             name = s_info["name"]
 
-            email = f"{roll_no.lower()}@gkce.edu.in"
-            if "CHAKRI" in name:
-                email = "chakri.24f81a0522@gkce.edu.in"
+            email = make_clean_student_email(roll_no, name)
 
             s_user = User(
                 name=name,
@@ -361,7 +378,7 @@ def seed(db_session: Session = None):
         print(f"Submissions:      {db.query(Submission).count()} Recorded Submissions")
         print(f"Dean:             dean.academics@gkce.edu.in | {DEAN_PASSWORD}")
         print(f"Mrs. Ludvika:     ludvika@gkce.edu.in | {MENTOR_PASSWORD}")
-        print(f"CH. Chakri:       chakri.24f81a0522@gkce.edu.in | {STUDENT_PASSWORD}")
+        print(f"CH. Chakri:       chakri24f81a0522@gkce.edu.in | {STUDENT_PASSWORD}")
         print("==========================================================")
 
     except Exception as e:

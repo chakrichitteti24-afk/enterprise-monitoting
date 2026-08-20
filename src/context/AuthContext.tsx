@@ -349,9 +349,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Fallback verification for Students
       const matchedStudent = students.find(
-        s => s.email.toLowerCase() === normalizedEmail || s.rollNo.toLowerCase() === normalizedEmail
+        s =>
+          s.email.toLowerCase() === normalizedEmail ||
+          s.rollNo.toLowerCase() === normalizedEmail ||
+          normalizedEmail.includes(s.rollNo.toLowerCase())
       );
-      if (matchedStudent && (password === 'Student@GKCE2026' || password === 'Chakri@2026')) {
+      if (
+        matchedStudent &&
+        (password === 'gkce@1234' ||
+          password === 'GKCE@1234' ||
+          password === 'Student@GKCE2026' ||
+          password === 'Chakri@2026')
+      ) {
         mapAndSetUser('STUDENT', { email: matchedStudent.email, roll_number: matchedStudent.rollNo });
         setIsAuthenticated(true);
         return;
