@@ -10,12 +10,12 @@ export const DeanAnalyticsPage: React.FC = () => {
   const { students, teams, mentors } = useAuth();
 
   const totalProblemsSolved = students.reduce((acc, s) => acc + s.solved, 0);
-  const avgProgress = Math.round(students.reduce((acc, s) => acc + s.progress, 0) / students.length);
+  const avgProgress = Math.round(students.reduce((acc, s) => acc + s.progress, 0) / Math.max(1, students.length));
 
-  // Topic Averages across 100 students
+  // Topic Averages across students
   const topicAverages = DSA_TOPICS.map((topic) => {
     const avg = Math.round(
-      students.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / students.length
+      students.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / Math.max(1, students.length)
     );
     const totalSolvedInTopic = students.reduce((sum, st) => sum + (st.topicProgress[topic]?.solved || 0), 0);
     return {
@@ -25,7 +25,7 @@ export const DeanAnalyticsPage: React.FC = () => {
     };
   });
 
-  // Difficulty aggregates across 100 students
+  // Difficulty aggregates across students
   const easyTotalSolved = students.reduce((sum, st) => sum + st.difficultyStats.easy.solved, 0);
   const mediumTotalSolved = students.reduce((sum, st) => sum + st.difficultyStats.medium.solved, 0);
   const hardTotalSolved = students.reduce((sum, st) => sum + st.difficultyStats.hard.solved, 0);
@@ -45,14 +45,14 @@ export const DeanAnalyticsPage: React.FC = () => {
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">DSA Learning Analytics</h1>
           <p className="text-xs md:text-sm text-slate-500 mt-1">
-            Data insights, curriculum bottleneck detection, and cohort comparison across 100 students.
+            Data insights, curriculum bottleneck detection, and cohort comparison across {students.length} students.
           </p>
         </div>
       </div>
 
       {/* Top 3 KPI Bento Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <BentoCard title="Cohort Completion Rate" subtitle="100 Student Average" className="col-span-1">
+        <BentoCard title="Cohort Completion Rate" subtitle={`${students.length} Student Average`} className="col-span-1">
           <div className="flex flex-col items-center justify-center py-3 text-center">
             <ProgressRing percentage={avgProgress} size={130} strokeWidth={10} color="#1d4ed8" />
             <div className="mt-3">

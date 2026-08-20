@@ -8,7 +8,7 @@ export const DeanReportsPage: React.FC = () => {
   const { students, teams, mentors } = useAuth();
   const [reportType, setReportType] = useState<'executive' | 'teams' | 'students'>('executive');
 
-  const overallProgress = Math.round(students.reduce((acc, s) => acc + s.progress, 0) / students.length);
+  const overallProgress = Math.round(students.reduce((acc, s) => acc + s.progress, 0) / Math.max(1, students.length));
   const totalSolved = students.reduce((acc, s) => acc + s.solved, 0);
 
   const handlePrint = () => {
@@ -53,7 +53,7 @@ export const DeanReportsPage: React.FC = () => {
               Gokula Krishna College of Engineering
             </h2>
             <div className="text-sm font-medium text-slate-600">
-              DSA 100-Student Cohort Performance Audit & Accreditation Report
+              DSA {students.length}-Student In-House Programme Performance Audit & Accreditation Report
             </div>
           </div>
 

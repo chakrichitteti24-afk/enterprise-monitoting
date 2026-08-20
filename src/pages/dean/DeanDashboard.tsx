@@ -51,7 +51,7 @@ export const DeanDashboard: React.FC = () => {
             GKCE DSA Student Monitoring Platform
           </h1>
           <p className="text-xs md:text-sm text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
-            <span>100 engineering students across 20 mentored teams</span>
+            <span>{totalStudents} engineering students across {totalTeams} mentored teams</span>
             <span>•</span>
             <span>Academic Term 2025-26</span>
           </p>

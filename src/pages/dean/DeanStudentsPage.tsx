@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { StreakBadge } from '../../components/ui/StreakBadge';
 import { ProgressBar } from '../../components/ui/ProgressBar';
+import { UserAvatar } from '../../components/ui/UserAvatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   GraduationCap,
@@ -271,10 +272,12 @@ export const DeanStudentsPage: React.FC = () => {
                   >
                     <td className="py-3.5 px-6 font-medium text-slate-900">
                       <div className="flex items-center gap-3">
-                        <img
+                        <UserAvatar
                           src={s.avatar}
-                          alt={s.name}
-                          className="w-8 h-8 rounded-full object-cover border border-slate-200"
+                          name={s.name}
+                          id={s.rollNo}
+                          role="STUDENT"
+                          size="sm"
                         />
                         <div>
                           <div className="font-bold text-slate-900">{s.name}</div>

@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { StreakBadge } from '../../components/ui/StreakBadge';
+import { UserAvatar } from '../../components/ui/UserAvatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Layers, Search, ChevronRight, LayoutGrid, List, Plus, Trash2, X, ShieldAlert } from 'lucide-react';
 import { Team } from '../../types';
@@ -204,8 +205,11 @@ export const DeanTeamsPage: React.FC = () => {
                 </div>
 
                 <div className="text-xs font-semibold text-slate-700">{t.name}</div>
-                <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                  Mentor: {t.mentorName}
+                <div className="flex items-center gap-2 mt-2">
+                  <UserAvatar name={t.mentorName} role="MENTOR" size="xs" showBadge />
+                  <div className="text-[11px] text-slate-600 truncate">
+                    Mentor: <strong className="text-slate-800">{t.mentorName}</strong>
+                  </div>
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
@@ -265,8 +269,13 @@ export const DeanTeamsPage: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 text-slate-800 font-medium">{t.name}</td>
                     <td className="py-3.5 px-4 text-slate-700 font-medium">
-                      <div className="font-bold">{t.mentorName}</div>
-                      <div className="text-[10px] text-slate-400">{t.mentorDepartment}</div>
+                      <div className="flex items-center gap-2.5">
+                        <UserAvatar name={t.mentorName} role="MENTOR" size="xs" showBadge />
+                        <div>
+                          <div className="font-bold">{t.mentorName}</div>
+                          <div className="text-[10px] text-slate-400">{t.mentorDepartment}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="w-28">

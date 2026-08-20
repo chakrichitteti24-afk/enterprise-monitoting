@@ -5,6 +5,7 @@ import { ProgressRing } from '../../components/ui/ProgressRing';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { StreakBadge } from '../../components/ui/StreakBadge';
+import { UserAvatar } from '../../components/ui/UserAvatar';
 import { DSA_TOPICS } from '../../data/mockData';
 import { motion } from 'framer-motion';
 import {
@@ -175,10 +176,12 @@ export const MentorDashboard: React.FC = () => {
                 <div>
                   {/* Top: Avatar, Name, Roll No, Status */}
                   <div className="flex items-start justify-between gap-2 mb-3">
-                    <img
+                    <UserAvatar
                       src={st.avatar}
-                      alt={st.name}
-                      className="w-11 h-11 rounded-2xl bg-slate-100 border border-slate-200 shrink-0"
+                      name={st.name}
+                      id={st.rollNo}
+                      role="STUDENT"
+                      size="md"
                     />
                     <StatusBadge status={st.status} size="sm" />
                   </div>

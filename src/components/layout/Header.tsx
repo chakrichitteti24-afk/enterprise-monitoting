@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { QuickRoleSwitcher } from '../ui/QuickRoleSwitcher';
+import { UserAvatar } from '../ui/UserAvatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -196,10 +197,12 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center gap-2 pl-1 pr-1.5 sm:pr-2.5 py-1 rounded-2xl bg-slate-100/80 hover:bg-slate-200/80 transition-colors border border-slate-200/50"
             >
-              <img
+              <UserAvatar
                 src={currentUser.avatar}
-                alt={currentUser.name}
-                className="w-7 h-7 rounded-xl object-cover bg-slate-200 border border-white"
+                name={currentUser.name}
+                role={role}
+                size="sm"
+                showBadge
               />
               <div className="text-left hidden lg:block">
                 <div className="text-xs font-bold text-slate-900 leading-tight">

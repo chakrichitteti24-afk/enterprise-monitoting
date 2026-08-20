@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { StreakBadge } from '../../components/ui/StreakBadge';
 import { ProgressBar } from '../../components/ui/ProgressBar';
+import { UserAvatar } from '../../components/ui/UserAvatar';
 import { Users, Search, Mail, ExternalLink, ChevronRight, MessageSquarePlus } from 'lucide-react';
 import { Student } from '../../types';
 
@@ -13,7 +14,7 @@ export const MentorStudentsPage: React.FC = () => {
   const assignedTeamId = currentUser.teamId || 'team-7';
   const assignedTeamNumber = currentUser.teamNumber || 'Team 07';
 
-  // Strictly filter to the 5 students
+  // Strictly filter to the assigned team students
   const teamStudents = students.filter(
     (s) => s.teamId === assignedTeamId || s.teamNumber === assignedTeamNumber
   );
@@ -34,7 +35,7 @@ export const MentorStudentsPage: React.FC = () => {
             <span>Assigned Cohort Directory</span>
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            {assignedTeamNumber} Students (5)
+            {assignedTeamNumber} Students ({teamStudents.length})
           </h1>
           <p className="text-xs md:text-sm text-slate-500 mt-1">
             Individual student monitoring, academic feedback notes, and progress logs.
@@ -76,10 +77,12 @@ export const MentorStudentsPage: React.FC = () => {
                 >
                   <td className="py-3.5 px-4 sm:px-6">
                     <div className="flex items-center gap-3">
-                      <img
+                      <UserAvatar
                         src={st.avatar}
-                        alt={st.name}
-                        className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 shrink-0"
+                        name={st.name}
+                        id={st.rollNo}
+                        role="STUDENT"
+                        size="sm"
                       />
                       <div>
                         <div className="font-bold text-slate-900">{st.name}</div>
