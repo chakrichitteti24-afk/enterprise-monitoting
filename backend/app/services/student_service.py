@@ -1,10 +1,13 @@
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
+from sqlalchemy import func, distinct
 from app.repositories.student_repository import StudentRepository
 from app.repositories.submission_repository import SubmissionRepository
 from app.repositories.problem_repository import ProblemRepository
 from app.models.student import Student
+from app.models.problem import DSAProblem
+from app.models.submission import Submission
 from app.models.enums import DSATopic, ProblemDifficulty, SubmissionStatus
 from app.schemas.student import (
     StudentOut,
@@ -73,52 +76,76 @@ class StudentService:
             raise ResourceNotFoundException("Student", str(student_id))
 
         prog = student.progress
-        solved_count = prog.problems_solved if prog else 0
-        attempted_count = prog.problems_attempted if prog else 0
-        percentage = prog.overall_percentage if prog else 0.0
         streak = prog.current_streak if prog else 0
         longest_streak = prog.longest_streak if prog else 0
 
-        # Solved breakdown per topic
-        topic_solved_map = self.sub_repo.get_solved_counts_by_topic(student_id)
+        # Total curriculum problems in database
+        total_curriculum_problems = self.db.query(func.count(DSAProblem.id)).scalar() or 1
+
+        # Real distinct problems solved by student
+        actual_solved_count = self.db.query(func.count(distinct(Submission.problem_id))).filter(
+            Submission.student_id == student_id,
+            Submission.status == SubmissionStatus.ACCEPTED,
+        ).scalar() or (prog.problems_solved if prog else 0)
+
+        # Real total submissions attempted
+        actual_attempted_count = self.db.query(func.count(Submission.id)).filter(
+            Submission.student_id == student_id,
+        ).scalar() or (prog.problems_attempted if prog else 0)
+
+        # Real percentage
+        percentage = round((actual_solved_count / max(1, total_curriculum_problems)) * 100, 1)
+
+        # Solved breakdown per topic directly from database
         topic_progress_dict: Dict[str, TopicProgressDetail] = {}
-
         for topic in DSATopic:
-            total = TOPIC_TOTALS.get(topic, 15)
-            solved = topic_solved_map.get(topic, 0)
-            if prog and solved == 0 and prog.problems_solved > 0:
-                # Approximate proportional distribution if initial mock
-                ratio = min(1.0, (prog.overall_percentage / 100.0))
-                solved = min(total, round(total * ratio))
+            topic_total = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.topic == topic).scalar() or 1
+            topic_solved = self.db.query(func.count(distinct(Submission.problem_id))).join(DSAProblem).filter(
+                Submission.student_id == student_id,
+                DSAProblem.topic == topic,
+                Submission.status == SubmissionStatus.ACCEPTED,
+            ).scalar() or 0
 
-            pct = min(100, round((solved / max(1, total)) * 100))
+            pct = min(100, round((topic_solved / max(1, topic_total)) * 100))
             topic_progress_dict[topic.value] = TopicProgressDetail(
-                solved=solved,
-                total=total,
+                solved=topic_solved,
+                total=topic_total,
                 percentage=pct,
             )
 
-        # Difficulty distribution
-        diff_map = self.sub_repo.get_solved_counts_by_difficulty(student_id)
-        easy_s = diff_map.get(ProblemDifficulty.EASY, prog.easy_solved if prog else 0)
-        med_s = diff_map.get(ProblemDifficulty.MEDIUM, prog.medium_solved if prog else 0)
-        hard_s = diff_map.get(ProblemDifficulty.HARD, prog.hard_solved if prog else 0)
+        # Real Difficulty distribution directly from database
+        easy_total = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.difficulty == ProblemDifficulty.EASY).scalar() or 1
+        med_total = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.difficulty == ProblemDifficulty.MEDIUM).scalar() or 1
+        hard_total = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.difficulty == ProblemDifficulty.HARD).scalar() or 1
 
-        if (easy_s + med_s + hard_s == 0) and solved_count > 0:
-            easy_s = min(50, round(solved_count * 0.55))
-            med_s = min(65, round(solved_count * 0.35))
-            hard_s = max(0, solved_count - easy_s - med_s)
+        easy_s = self.db.query(func.count(distinct(Submission.problem_id))).join(DSAProblem).filter(
+            Submission.student_id == student_id,
+            DSAProblem.difficulty == ProblemDifficulty.EASY,
+            Submission.status == SubmissionStatus.ACCEPTED,
+        ).scalar() or 0
+
+        med_s = self.db.query(func.count(distinct(Submission.problem_id))).join(DSAProblem).filter(
+            Submission.student_id == student_id,
+            DSAProblem.difficulty == ProblemDifficulty.MEDIUM,
+            Submission.status == SubmissionStatus.ACCEPTED,
+        ).scalar() or 0
+
+        hard_s = self.db.query(func.count(distinct(Submission.problem_id))).join(DSAProblem).filter(
+            Submission.student_id == student_id,
+            DSAProblem.difficulty == ProblemDifficulty.HARD,
+            Submission.status == SubmissionStatus.ACCEPTED,
+        ).scalar() or 0
 
         diff_stats = DifficultyStats(
-            easy={"solved": easy_s, "total": 50},
-            medium={"solved": med_s, "total": 65},
-            hard={"solved": hard_s, "total": 25},
+            easy={"solved": easy_s, "total": easy_total},
+            medium={"solved": med_s, "total": med_total},
+            hard={"solved": hard_s, "total": hard_total},
         )
 
         return StudentProgressOut(
-            problems_solved=solved_count,
-            problems_attempted=attempted_count,
-            pending=max(0, TOTAL_CURRICULUM_PROBLEMS - solved_count),
+            problems_solved=actual_solved_count,
+            problems_attempted=actual_attempted_count,
+            pending=max(0, total_curriculum_problems - actual_solved_count),
             overall_percentage=percentage,
             current_streak=streak,
             longest_streak=longest_streak,

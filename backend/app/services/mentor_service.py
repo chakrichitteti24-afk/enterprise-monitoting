@@ -1,12 +1,15 @@
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
+from sqlalchemy import func, distinct
 from app.repositories.mentor_repository import MentorRepository
 from app.repositories.team_repository import TeamRepository
 from app.repositories.student_repository import StudentRepository
-from app.services.student_service import StudentService, TOPIC_TOTALS
+from app.services.student_service import StudentService
 from app.models.note import MentorNote
 from app.models.team import Team
-from app.models.enums import DSATopic
+from app.models.problem import DSAProblem
+from app.models.submission import Submission
+from app.models.enums import DSATopic, SubmissionStatus
 from app.schemas.mentor import MentorOut
 from app.schemas.team import TeamDetailOut, TeamOut
 from app.schemas.student import StudentOut
@@ -68,13 +71,21 @@ class MentorService:
             else 0.0
         )
 
-        # Topic performance
+        # Exact Topic Performance directly from database submissions
+        student_ids = [s.id for s in team.students]
         topic_perf = {}
         for topic in DSATopic:
-            topic_total = TOPIC_TOTALS.get(topic, 15) * max(1, total_students)
-            # Estimate team solved
-            est_ratio = min(1.0, (avg_progress / 100.0))
-            topic_perf[topic.value] = min(100, round(est_ratio * 100))
+            t_probs = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.topic == topic).scalar() or 1
+            max_potential_solves = t_probs * max(1, len(student_ids))
+            if student_ids:
+                actual_solves = self.db.query(func.count(distinct(Submission.student_id, Submission.problem_id))).join(DSAProblem).filter(
+                    Submission.student_id.in_(student_ids),
+                    DSAProblem.topic == topic,
+                    Submission.status == SubmissionStatus.ACCEPTED,
+                ).scalar() or 0
+                topic_perf[topic.value] = min(100, round((actual_solves / max(1, max_potential_solves)) * 100))
+            else:
+                topic_perf[topic.value] = 0
 
         mentor_user = team.mentor.user if team.mentor and team.mentor.user else None
 

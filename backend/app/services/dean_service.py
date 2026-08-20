@@ -2,14 +2,14 @@ from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func
+from sqlalchemy import select, func, distinct
 from app.repositories.team_repository import TeamRepository
 from app.repositories.student_repository import StudentRepository
 from app.repositories.mentor_repository import MentorRepository
 from app.repositories.problem_repository import ProblemRepository
 from app.repositories.submission_repository import SubmissionRepository
 from app.repositories.user_repository import UserRepository
-from app.services.student_service import StudentService, TOPIC_TOTALS
+from app.services.student_service import StudentService
 from app.services.mentor_service import MentorService
 from app.core.security import get_password_hash
 from app.models.user import User
@@ -17,7 +17,9 @@ from app.models.student import Student
 from app.models.team import Team
 from app.models.mentor import Mentor
 from app.models.progress import StudentProgress
-from app.models.enums import UserRole, StudentStatus, DSALevel, DSATopic, ProblemDifficulty
+from app.models.problem import DSAProblem
+from app.models.submission import Submission
+from app.models.enums import UserRole, StudentStatus, DSALevel, DSATopic, ProblemDifficulty, SubmissionStatus
 from app.schemas.team import TeamOut, TeamDetailOut, TeamCreate, TeamUpdate
 from app.schemas.student import StudentOut, StudentCreate, StudentUpdate
 from app.schemas.mentor import MentorOut, MentorCreate, MentorUpdate
@@ -165,26 +167,54 @@ class DeanService:
 
     def get_macro_analytics(self) -> DeanAnalyticsOut:
         overview = self.get_dashboard_overview()
+        total_students = max(1, self.student_repo.count())
 
-        # Topic mastery stats
+        # Exact difficulty breakdown from real problems & submissions
+        total_easy_probs = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.difficulty == ProblemDifficulty.EASY).scalar() or 1
+        total_med_probs = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.difficulty == ProblemDifficulty.MEDIUM).scalar() or 1
+        total_hard_probs = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.difficulty == ProblemDifficulty.HARD).scalar() or 1
+
+        easy_solved = self.db.query(func.count(distinct(Submission.student_id, Submission.problem_id))).join(DSAProblem).filter(
+            DSAProblem.difficulty == ProblemDifficulty.EASY,
+            Submission.status == SubmissionStatus.ACCEPTED
+        ).scalar() or 0
+
+        med_solved = self.db.query(func.count(distinct(Submission.student_id, Submission.problem_id))).join(DSAProblem).filter(
+            DSAProblem.difficulty == ProblemDifficulty.MEDIUM,
+            Submission.status == SubmissionStatus.ACCEPTED
+        ).scalar() or 0
+
+        hard_solved = self.db.query(func.count(distinct(Submission.student_id, Submission.problem_id))).join(DSAProblem).filter(
+            DSAProblem.difficulty == ProblemDifficulty.HARD,
+            Submission.status == SubmissionStatus.ACCEPTED
+        ).scalar() or 0
+
+        diff_breakdown = DifficultyBreakdown(
+            easy_solved=easy_solved,
+            medium_solved=med_solved,
+            hard_solved=hard_solved,
+            easy_total=total_easy_probs * total_students,
+            medium_total=total_med_probs * total_students,
+            hard_total=total_hard_probs * total_students,
+        )
+
+        # Exact topic mastery stats directly from database
         topic_stats = []
         for topic in DSATopic:
+            t_probs = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.topic == topic).scalar() or 1
+            t_total_potential = t_probs * total_students
+            t_solved = self.db.query(func.count(distinct(Submission.student_id, Submission.problem_id))).join(DSAProblem).filter(
+                DSAProblem.topic == topic,
+                Submission.status == SubmissionStatus.ACCEPTED
+            ).scalar() or 0
+            t_pct = round((t_solved / max(1, t_total_potential)) * 100, 1)
             topic_stats.append(
                 TopicMasteryStats(
                     topic=topic.value,
-                    percentage=min(95, max(45, int(overview.overall_progress + (5 if topic == DSATopic.ARRAYS else -6 if topic == DSATopic.DYNAMIC_PROGRAMMING else 0)))),
-                    total_solved=int(overview.total_problems_solved * 0.125),
+                    percentage=t_pct,
+                    total_solved=t_solved,
                 )
             )
-
-        diff_breakdown = DifficultyBreakdown(
-            easy_solved=int(overview.total_problems_solved * 0.52),
-            medium_solved=int(overview.total_problems_solved * 0.36),
-            hard_solved=int(overview.total_problems_solved * 0.12),
-            easy_total=5000,
-            medium_total=6500,
-            hard_total=2500,
-        )
 
         return DeanAnalyticsOut(
             overall_progress=overview.overall_progress,
@@ -200,13 +230,40 @@ class DeanService:
     def get_formal_report(self) -> ReportExecutiveSummary:
         overview = self.get_dashboard_overview()
         teams = self.get_all_teams_summaries()
+        macro_analytics = self.get_macro_analytics()
+        topic_map = {ts.topic: ts.percentage for ts in macro_analytics.topic_mastery}
 
         topics = [
-            {"topic": "Arrays & Strings", "benchmark": "85%", "compliance": "91.2%", "status": "Met"},
-            {"topic": "Linked Lists & Queues", "benchmark": "80%", "compliance": "84.0%", "status": "Met"},
-            {"topic": "Trees & Binary Search", "benchmark": "75%", "compliance": "78.4%", "status": "Met"},
-            {"topic": "Graphs & Algorithms", "benchmark": "70%", "compliance": "71.0%", "status": "Met"},
-            {"topic": "Dynamic Programming", "benchmark": "65%", "compliance": "58.5%", "status": "Intervention Active"},
+            {
+                "topic": "Arrays & Strings",
+                "benchmark": "80%",
+                "compliance": f"{round((topic_map.get('ARRAYS', 0) + topic_map.get('STRINGS', 0)) / 2, 1)}%",
+                "status": "Met" if ((topic_map.get('ARRAYS', 0) + topic_map.get('STRINGS', 0)) / 2) >= 80 else "In Progress",
+            },
+            {
+                "topic": "Linked Lists & Queues",
+                "benchmark": "75%",
+                "compliance": f"{round((topic_map.get('LINKED_LISTS', 0) + topic_map.get('QUEUE', 0)) / 2, 1)}%",
+                "status": "Met" if ((topic_map.get('LINKED_LISTS', 0) + topic_map.get('QUEUE', 0)) / 2) >= 75 else "In Progress",
+            },
+            {
+                "topic": "Trees & Binary Search",
+                "benchmark": "70%",
+                "compliance": f"{topic_map.get('TREES', 0)}%",
+                "status": "Met" if topic_map.get('TREES', 0) >= 70 else "In Progress",
+            },
+            {
+                "topic": "Graphs & Algorithms",
+                "benchmark": "65%",
+                "compliance": f"{topic_map.get('GRAPHS', 0)}%",
+                "status": "Met" if topic_map.get('GRAPHS', 0) >= 65 else "In Progress",
+            },
+            {
+                "topic": "Dynamic Programming",
+                "benchmark": "60%",
+                "compliance": f"{topic_map.get('DYNAMIC_PROGRAMMING', 0)}%",
+                "status": "Met" if topic_map.get('DYNAMIC_PROGRAMMING', 0) >= 60 else "Intervention Active",
+            },
         ]
 
         teams_matrix = [
