@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { CurrentUser, Mentor, Student, Team, UserRole } from '../types';
+import { CurrentUser, Mentor, Problem, Student, Team, UserRole, DSATopic } from '../types';
 import {
   ALL_MENTORS,
   ALL_STUDENTS,
@@ -19,6 +19,7 @@ import {
   createStudentApi,
   deleteStudentApi,
   updateStudentAvatarApi,
+  submitSolutionApi,
 } from '../lib/api';
 
 interface AuthContextType {
@@ -48,6 +49,7 @@ interface AuthContextType {
   addStudent: (studentData: Partial<Student>) => Promise<void>;
   removeStudent: (studentId: string) => Promise<void>;
   updateAvatar: (newAvatarUrl: string) => Promise<void>;
+  solveProblem: (problem: Problem) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -398,6 +400,142 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   };
 
+  const solveProblem = async (problem: Problem): Promise<boolean> => {
+    if (!currentUser.studentData) return false;
+
+    const studentId = currentUser.studentData.id;
+    const targetStudent = students.find(s => s.id === studentId || s.rollNo === currentUser.studentData?.rollNo);
+    if (!targetStudent) return false;
+
+    // Check if already solved
+    const alreadySolved = targetStudent.recentActivities.some(a => a.problemTitle === problem.title);
+    if (alreadySolved) return true;
+
+    // Update Topic Progress
+    const topic = problem.topic as DSATopic;
+    const currentTopicData = targetStudent.topicProgress[topic] || { solved: 0, total: 5, percentage: 0 };
+    const newTopicSolved = Math.min(currentTopicData.total, currentTopicData.solved + 1);
+    const newTopicPct = Math.round((newTopicSolved / currentTopicData.total) * 100);
+
+    const updatedTopicProgress = {
+      ...targetStudent.topicProgress,
+      [topic]: {
+        ...currentTopicData,
+        solved: newTopicSolved,
+        percentage: newTopicPct,
+      },
+    };
+
+    // Update Difficulty Stats
+    const diffKey = problem.difficulty.toLowerCase() as 'easy' | 'medium' | 'hard';
+    const currentDiff = targetStudent.difficultyStats[diffKey] || { solved: 0, total: 10 };
+    const updatedDifficultyStats = {
+      ...targetStudent.difficultyStats,
+      [diffKey]: {
+        ...currentDiff,
+        solved: currentDiff.solved + 1,
+      },
+    };
+
+    const newSolved = targetStudent.solved + 1;
+    const newAttempted = Math.max(targetStudent.attempted + 1, newSolved);
+    const newPending = Math.max(0, 34 - newSolved);
+    const newProgress = Math.min(100, Math.round((newSolved / 34) * 100));
+    const newStreak = targetStudent.streak + 1;
+    const newLongestStreak = Math.max(targetStudent.longestStreak, newStreak);
+    const newLevel = newProgress >= 85 ? 'Mastery' : newProgress >= 65 ? 'Advanced' : newProgress >= 40 ? 'Intermediate' : 'Beginner';
+
+    const newActivity = {
+      id: `act-${Date.now()}`,
+      studentId: targetStudent.id,
+      action: 'Solved',
+      problemTitle: problem.title,
+      topic: topic,
+      timeAgo: 'Just now',
+      status: 'Completed' as const,
+      difficulty: problem.difficulty,
+    };
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const updatedSubmissions = [...targetStudent.submissionsHistory, { date: todayStr, count: 1 }];
+
+    const updatedStudent: Student = {
+      ...targetStudent,
+      solved: newSolved,
+      attempted: newAttempted,
+      pending: newPending,
+      progress: newProgress,
+      streak: newStreak,
+      longestStreak: newLongestStreak,
+      dsaLevel: newLevel as any,
+      topicProgress: updatedTopicProgress,
+      difficultyStats: updatedDifficultyStats,
+      recentActivities: [newActivity, ...targetStudent.recentActivities],
+      submissionsHistory: updatedSubmissions,
+    };
+
+    // Update Students State
+    setStudents(prev => prev.map(s => s.id === targetStudent.id ? updatedStudent : s));
+
+    // Update Current User
+    setCurrentUser(prev => ({
+      ...prev,
+      studentData: updatedStudent,
+    }));
+
+    // Update Assigned Team Stats
+    setTeams(prevTeams =>
+      prevTeams.map(t => {
+        if (t.id === targetStudent.teamId || t.teamNumber === targetStudent.teamNumber) {
+          const teamSts = students.map(s => s.id === targetStudent.id ? updatedStudent : s)
+            .filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber);
+          const tSolved = teamSts.reduce((acc, s) => acc + s.solved, 0);
+          const tAttempted = teamSts.reduce((acc, s) => acc + s.attempted, 0);
+          const tAvgProg = teamSts.length > 0 ? Math.round(teamSts.reduce((acc, s) => acc + s.progress, 0) / teamSts.length) : 0;
+          const tAvgStreak = teamSts.length > 0 ? Math.round(teamSts.reduce((acc, s) => acc + s.streak, 0) / teamSts.length) : 0;
+
+          const tPerf: Record<string, number> = {};
+          const topicCaps: Record<string, number> = {
+            Arrays: 5, Strings: 4, 'Linked Lists': 4, Stack: 4, Queue: 2, Trees: 5, Graphs: 4, 'Dynamic Programming': 6,
+          };
+          for (const top of Object.keys(updatedTopicProgress)) {
+            const totalTopicCap = (topicCaps[top] || 1) * teamSts.length;
+            const solvedTopic = teamSts.reduce((acc, s) => acc + (s.topicProgress[top as DSATopic]?.solved || 0), 0);
+            tPerf[top] = Math.min(100, Math.round((solvedTopic / Math.max(1, totalTopicCap)) * 100));
+          }
+
+          return {
+            ...t,
+            totalSolved: tSolved,
+            totalAttempted: tAttempted,
+            avgProgress: tAvgProg,
+            avgStreak: tAvgStreak,
+            topicPerformance: tPerf,
+          };
+        }
+        return t;
+      })
+    );
+
+    // Try backend submission if token exists
+    try {
+      const pNum = parseInt(problem.id.replace('prob-', ''), 10) || 1;
+      await submitSolutionApi({
+        problem_id: pNum,
+        status: 'SOLVED',
+        score: 100,
+        runtime_ms: 54,
+        memory_mb: 41.8,
+        code_snippet: '// Solved via GKCE Sandbox Runner',
+        language: 'Java',
+      });
+    } catch {
+      // Local state already updated
+    }
+
+    return true;
+  };
+
   // Keyboard shortcut for Cmd/Ctrl+K search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -439,6 +577,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addStudent,
         removeStudent,
         updateAvatar,
+        solveProblem,
       }}
     >
       {children}

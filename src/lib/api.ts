@@ -191,3 +191,18 @@ export async function updateStudentAvatarApi(avatarUrl: string) {
   });
 }
 
+export async function submitSolutionApi(payload: {
+  problem_id: number;
+  status: string;
+  score?: number;
+  runtime_ms?: number;
+  memory_mb?: number;
+  code_snippet?: string;
+  language?: string;
+}) {
+  return apiRequest<any>('/submissions', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+

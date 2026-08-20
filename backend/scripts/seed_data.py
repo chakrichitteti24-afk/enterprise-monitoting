@@ -286,8 +286,8 @@ def seed(db_session: Session = None):
             [p for p in problem_objs if p.difficulty == ProblemDifficulty.HARD]
         )
 
-        # 4. Students & Exact Submissions
-        print(f"[5/6] Ingesting {len(REAL_GKCE_STUDENTS)} Authentic GKCE Students...")
+        # 4. Students at Clean 0% Baseline (No Fake Submissions)
+        print(f"[5/6] Ingesting {len(REAL_GKCE_STUDENTS)} Authentic GKCE Students at clean 0% baseline...")
         student_users = []
         student_profiles = []
 
@@ -296,9 +296,6 @@ def seed(db_session: Session = None):
             team_obj = team_objs[team_id - 1]
             roll_no = s_info["roll"]
             name = s_info["name"]
-            target_solved = s_info["target_solved"]
-            streak = s_info["streak"]
-            longest_streak = streak + 4
 
             email = f"{roll_no.lower()}@gkce.edu.in"
             if "CHAKRI" in name:
@@ -316,22 +313,12 @@ def seed(db_session: Session = None):
             db.flush()
             student_users.append(s_user)
 
-            dsa_level = (
-                DSALevel.MASTERY if target_solved >= 28
-                else DSALevel.ADVANCED if target_solved >= 20
-                else DSALevel.INTERMEDIATE if target_solved >= 14
-                else DSALevel.BEGINNER
-            )
-
-            progress_pct = round((target_solved / len(problem_objs)) * 100, 1)
-            status = StudentStatus.ACTIVE if progress_pct >= 60.0 else StudentStatus.NEEDS_ATTENTION
-
             s_profile = Student(
                 user_id=s_user.id,
                 roll_number=roll_no,
                 team_id=team_obj.id,
-                status=status,
-                dsa_level=dsa_level,
+                status=StudentStatus.ACTIVE,
+                dsa_level=DSALevel.BEGINNER,
                 leetcode_username=f"{name.lower().replace(' ', '_')[:12]}_{roll_no[-4:]}",
                 github_username=f"{name.lower().replace(' ', '')[:10]}_{roll_no[-4:]}",
             )
@@ -339,59 +326,26 @@ def seed(db_session: Session = None):
             db.flush()
             student_profiles.append(s_profile)
 
-            # Assign exact solved problems
-            solved_sample = ordered_probs[:target_solved]
-
-            easy_s = sum(1 for p in solved_sample if p.difficulty == ProblemDifficulty.EASY)
-            med_s = sum(1 for p in solved_sample if p.difficulty == ProblemDifficulty.MEDIUM)
-            hard_s = sum(1 for p in solved_sample if p.difficulty == ProblemDifficulty.HARD)
-
             sp = StudentProgress(
                 student_id=s_profile.id,
-                problems_solved=target_solved,
-                problems_attempted=min(len(problem_objs), target_solved + 2),
-                overall_percentage=progress_pct,
-                current_streak=streak,
-                longest_streak=longest_streak,
-                easy_solved=easy_s,
-                medium_solved=med_s,
-                hard_solved=hard_s,
+                problems_solved=0,
+                problems_attempted=0,
+                overall_percentage=0.0,
+                current_streak=0,
+                longest_streak=0,
+                easy_solved=0,
+                medium_solved=0,
+                hard_solved=0,
             )
             db.add(sp)
 
-            # Add actual submissions for all solved problems
-            for p_idx, prob in enumerate(solved_sample):
-                sub_time = datetime.now(timezone.utc) - timedelta(hours=(len(solved_sample) - p_idx) * 4)
-                sub = Submission(
-                    student_id=s_profile.id,
-                    problem_id=prob.id,
-                    status=SubmissionStatus.SOLVED,
-                    score=100.0,
-                    runtime_ms=random.randint(25, 85),
-                    memory_mb=round(random.uniform(38.0, 44.0), 1),
-                    code_snippet=f"// GKCE DSA Solution for {prob.title}\nclass Solution {{\n    public int solve() {{\n        return 0;\n    }}\n}}",
-                    language="Java",
-                    submitted_at=sub_time,
-                )
-                db.add(sub)
-
-                if p_idx >= len(solved_sample) - 4:
-                    act = ActivityLog(
-                        student_id=s_profile.id,
-                        activity_type="SOLVED",
-                        problem_id=prob.id,
-                        description=f"Solved '{prob.title}' ({prob.difficulty.value}) in {prob.topic.value}.",
-                        created_at=sub_time,
-                    )
-                    db.add(act)
-
-            # Add mentor feedback note
+            # Add initial mentor enrollment note
             mentor_profile = mentor_profiles[team_id - 1]
             db.add(
                 MentorNote(
                     student_id=s_profile.id,
                     mentor_id=mentor_profile.id,
-                    note=f"Demonstrated good mastery on {solved_sample[-1].topic.value} module. Regular practice observed during lab sessions.",
+                    note="Student enrolled in institutional DSA training cohort. Ready to begin curriculum problems.",
                     created_at=datetime.now(timezone.utc) - timedelta(days=2),
                 )
             )

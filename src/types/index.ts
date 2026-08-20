@@ -80,11 +80,11 @@ export interface Mentor {
   name: string;
   email: string;
   department: string;
-  phone: string;
+  phone?: string;
   avatar: string;
   assignedTeamId: string;
   assignedTeamNumber: string;
-  experienceYears: number;
+  experienceYears?: number;
 }
 
 export interface Problem {

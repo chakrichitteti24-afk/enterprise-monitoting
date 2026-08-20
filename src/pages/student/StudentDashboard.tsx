@@ -242,30 +242,36 @@ export const StudentDashboard: React.FC = () => {
           className="col-span-1 md:col-span-2 lg:col-span-2"
         >
           <div className="space-y-2.5 pt-1">
-            {student.recentActivities.map((act) => (
-              <div
-                key={act.id}
-                className="p-3 sm:p-3.5 rounded-2xl border border-slate-100 bg-slate-50/70 hover:bg-slate-100/70 transition-colors flex items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-slate-900 truncate">
-                      {act.action} {act.problemTitle}
-                    </div>
-                    <div className="text-[11px] text-slate-500 truncate mt-0.5">
-                      {act.topic} • {act.difficulty}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="text-xs font-semibold text-slate-700 block">{act.timeAgo}</span>
-                  <span className="text-[10px] text-emerald-600 font-bold block">Passed Test Cases</span>
-                </div>
+            {student.recentActivities.length === 0 ? (
+              <div className="py-6 text-center text-slate-400 text-xs bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                No activity recorded yet. Click <strong>Solve Problems</strong> above to start your practice!
               </div>
-            ))}
+            ) : (
+              student.recentActivities.map((act) => (
+                <div
+                  key={act.id}
+                  className="p-3 sm:p-3.5 rounded-2xl border border-slate-100 bg-slate-50/70 hover:bg-slate-100/70 transition-colors flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-slate-900 truncate">
+                        {act.action} {act.problemTitle}
+                      </div>
+                      <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                        {act.topic} • {act.difficulty}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-xs font-semibold text-slate-700 block">{act.timeAgo}</span>
+                    <span className="text-[10px] text-emerald-600 font-bold block">Passed Test Cases</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </BentoCard>
       </div>

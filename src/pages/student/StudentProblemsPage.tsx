@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { PROBLEMS_BANK, DSA_TOPICS } from '../../data/mockData';
 import { Problem } from '../../types';
-import { Search, Code2, Play, X } from 'lucide-react';
+import { Search, Code2, Play, X, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const StudentProblemsPage: React.FC = () => {
+  const { solveProblem, currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTopic, setSelectedTopic] = useState<string>('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('All');
   const [activeProblem, setActiveProblem] = useState<Problem | null>(null);
   const [codeOutput, setCodeOutput] = useState<string | null>(null);
+  const [isSolvedLocally, setIsSolvedLocally] = useState(false);
+
+  const solvedTitles = new Set(currentUser.studentData?.recentActivities.map(a => a.problemTitle) || []);
 
   const filteredProblems = PROBLEMS_BANK.filter((p) => {
     const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -19,7 +24,7 @@ export const StudentProblemsPage: React.FC = () => {
     return matchesSearch && matchesTopic && matchesDifficulty;
   });
 
-  const handleRunCode = () => {
+  const handleRunCode = async () => {
     if (!activeProblem) return;
     setCodeOutput(
       `Running automated test suite for "${activeProblem.title}" (${activeProblem.topic} - ${activeProblem.difficulty})...\n` +
@@ -27,8 +32,11 @@ export const StudentProblemsPage: React.FC = () => {
       `Test Case 2: Edge cases and constraints check... [PASSED] (22ms)\n` +
       `Test Case 3: Algorithmic complexity evaluation... [PASSED] (14ms)\n\n` +
       `✅ All test cases passed! (3/3)\n` +
-      `Runtime: 54ms | Memory: 41.8 MB | Status: VERIFIED SOLVED`
+      `Runtime: 54ms | Memory: 41.8 MB | Status: VERIFIED SOLVED\n` +
+      `🎉 Progress automatically updated in student portfolio!`
     );
+    setIsSolvedLocally(true);
+    await solveProblem(activeProblem);
   };
 
   return (
@@ -103,6 +111,11 @@ export const StudentProblemsPage: React.FC = () => {
                   <h3 className="text-sm font-bold text-slate-900 leading-snug hover:text-blue-600 transition-colors truncate">
                     {prob.title}
                   </h3>
+                  {solvedTitles.has(prob.title) && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                      <CheckCircle2 className="w-3 h-3" /> Solved
+                    </span>
+                  )}
                 </div>
                 <span
                   className={`text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap ${
@@ -127,7 +140,9 @@ export const StudentProblemsPage: React.FC = () => {
               </span>
               <div className="flex items-center gap-3">
                 <span className="text-[11px]">Acceptance: <strong>{prob.acceptanceRate}</strong></span>
-                <span className="font-bold text-blue-700 hover:underline">Solve →</span>
+                <span className={`font-bold ${solvedTitles.has(prob.title) ? 'text-emerald-700' : 'text-blue-700'} hover:underline`}>
+                  {solvedTitles.has(prob.title) ? 'Review ✓' : 'Solve →'}
+                </span>
               </div>
             </div>
           </motion.div>

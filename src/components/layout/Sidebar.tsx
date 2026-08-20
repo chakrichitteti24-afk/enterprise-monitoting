@@ -21,7 +21,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ className = '', onItemClick }) => {
-  const { role, activeTab, setActiveTab, setSelectedStudent, setSelectedTeam, currentUser } = useAuth();
+  const { role, activeTab, setActiveTab, setSelectedStudent, setSelectedTeam, currentUser, students, teams } = useAuth();
 
   const handleNavClick = (tabId: string) => {
     setActiveTab(tabId);
@@ -33,31 +33,44 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '', onItemClick })
   // Role-specific navigation items
   const getNavItems = () => {
     switch (role) {
-      case 'DEAN':
+      case 'DEAN': {
+        const deanAvgProgress = students.length > 0
+          ? Math.round(students.reduce((acc, s) => acc + s.progress, 0) / students.length)
+          : 0;
         return [
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: undefined },
-          { id: 'teams', label: 'Teams', icon: Layers, badge: '20' },
-          { id: 'students', label: 'Students', icon: GraduationCap, badge: '100' },
-          { id: 'progress', label: 'Progress', icon: TrendingUp, badge: '76%' },
+          { id: 'teams', label: 'Teams', icon: Layers, badge: String(teams.length) },
+          { id: 'students', label: 'Students', icon: GraduationCap, badge: String(students.length) },
+          { id: 'progress', label: 'Progress', icon: TrendingUp, badge: `${deanAvgProgress}%` },
           { id: 'analytics', label: 'Analytics', icon: BarChart3, badge: undefined },
           { id: 'reports', label: 'Reports', icon: FileText, badge: undefined },
           { id: 'settings', label: 'Settings', icon: Settings, badge: undefined },
         ];
-      case 'MENTOR':
+      }
+      case 'MENTOR': {
+        const myTeamStudents = students.filter(
+          s => s.teamId === currentUser.teamId || s.teamNumber === currentUser.teamNumber
+        );
+        const myTeamAvg = myTeamStudents.length > 0
+          ? Math.round(myTeamStudents.reduce((acc, s) => acc + s.progress, 0) / myTeamStudents.length)
+          : 0;
         return [
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: undefined },
           { id: 'my-team', label: 'My Team', icon: Users, badge: currentUser.teamNumber || 'Team 07' },
-          { id: 'students', label: 'Students', icon: GraduationCap, badge: '5' },
-          { id: 'progress', label: 'Progress', icon: TrendingUp, badge: undefined },
+          { id: 'students', label: 'Students', icon: GraduationCap, badge: String(myTeamStudents.length) },
+          { id: 'progress', label: 'Progress', icon: TrendingUp, badge: `${myTeamAvg}%` },
         ];
-      case 'STUDENT':
+      }
+      case 'STUDENT': {
+        const studentProg = currentUser.studentData?.progress ?? 0;
         return [
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: undefined },
-          { id: 'my-progress', label: 'My Progress', icon: TrendingUp, badge: `${currentUser.studentData?.progress || 72}%` },
+          { id: 'my-progress', label: 'My Progress', icon: TrendingUp, badge: `${studentProg}%` },
           { id: 'problems', label: 'Problems', icon: Code2, badge: undefined },
           { id: 'activity', label: 'Activity', icon: Activity, badge: undefined },
           { id: 'profile', label: 'Profile', icon: User, badge: undefined },
         ];
+      }
     }
   };
 
