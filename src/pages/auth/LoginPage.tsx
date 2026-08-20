@@ -32,7 +32,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
   const [rememberDevice, setRememberDevice] = useState(true);
-  const [activePreset, setActivePreset] = useState<'DEAN' | 'MENTOR' | 'STUDENT'>('STUDENT');
 
   // Cooldown countdown timer for brute force protection
   useEffect(() => {
@@ -72,21 +71,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   };
 
   const strength = calculatePasswordStrength(password);
-
-  const applyPreset = (roleType: 'DEAN' | 'MENTOR' | 'STUDENT') => {
-    setActivePreset(roleType);
-    setErrorMessage(null);
-    if (roleType === 'DEAN') {
-      setEmail('dean.academics@gkce.edu.in');
-      setPassword('Dean@GKCE2026');
-    } else if (roleType === 'MENTOR') {
-      setEmail('ludvika@gkce.edu.in');
-      setPassword('Mentor@GKCE2026');
-    } else {
-      setEmail('chakri24f81a0522@gkce.edu.in');
-      setPassword('gkce@1234');
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,52 +158,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           <span className="font-mono text-slate-500">ID: SEC-GKCE-2026</span>
         </div>
 
-        {/* Preset Selector Tabs */}
-        <div className="space-y-1.5">
-          <div className="text-[11px] font-semibold text-slate-400 text-center">
-            Role Preset Selector
-          </div>
-          <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-950/70 border border-slate-800">
-            <button
-              type="button"
-              onClick={() => applyPreset('DEAN')}
-              className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer ${
-                activePreset === 'DEAN'
-                  ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
-              }`}
-            >
-              <div className="text-[11px] leading-tight">🏛️ Dean</div>
-              <div className="text-[9px] opacity-80 truncate">Prof. Rama Devi</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => applyPreset('MENTOR')}
-              className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer ${
-                activePreset === 'MENTOR'
-                  ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
-              }`}
-            >
-              <div className="text-[11px] leading-tight">👨‍🏫 Mentor</div>
-              <div className="text-[9px] opacity-80 truncate">Mrs. Ludvika</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => applyPreset('STUDENT')}
-              className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer ${
-                activePreset === 'STUDENT'
-                  ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
-              }`}
-            >
-              <div className="text-[11px] leading-tight">🎓 Student</div>
-              <div className="text-[9px] opacity-80 truncate">CH. CHAKRI</div>
-            </button>
-          </div>
-        </div>
 
         {/* Error / Lockout Alert */}
         <AnimatePresence>

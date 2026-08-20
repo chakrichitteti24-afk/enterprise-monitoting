@@ -6,7 +6,7 @@ from scripts.seed_data import DEAN_PASSWORD, MENTOR_PASSWORD, STUDENT_PASSWORD
 def test_login_success_dean(client: TestClient):
     response = client.post(
         "/api/auth/login",
-        json={"email": "dean.academics@gkce.edu.in", "password": DEAN_PASSWORD},
+        json={"email": "root@gkce.edu.in", "password": DEAN_PASSWORD},
     )
     assert response.status_code == 200
     data = response.json()

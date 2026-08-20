@@ -38,7 +38,7 @@ def get_token(client: TestClient, email: str, password: str) -> str:
 
 @pytest.fixture
 def dean_token(client: TestClient) -> str:
-    return get_token(client, "dean.academics@gkce.edu.in", DEAN_PASSWORD)
+    return get_token(client, "root@gkce.edu.in", DEAN_PASSWORD)
 
 
 @pytest.fixture

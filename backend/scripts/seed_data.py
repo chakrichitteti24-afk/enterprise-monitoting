@@ -34,7 +34,7 @@ from app.models.activity import ActivityLog
 from app.models.note import MentorNote
 
 # Demo credentials for institutional access
-DEAN_PASSWORD = "Dean@GKCE2026"
+DEAN_PASSWORD = "gkce@1234"
 MENTOR_PASSWORD = "Mentor@GKCE2026"
 STUDENT_PASSWORD = "gkce@1234"
 
@@ -214,7 +214,7 @@ def seed(db_session: Session = None):
         print("[2/6] Creating Dean Administrator...")
         dean_user = User(
             name="Prof. Dr. V. Rama Devi, Ph.D.",
-            email="dean.academics@gkce.edu.in",
+            email="root@gkce.edu.in",
             password_hash=dean_pwd_hash,
             role=UserRole.DEAN,
             avatar_url="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
@@ -376,7 +376,7 @@ def seed(db_session: Session = None):
         print(f"Teams:            {db.query(Team).count()} Teams")
         print(f"DSA Problems:     {db.query(DSAProblem).count()} Problems")
         print(f"Submissions:      {db.query(Submission).count()} Recorded Submissions")
-        print(f"Dean:             dean.academics@gkce.edu.in | {DEAN_PASSWORD}")
+        print(f"Dean:             root@gkce.edu.in | {DEAN_PASSWORD}")
         print(f"Mrs. Ludvika:     ludvika@gkce.edu.in | {MENTOR_PASSWORD}")
         print(f"CH. Chakri:       chakri24f81a0522@gkce.edu.in | {STUDENT_PASSWORD}")
         print("==========================================================")
