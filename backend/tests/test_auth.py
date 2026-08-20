@@ -19,13 +19,13 @@ def test_login_success_dean(client: TestClient):
 def test_login_success_student(client: TestClient):
     response = client.post(
         "/api/auth/login",
-        json={"email": "student.001@gkce.edu.in", "password": STUDENT_PASSWORD},
+        json={"email": "23f81a0502@gkce.edu.in", "password": STUDENT_PASSWORD},
     )
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
     assert data["user"]["role"] == "STUDENT"
-    assert data["user"]["roll_number"] == "22CSE001"
+    assert data["user"]["roll_number"] == "23F81A0502"
     assert data["user"]["team_id"] == 1
 
 
@@ -54,7 +54,7 @@ def test_get_me_with_valid_token(client: TestClient, student_1_token: str):
     assert response.status_code == 200
     data = response.json()
     assert data["role"] == "STUDENT"
-    assert data["roll_number"] == "22CSE001"
+    assert data["roll_number"] == "23F81A0502"
 
 
 def test_get_me_missing_token(client: TestClient):

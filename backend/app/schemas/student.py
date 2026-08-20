@@ -1,8 +1,43 @@
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, EmailStr, field_validator
 from app.models.enums import DSALevel, StudentStatus, ProblemDifficulty, DSATopic
 from app.schemas.note import MentorNoteOut
+
+
+class StudentCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    roll_number: str = Field(..., min_length=4, max_length=20)
+    email: EmailStr
+    team_id: int
+    password: Optional[str] = Field(default="Student@GKCE2026", min_length=6)
+    dsa_level: DSALevel = DSALevel.BEGINNER
+    status: StudentStatus = StudentStatus.ACTIVE
+
+
+class StudentUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=2, max_length=100)
+    roll_number: Optional[str] = Field(default=None, min_length=4, max_length=20)
+    email: Optional[EmailStr] = None
+    team_id: Optional[int] = None
+    dsa_level: Optional[DSALevel] = None
+    status: Optional[StudentStatus] = None
+
+
+class AvatarUpdate(BaseModel):
+    avatar_url: str = Field(..., min_length=5, max_length=500000, description="Image URL or base64 data string")
+
+    @field_validator("avatar_url")
+    @classmethod
+    def validate_avatar_scheme(cls, v: str) -> str:
+        v_clean = v.strip()
+        allowed_prefixes = ("http://", "https://", "data:image/", "/")
+        if not any(v_clean.startswith(prefix) for prefix in allowed_prefixes):
+            raise ValueError("Avatar URL must begin with https://, http://, data:image/, or /")
+        # Prevent dangerous characters or javascript injections
+        if any(bad in v_clean.lower() for bad in ("<script", "javascript:", "vbscript:", "onload=")):
+            raise ValueError("Invalid avatar URL format.")
+        return v_clean
 
 
 class TopicProgressDetail(BaseModel):

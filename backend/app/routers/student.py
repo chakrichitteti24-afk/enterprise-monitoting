@@ -7,7 +7,7 @@ from app.models.user import User
 from app.models.enums import DSATopic, ProblemDifficulty
 from app.services.student_service import StudentService
 from app.repositories.submission_repository import SubmissionRepository
-from app.schemas.student import StudentDetailOut, StudentProgressOut, ActivityLogOut
+from app.schemas.student import StudentDetailOut, StudentProgressOut, ActivityLogOut, AvatarUpdate
 from app.schemas.problem import DSAProblemOut
 from app.schemas.submission import SubmissionOut
 
@@ -135,3 +135,21 @@ def get_student_streak(
         "consistency_score": "94%",
         "status": "Active" if progress.current_streak > 0 else "Needs Practice",
     }
+
+
+@router.put(
+    "/me/avatar",
+    response_model=StudentDetailOut,
+    summary="Update student profile photo (Avatar)",
+    description="Allows authenticated students to update their profile photo avatar URL.",
+)
+def update_student_avatar(
+    avatar_in: AvatarUpdate,
+    current_user: User = Depends(require_student),
+    db: Session = Depends(get_db),
+):
+    current_user.avatar_url = avatar_in.avatar_url
+    db.commit()
+    db.refresh(current_user)
+    student_service = StudentService(db)
+    return student_service.get_student_detail(current_user.student_profile.id)

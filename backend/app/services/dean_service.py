@@ -1,4 +1,6 @@
 from typing import Optional, List, Dict, Any, Tuple
+from datetime import datetime, timezone
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 from app.repositories.team_repository import TeamRepository
@@ -6,15 +8,19 @@ from app.repositories.student_repository import StudentRepository
 from app.repositories.mentor_repository import MentorRepository
 from app.repositories.problem_repository import ProblemRepository
 from app.repositories.submission_repository import SubmissionRepository
+from app.repositories.user_repository import UserRepository
 from app.services.student_service import StudentService, TOPIC_TOTALS
 from app.services.mentor_service import MentorService
+from app.core.security import get_password_hash
+from app.models.user import User
 from app.models.student import Student
 from app.models.team import Team
 from app.models.mentor import Mentor
 from app.models.progress import StudentProgress
-from app.models.enums import StudentStatus, DSALevel, DSATopic, ProblemDifficulty
-from app.schemas.team import TeamOut, TeamDetailOut
-from app.schemas.student import StudentOut
+from app.models.enums import UserRole, StudentStatus, DSALevel, DSATopic, ProblemDifficulty
+from app.schemas.team import TeamOut, TeamDetailOut, TeamCreate, TeamUpdate
+from app.schemas.student import StudentOut, StudentCreate, StudentUpdate
+from app.schemas.mentor import MentorOut, MentorCreate, MentorUpdate
 from app.schemas.analytics import (
     DeanDashboardOverview,
     DeanAnalyticsOut,
@@ -227,3 +233,285 @@ class DeanService:
             teams_matrix=teams_matrix,
             dean_signature="Dr. R. V. Raman, Ph.D. — Dean of Academics",
         )
+
+    # -------------------------------------------------------------
+    # Team Administrative Management
+    # -------------------------------------------------------------
+    def _build_team_out(self, team: Team) -> TeamOut:
+        st_outs = [self.student_service._build_student_out(s) for s in (team.students or [])]
+        count = len(st_outs)
+        avg_p = (
+            round(sum(s.progress_percentage for s in st_outs) / count, 1)
+            if count > 0
+            else 0.0
+        )
+        tot_s = sum(s.problems_solved for s in st_outs)
+        tot_a = sum(s.problems_attempted for s in st_outs)
+        avg_str = (
+            round(sum(s.current_streak for s in st_outs) / count, 1)
+            if count > 0
+            else 0.0
+        )
+        mentor_user = team.mentor.user if team.mentor and team.mentor.user else None
+
+        status = "ACTIVE"
+        if avg_p < 60:
+            status = "NEEDS_ATTENTION"
+
+        return TeamOut(
+            id=team.id,
+            team_number=team.team_number,
+            name=team.name,
+            mentor_id=team.mentor.id if team.mentor else None,
+            mentor_name=mentor_user.name if mentor_user else "Unassigned",
+            mentor_email=mentor_user.email if mentor_user else None,
+            mentor_department=team.mentor.department if team.mentor else None,
+            mentor_avatar=mentor_user.avatar_url if mentor_user else None,
+            student_count=count,
+            average_progress=avg_p,
+            total_problems_solved=tot_s,
+            total_attempted=tot_a,
+            average_streak=avg_str,
+            status=status,
+            rank=1,
+            created_at=team.created_at,
+        )
+
+    def create_team(self, team_in: TeamCreate) -> TeamOut:
+        existing = self.team_repo.get_by_team_number(team_in.team_number)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Team with number '{team_in.team_number}' already exists.",
+            )
+
+        team = Team(
+            team_number=team_in.team_number,
+            name=team_in.name,
+        )
+        self.db.add(team)
+        self.db.flush()
+
+        if team_in.mentor_id:
+            mentor = self.mentor_repo.get_by_id(team_in.mentor_id)
+            if mentor:
+                mentor.assigned_team_id = team.id
+
+        self.db.commit()
+        full_team = self.team_repo.get_by_id_with_details(team.id) or team
+        return self._build_team_out(full_team)
+
+    def update_team(self, team_id: int, team_in: TeamUpdate) -> TeamOut:
+        team = self.team_repo.get_by_id(team_id)
+        if not team:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Team {team_id} not found.",
+            )
+
+        if team_in.name is not None:
+            team.name = team_in.name
+
+        if team_in.mentor_id is not None:
+            # Clear old mentor assigned to this team
+            old_mentor = self.db.query(Mentor).filter(Mentor.assigned_team_id == team.id).first()
+            if old_mentor and old_mentor.id != team_in.mentor_id:
+                old_mentor.assigned_team_id = None
+
+            if team_in.mentor_id > 0:
+                new_mentor = self.mentor_repo.get_by_id(team_in.mentor_id)
+                if new_mentor:
+                    new_mentor.assigned_team_id = team.id
+
+        self.db.commit()
+        full_team = self.team_repo.get_by_id_with_details(team.id) or team
+        return self._build_team_out(full_team)
+
+    def delete_team(self, team_id: int):
+        team = self.team_repo.get_by_id(team_id)
+        if not team:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Team {team_id} not found.",
+            )
+
+        # Unassign mentor
+        mentor = self.db.query(Mentor).filter(Mentor.assigned_team_id == team.id).first()
+        if mentor:
+            mentor.assigned_team_id = None
+
+        self.db.delete(team)
+        self.db.commit()
+        return {"detail": f"Team {team.team_number} successfully deleted."}
+
+    # -------------------------------------------------------------
+    # Student Administrative Management
+    # -------------------------------------------------------------
+    def create_student(self, student_in: StudentCreate) -> StudentOut:
+        user_repo = UserRepository(self.db)
+        if user_repo.get_by_email(student_in.email):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Email '{student_in.email}' is already registered.",
+            )
+
+        if self.student_repo.get_by_roll_number(student_in.roll_number):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Roll number '{student_in.roll_number}' is already registered.",
+            )
+
+        team = self.team_repo.get_by_id(student_in.team_id)
+        if not team:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Target team with ID {student_in.team_id} does not exist.",
+            )
+
+        # 1. Create User
+        user = User(
+            name=student_in.name,
+            email=student_in.email,
+            password_hash=get_password_hash(student_in.password or "Student@GKCE2026"),
+            role=UserRole.STUDENT,
+            is_active=True,
+        )
+        self.db.add(user)
+        self.db.flush()
+
+        # 2. Create Student Profile
+        student = Student(
+            user_id=user.id,
+            roll_number=student_in.roll_number,
+            team_id=team.id,
+            status=student_in.status,
+            dsa_level=student_in.dsa_level,
+            leetcode_username=f"{student_in.name.lower().replace(' ', '_')[:10]}_{student_in.roll_number[-4:]}",
+            github_username=f"{student_in.name.lower().replace(' ', '')[:10]}_{student_in.roll_number[-4:]}",
+        )
+        self.db.add(student)
+        self.db.flush()
+
+        # 3. Create Progress Tracker
+        progress = StudentProgress(
+            student_id=student.id,
+            problems_solved=0,
+            problems_attempted=0,
+            overall_percentage=0.0,
+            current_streak=0,
+            longest_streak=0,
+            easy_solved=0,
+            medium_solved=0,
+            hard_solved=0,
+        )
+        self.db.add(progress)
+        self.db.commit()
+        full_student = self.student_repo.get_by_id_with_relations(student.id) or student
+        return self.student_service._build_student_out(full_student)
+
+    def update_student(self, student_id: int, student_in: StudentUpdate) -> StudentOut:
+        student = self.student_repo.get_by_id(student_id)
+        if not student:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Student {student_id} not found.",
+            )
+
+        if student_in.name and student.user:
+            student.user.name = student_in.name
+
+        if student_in.email and student.user:
+            existing_user = self.db.query(User).filter(User.email == student_in.email, User.id != student.user_id).first()
+            if existing_user:
+                raise HTTPException(status_code=400, detail="Email already in use.")
+            student.user.email = student_in.email
+
+        if student_in.roll_number:
+            existing_roll = self.db.query(Student).filter(Student.roll_number == student_in.roll_number, Student.id != student.id).first()
+            if existing_roll:
+                raise HTTPException(status_code=400, detail="Roll number already in use.")
+            student.roll_number = student_in.roll_number
+
+        if student_in.team_id:
+            team = self.team_repo.get_by_id(student_in.team_id)
+            if not team:
+                raise HTTPException(status_code=404, detail="Target team not found.")
+            student.team_id = team.id
+
+        if student_in.dsa_level:
+            student.dsa_level = student_in.dsa_level
+
+        if student_in.status:
+            student.status = student_in.status
+
+        self.db.commit()
+        full_student = self.student_repo.get_by_id_with_relations(student.id) or student
+        return self.student_service._build_student_out(full_student)
+
+    def delete_student(self, student_id: int):
+        student = self.student_repo.get_by_id(student_id)
+        if not student:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Student {student_id} not found.",
+            )
+
+        user_id = student.user_id
+        self.db.delete(student)
+        if user_id:
+            user = self.db.query(User).filter(User.id == user_id).first()
+            if user:
+                self.db.delete(user)
+
+        self.db.commit()
+        return {"detail": f"Student {student_id} successfully de-enrolled."}
+
+    # -------------------------------------------------------------
+    # Mentor Administrative Management
+    # -------------------------------------------------------------
+    def create_mentor(self, mentor_in: MentorCreate) -> MentorOut:
+        user_repo = UserRepository(self.db)
+        if user_repo.get_by_email(mentor_in.email):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Email '{mentor_in.email}' is already registered.",
+            )
+
+        user = User(
+            name=mentor_in.name,
+            email=mentor_in.email,
+            password_hash=get_password_hash(mentor_in.password or "Mentor@GKCE2026"),
+            role=UserRole.MENTOR,
+            is_active=True,
+        )
+        self.db.add(user)
+        self.db.flush()
+
+        mentor = Mentor(
+            user_id=user.id,
+            department=mentor_in.department,
+            phone=mentor_in.phone,
+            experience_years=mentor_in.experience_years,
+            assigned_team_id=mentor_in.assigned_team_id,
+        )
+        self.db.add(mentor)
+        self.db.commit()
+        return self.mentor_service._build_mentor_out(mentor)
+
+    def delete_mentor(self, mentor_id: int):
+        mentor = self.mentor_repo.get_by_id(mentor_id)
+        if not mentor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Mentor {mentor_id} not found.",
+            )
+
+        user_id = mentor.user_id
+        self.db.delete(mentor)
+        if user_id:
+            user = self.db.query(User).filter(User.id == user_id).first()
+            if user:
+                self.db.delete(user)
+
+        self.db.commit()
+        return {"detail": f"Mentor {mentor_id} successfully removed."}

@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.core.dependencies import require_dean
@@ -8,8 +8,9 @@ from app.models.enums import StudentStatus, DSALevel
 from app.services.dean_service import DeanService
 from app.services.mentor_service import MentorService
 from app.services.student_service import StudentService
-from app.schemas.team import TeamOut, TeamDetailOut
-from app.schemas.student import StudentOut, StudentDetailOut
+from app.schemas.team import TeamOut, TeamDetailOut, TeamCreate, TeamUpdate
+from app.schemas.student import StudentOut, StudentDetailOut, StudentCreate, StudentUpdate
+from app.schemas.mentor import MentorOut, MentorCreate, MentorUpdate
 from app.schemas.analytics import (
     DeanDashboardOverview,
     DeanAnalyticsOut,
@@ -148,3 +149,134 @@ def get_dean_reports(
 ):
     dean_service = DeanService(db)
     return dean_service.get_formal_report()
+
+
+# ---------------------------------------------------------------------------
+# Team Administration Endpoints
+# ---------------------------------------------------------------------------
+@router.post(
+    "/teams",
+    response_model=TeamOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create new team (Dean only)",
+    description="Adds a new cohort team with optional assigned mentor.",
+)
+def create_team(
+    team_in: TeamCreate,
+    current_user: User = Depends(require_dean),
+    db: Session = Depends(get_db),
+):
+    dean_service = DeanService(db)
+    return dean_service.create_team(team_in)
+
+
+@router.put(
+    "/teams/{team_id}",
+    response_model=TeamOut,
+    summary="Update team details (Dean only)",
+    description="Updates team name, reassigns mentor, or changes status.",
+)
+def update_team(
+    team_id: int,
+    team_in: TeamUpdate,
+    current_user: User = Depends(require_dean),
+    db: Session = Depends(get_db),
+):
+    dean_service = DeanService(db)
+    return dean_service.update_team(team_id, team_in)
+
+
+@router.delete(
+    "/teams/{team_id}",
+    summary="Delete team (Dean only)",
+    description="Deletes a team cohort from the platform.",
+)
+def delete_team(
+    team_id: int,
+    current_user: User = Depends(require_dean),
+    db: Session = Depends(get_db),
+):
+    dean_service = DeanService(db)
+    return dean_service.delete_team(team_id)
+
+
+# ---------------------------------------------------------------------------
+# Student Administration Endpoints
+# ---------------------------------------------------------------------------
+@router.post(
+    "/students",
+    response_model=StudentOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Enroll new student (Dean only)",
+    description="Creates student login user, profile, and DSA progress tracker.",
+)
+def create_student(
+    student_in: StudentCreate,
+    current_user: User = Depends(require_dean),
+    db: Session = Depends(get_db),
+):
+    dean_service = DeanService(db)
+    return dean_service.create_student(student_in)
+
+
+@router.put(
+    "/students/{student_id}",
+    response_model=StudentOut,
+    summary="Update student details / reassign team (Dean only)",
+    description="Updates student info, DSA competency level, status, or reassigns team.",
+)
+def update_student(
+    student_id: int,
+    student_in: StudentUpdate,
+    current_user: User = Depends(require_dean),
+    db: Session = Depends(get_db),
+):
+    dean_service = DeanService(db)
+    return dean_service.update_student(student_id, student_in)
+
+
+@router.delete(
+    "/students/{student_id}",
+    summary="De-enroll student (Dean only)",
+    description="Removes student record and user credentials from system.",
+)
+def delete_student(
+    student_id: int,
+    current_user: User = Depends(require_dean),
+    db: Session = Depends(get_db),
+):
+    dean_service = DeanService(db)
+    return dean_service.delete_student(student_id)
+
+
+# ---------------------------------------------------------------------------
+# Mentor Administration Endpoints
+# ---------------------------------------------------------------------------
+@router.post(
+    "/mentors",
+    response_model=MentorOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add new faculty mentor (Dean only)",
+    description="Creates mentor login account and profile.",
+)
+def create_mentor(
+    mentor_in: MentorCreate,
+    current_user: User = Depends(require_dean),
+    db: Session = Depends(get_db),
+):
+    dean_service = DeanService(db)
+    return dean_service.create_mentor(mentor_in)
+
+
+@router.delete(
+    "/mentors/{mentor_id}",
+    summary="Remove faculty mentor (Dean only)",
+    description="Removes faculty mentor account and unlinks from assigned team.",
+)
+def delete_mentor(
+    mentor_id: int,
+    current_user: User = Depends(require_dean),
+    db: Session = Depends(get_db),
+):
+    dean_service = DeanService(db)
+    return dean_service.delete_mentor(mentor_id)

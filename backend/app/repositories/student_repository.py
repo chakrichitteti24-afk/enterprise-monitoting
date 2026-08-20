@@ -18,6 +18,18 @@ class StudentRepository(BaseRepository[Student]):
     def __init__(self, db: Session):
         super().__init__(Student, db)
 
+    def get_by_roll_number(self, roll_number: str) -> Optional[Student]:
+        stmt = (
+            select(Student)
+            .where(Student.roll_number == roll_number)
+            .options(
+                joinedload(Student.user),
+                joinedload(Student.team),
+                joinedload(Student.progress),
+            )
+        )
+        return self.db.scalars(stmt).first()
+
     def get_by_id_with_relations(self, student_id: int) -> Optional[Student]:
         stmt = (
             select(Student)

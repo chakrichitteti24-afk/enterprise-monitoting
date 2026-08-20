@@ -2,7 +2,9 @@
  * GKCE DSA Monitor — API Client for FastAPI Backend
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:8000/api' : '/api');
 
 export interface LoginResponse {
   access_token: string;
@@ -96,3 +98,96 @@ export async function loginApi(email: string, password: string): Promise<LoginRe
 export async function getMeApi(): Promise<LoginResponse['user']> {
   return apiRequest<LoginResponse['user']>('/auth/me');
 }
+
+// -------------------------------------------------------------
+// Dean Administrative API Operations
+// -------------------------------------------------------------
+export async function createTeamApi(payload: { team_number: string; name: string; mentor_id?: number }) {
+  return apiRequest<any>('/dean/teams', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateTeamApi(teamId: number, payload: { name?: string; mentor_id?: number; status?: string }) {
+  return apiRequest<any>(`/dean/teams/${teamId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteTeamApi(teamId: number) {
+  return apiRequest<{ detail: string }>(`/dean/teams/${teamId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function createStudentApi(payload: {
+  name: string;
+  roll_number: string;
+  email: string;
+  team_id: number;
+  password?: string;
+  dsa_level?: string;
+  status?: string;
+}) {
+  return apiRequest<any>('/dean/students', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateStudentApi(
+  studentId: number,
+  payload: {
+    name?: string;
+    roll_number?: string;
+    email?: string;
+    team_id?: number;
+    dsa_level?: string;
+    status?: string;
+  }
+) {
+  return apiRequest<any>(`/dean/students/${studentId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteStudentApi(studentId: number) {
+  return apiRequest<{ detail: string }>(`/dean/students/${studentId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function createMentorApi(payload: {
+  name: string;
+  email: string;
+  department?: string;
+  phone?: string;
+  experience_years?: number;
+  assigned_team_id?: number;
+  password?: string;
+}) {
+  return apiRequest<any>('/dean/mentors', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteMentorApi(mentorId: number) {
+  return apiRequest<{ detail: string }>(`/dean/mentors/${mentorId}`, {
+    method: 'DELETE',
+  });
+}
+
+// -------------------------------------------------------------
+// Student Self-Service API Operations
+// -------------------------------------------------------------
+export async function updateStudentAvatarApi(avatarUrl: string) {
+  return apiRequest<any>('/student/me/avatar', {
+    method: 'PUT',
+    body: JSON.stringify({ avatar_url: avatarUrl }),
+  });
+}
+

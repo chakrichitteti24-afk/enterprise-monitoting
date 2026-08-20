@@ -1,6 +1,25 @@
 from typing import Optional, List
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, EmailStr
+
+
+class MentorCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    email: EmailStr
+    department: str = Field(default="Computer Science & Engg", max_length=100)
+    phone: Optional[str] = Field(default="+91 98480 10000", max_length=20)
+    experience_years: int = Field(default=5, ge=0, le=50)
+    assigned_team_id: Optional[int] = None
+    password: Optional[str] = Field(default="Mentor@GKCE2026", min_length=6)
+
+
+class MentorUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=2, max_length=100)
+    email: Optional[EmailStr] = None
+    department: Optional[str] = None
+    phone: Optional[str] = None
+    experience_years: Optional[int] = None
+    assigned_team_id: Optional[int] = None
 
 
 class MentorOut(BaseModel):

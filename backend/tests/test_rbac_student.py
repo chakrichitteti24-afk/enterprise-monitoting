@@ -9,8 +9,8 @@ def test_student_can_access_own_profile(client: TestClient, student_1_token: str
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["roll_number"] == "22CSE001"
-    assert data["name"] == "Aarav Sharma"
+    assert data["roll_number"] == "23F81A0502"
+    assert data["name"] == "BODDU ANANTHALAKSHMI"
     assert "progress" in data
     assert "topic_progress" in data["progress"]
 
@@ -64,3 +64,17 @@ def test_student_cannot_access_dean_students_directory(client: TestClient, stude
     )
     # Must return 403 Forbidden
     assert response.status_code == 403
+
+
+def test_student_can_change_profile_photo(client: TestClient, student_1_token: str):
+    new_avatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200"
+    response = client.put(
+        "/api/student/me/avatar",
+        headers={"Authorization": f"Bearer {student_1_token}"},
+        json={"avatar_url": new_avatar},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["avatar_url"] == new_avatar
+
+

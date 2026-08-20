@@ -1,0 +1,84 @@
+RAW_DATA = """
+1	ANANTHALAKSHMI.BODDU	23F81A0502			
+2	DEVIKA.PITTI(MQ)	23F81A0507			
+3	KAVITHA.GALLA	23F81A0513			
+4	JASWITHA.BATTA	23F81A0511			
+5	THANUSHA.JEELAGA	23F81A0538			
+					
+6	HABEEBA.SHAIK	23F81A0510			
+7	BHARGAVI.GADDAM	23F81A0504			
+8	PALLAVI.GADDAM	23F81A0525			
+9	SRAVANTHI.KATURU	23F81A0534			
+					
+10	KAVYA.MODI	23F81A0514			
+11	MANASA VUKKADALA	24F85A0508			
+12	DIVYA SRI.KUTLURU	23F81A0509			
+13	VYSHNAVI.KONERU	23F81A0542			
+					
+14	MUNI KUMAR.KARUMANCHI	23F81A0520			
+15	MUNI SAI SUDHARSAN.NELLORE	23F81A0521			
+16	SAI.PALETI	23F81A0529			
+17	SRIHARI.VAVILA	23F81A0535			
+18	PUNEETH.PAGADALA	23F81A0527			
+					
+19	BHANU TEJA.PILLI	23F81A0545			
+20	JAYASREE.BHASKAR	23F81A0562			
+21	SAILAJA.CHALLA	23F81A0572			
+22	SRAVANI.BONUBOYINA	23F81A0578			
+23	VINEELA KEERTHI SREERAM	24F85A0517			
+					
+24	SONI.VETTI	23F81A0577			
+25	VAISHNAVI.KALLURU	23F81A0581			
+26	SILPA.CHINTHAGINJALA	23F81A0576			
+					
+27	CH. CHAKRI	24F81A0522			
+28	P.GAYANI	24F81A0534			
+29	P.AKHILA	24F81A0504		Mrs. Ludvika	
+30	C.JAHNAVI	24F81A0549			
+31	S. HARSHITHA	24F81A0544			
+32	S. SUDHA	24F81A05B2			
+					
+33	S.KARTHIK	24F81A0553			
+34	K. CHANDRA SEKHAR	24F81A0530		Mr. Vishnu	
+35	G. GOWTHAM	24F81A0537			
+					
+36	M.ESWAR	24F81A0532	III B. Tech. CSE A		
+37	K.KEERTHANA	24F81A0554	III B. Tech. CSE A		
+38	D. HIMA VARSHA	24F81A0548	III B. Tech. CSE A		
+39	B.KISHORE NAIK	24F81A0557	III B. Tech. CSE A	Mrs. Manjusha 	
+40	E. ANUSHA	24F81A0508	III B. Tech. CSE A		
+41	U. JHANAKI	24F81A0550	III B. Tech. CSE A		
+					
+39	M. VENKATESWARLU	24F81A05C7			
+40	P. PRASANNA KUMAR	24F81A0591			
+41	T. PRABAKAR	24F81A0590			
+42	T. Teja	24F81A05C0		Mrs. Teja	
+43	E. PRASHANTH 	24F81A0592			
+"""
+
+import re
+
+lines = RAW_DATA.strip().split('\n')
+groups = []
+current_group = []
+
+for line in lines:
+    line_clean = line.strip()
+    if not line_clean:
+        if current_group:
+            groups.append(current_group)
+            current_group = []
+        continue
+    
+    parts = [p.strip() for p in line.split('\t') if p.strip()]
+    if len(parts) >= 2:
+        current_group.append(parts)
+
+if current_group:
+    groups.append(current_group)
+
+print(f"Total Cohort Groups Found: {len(groups)}")
+for idx, grp in enumerate(groups, 1):
+    print(f"\n--- Group {idx} ({len(grp)} Students) ---")
+    for st in grp:
+        print(st)

@@ -4,6 +4,15 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 import json
 
 
+import os
+import tempfile
+
+is_vercel = bool(os.environ.get("VERCEL"))
+if is_vercel:
+    DEFAULT_DB_PATH = os.path.join(tempfile.gettempdir(), "gkce_dsa.db").replace("\\", "/")
+else:
+    DEFAULT_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "gkce_dsa.db")).replace("\\", "/")
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "GKCE DSA Monitor API"
     VERSION: str = "1.0.0"
@@ -11,7 +20,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
 
     # Database
-    DATABASE_URL: str = "sqlite:///./gkce_dsa.db"
+    DATABASE_URL: str = os.environ.get("POSTGRES_URL") or os.environ.get("DATABASE_URL") or f"sqlite:///{DEFAULT_DB_PATH}"
 
     # JWT Security
     JWT_SECRET_KEY: str = "gkce-dsa-super-secret-jwt-key-2026-production-ready-32bytes-min"
@@ -25,6 +34,14 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
     ]
+    CORS_ORIGIN_REGEX: str = r"^https?://(localhost|127\.0\.0\.1|.*\.vercel\.app)(:\d+)?$"
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def validate_database_url(cls, v: str) -> str:
+        if v and v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql://", 1)
+        return v
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

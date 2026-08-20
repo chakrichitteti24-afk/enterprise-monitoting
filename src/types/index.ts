@@ -11,6 +11,7 @@ export type DSATopic =
   | 'Dynamic Programming';
 
 export type StudentStatus = 'Active' | 'Needs Attention' | 'Inactive';
+export type DSALevel = 'Beginner' | 'Intermediate' | 'Advanced' | 'Mastery';
 
 export interface ActivityItem {
   id: string;

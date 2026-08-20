@@ -6,8 +6,22 @@ from app.database.base import Base
 from app.database.session import engine
 from app.routers import auth, student, mentor, dean, problems, submissions
 
-# Initialize database tables
+# Initialize database tables & initial data
 Base.metadata.create_all(bind=engine)
+
+def _init_db():
+    try:
+        from app.database.session import SessionLocal
+        from app.models.user import User
+        with SessionLocal() as db:
+            if db.query(User).count() == 0:
+                from scripts.seed_data import seed
+                seed(db_session=db)
+    except Exception as e:
+        # Non-blocking in case of external migrations or seed already present
+        print("Initial database check:", e)
+
+_init_db()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -48,6 +62,7 @@ app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=settings.CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

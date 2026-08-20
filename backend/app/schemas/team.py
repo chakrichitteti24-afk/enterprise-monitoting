@@ -1,7 +1,19 @@
 from typing import Optional, List, Dict
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from app.schemas.student import StudentOut
+
+
+class TeamCreate(BaseModel):
+    team_number: str = Field(..., min_length=1, max_length=20, description="e.g. Team 21")
+    name: str = Field(..., min_length=2, max_length=100, description="e.g. Code Knights")
+    mentor_id: Optional[int] = None
+
+
+class TeamUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=2, max_length=100)
+    mentor_id: Optional[int] = None
+    status: Optional[str] = None
 
 
 class TeamOut(BaseModel):

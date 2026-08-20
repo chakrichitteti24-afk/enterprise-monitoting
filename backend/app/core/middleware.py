@@ -11,6 +11,16 @@ MAX_LOGIN_ATTEMPTS_PER_WINDOW = 15
 MAX_TRACKED_IPS = 5000  # Hard memory limit to prevent self-DoS memory leaks
 
 
+def get_client_ip(request: Request) -> str:
+    """Extract real client IP supporting reverse proxies (Vercel, Nginx, Cloudflare)."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    if request.headers.get("cf-connecting-ip"):
+        return request.headers.get("cf-connecting-ip").strip()
+    return request.client.host if request.client else "unknown"
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
@@ -21,6 +31,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
         return response
 
 
@@ -28,7 +39,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Rate limit only on authentication endpoints (skip in automated testclient runs)
         if request.url.path.endswith("/api/auth/login") and request.method == "POST":
-            client_ip = request.client.host if request.client else "unknown"
+            client_ip = get_client_ip(request)
+            if client_ip in ("testclient", "unknown") and getattr(request, "scope", {}).get("client") is None:
+                return await call_next(request)
             if client_ip == "testclient":
                 return await call_next(request)
 
