@@ -206,7 +206,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
         {/* Footer */}
         <div className="text-center text-[10px] text-slate-500">
-          Gokula Krishna College of Engineering (Autonomous) • Affiliated to JNTUA
+          Gokula Krishna College of Engineering • Affiliated to JNTUA
         </div>
       </div>
     </div>

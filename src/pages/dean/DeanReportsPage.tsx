@@ -152,15 +152,15 @@ export const DeanReportsPage: React.FC = () => {
         {/* Signatures */}
         <div className="pt-8 border-t border-slate-200 flex items-center justify-between text-xs">
           <div>
-            <div className="font-bold text-slate-900">Dr. R. V. Raman</div>
-            <div className="text-slate-500">Dean of Academic Affairs & Computing</div>
+            <div className="font-bold text-slate-900">Prof. Dr. R. V. Raman, Ph.D.</div>
+            <div className="text-slate-500">Dean of Academic Affairs & Head of Technical Training</div>
             <div className="text-slate-400 text-[10px]">Gokula Krishna College of Engineering</div>
           </div>
 
           <div className="text-right">
             <div className="font-bold text-slate-900">Head of CSE Department</div>
             <div className="text-slate-500">Curriculum Quality Assurance Cell</div>
-            <div className="text-slate-400 text-[10px]">Autonomous Body GKCE</div>
+            <div className="text-slate-400 text-[10px]">Dept. of Computer Science & Engineering, GKCE</div>
           </div>
         </div>
       </div>
