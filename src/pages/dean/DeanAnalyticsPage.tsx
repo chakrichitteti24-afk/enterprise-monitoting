@@ -30,6 +30,10 @@ export const DeanAnalyticsPage: React.FC = () => {
   const mediumTotalSolved = students.reduce((sum, st) => sum + st.difficultyStats.medium.solved, 0);
   const hardTotalSolved = students.reduce((sum, st) => sum + st.difficultyStats.hard.solved, 0);
 
+  const totalPossibleEasy = students.reduce((sum, st) => sum + st.difficultyStats.easy.total, 0) || 1;
+  const totalPossibleMedium = students.reduce((sum, st) => sum + st.difficultyStats.medium.total, 0) || 1;
+  const totalPossibleHard = students.reduce((sum, st) => sum + st.difficultyStats.hard.total, 0) || 1;
+
   const activeCount = students.filter((s) => s.status === 'Active').length;
   const attentionCount = students.filter((s) => s.status === 'Needs Attention').length;
   const inactiveCount = students.filter((s) => s.status === 'Inactive').length;
@@ -45,7 +49,7 @@ export const DeanAnalyticsPage: React.FC = () => {
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">DSA Learning Analytics</h1>
           <p className="text-xs md:text-sm text-slate-500 mt-1">
-            Data insights, curriculum bottleneck detection, and cohort comparison across {students.length} students.
+            Verified performance insights, topic progress analytics, and cohort velocity across {students.length} students.
           </p>
         </div>
       </div>
@@ -70,7 +74,7 @@ export const DeanAnalyticsPage: React.FC = () => {
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                 <span className="text-xs font-medium text-emerald-900">Active Students</span>
               </div>
-              <span className="text-sm font-bold text-emerald-900">{activeCount} / 100</span>
+              <span className="text-sm font-bold text-emerald-900">{activeCount} / {students.length}</span>
             </div>
 
             <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-100 flex items-center justify-between">
@@ -78,7 +82,7 @@ export const DeanAnalyticsPage: React.FC = () => {
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                 <span className="text-xs font-medium text-amber-900">Needs Attention</span>
               </div>
-              <span className="text-sm font-bold text-amber-900">{attentionCount} / 100</span>
+              <span className="text-sm font-bold text-amber-900">{attentionCount} / {students.length}</span>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-between">
@@ -86,36 +90,36 @@ export const DeanAnalyticsPage: React.FC = () => {
                 <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
                 <span className="text-xs font-medium text-slate-800">Inactive / Low Solve</span>
               </div>
-              <span className="text-sm font-bold text-slate-900">{inactiveCount} / 100</span>
+              <span className="text-sm font-bold text-slate-900">{inactiveCount} / {students.length}</span>
             </div>
           </div>
         </BentoCard>
 
-        {/* Difficulty Distribution Across 100 Students */}
+        {/* Difficulty Distribution Across All Students */}
         <BentoCard title="Difficulty Solves Aggregate" subtitle="Total solutions by tier" className="col-span-1">
           <div className="space-y-3 pt-2">
             <div>
               <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
                 <span>Easy Solves</span>
-                <span className="font-bold text-emerald-700">{easyTotalSolved}</span>
+                <span className="font-bold text-emerald-700">{easyTotalSolved} / {totalPossibleEasy}</span>
               </div>
-              <ProgressBar percentage={(easyTotalSolved / (100 * 50)) * 100} color="emerald" height="xs" />
+              <ProgressBar percentage={(easyTotalSolved / totalPossibleEasy) * 100} color="emerald" height="xs" />
             </div>
 
             <div>
               <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
                 <span>Medium Solves</span>
-                <span className="font-bold text-amber-700">{mediumTotalSolved}</span>
+                <span className="font-bold text-amber-700">{mediumTotalSolved} / {totalPossibleMedium}</span>
               </div>
-              <ProgressBar percentage={(mediumTotalSolved / (100 * 65)) * 100} color="amber" height="xs" />
+              <ProgressBar percentage={(mediumTotalSolved / totalPossibleMedium) * 100} color="amber" height="xs" />
             </div>
 
             <div>
               <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
                 <span>Hard Solves</span>
-                <span className="font-bold text-rose-700">{hardTotalSolved}</span>
+                <span className="font-bold text-rose-700">{hardTotalSolved} / {totalPossibleHard}</span>
               </div>
-              <ProgressBar percentage={(hardTotalSolved / (100 * 25)) * 100} color="slate" height="xs" />
+              <ProgressBar percentage={(hardTotalSolved / totalPossibleHard) * 100} color="slate" height="xs" />
             </div>
           </div>
         </BentoCard>
@@ -123,7 +127,7 @@ export const DeanAnalyticsPage: React.FC = () => {
 
       {/* 8 DSA Topics Macro Benchmark */}
       <BentoCard
-        title="8 DSA Topics Macro Mastery (100 Students)"
+        title={`8 DSA Topics Macro Mastery (${students.length} Students)`}
         subtitle="Institution-wide syllabus completion rate"
         icon={<Target className="w-4 h-4 text-blue-600" />}
       >
@@ -148,10 +152,10 @@ export const DeanAnalyticsPage: React.FC = () => {
         </div>
       </BentoCard>
 
-      {/* All 20 Teams Ranked Comparison Chart */}
+      {/* All Teams Ranked Comparison Chart */}
       <BentoCard
-        title="20 Teams Comparative Velocity Benchmark"
-        subtitle="Ranked by average progress % across 5 students each"
+        title={`${teams.length} Teams Comparative Velocity Benchmark`}
+        subtitle="Ranked by average cohort progress %"
         icon={<TrendingUp className="w-4 h-4 text-indigo-600" />}
       >
         <div className="space-y-2.5 pt-2">

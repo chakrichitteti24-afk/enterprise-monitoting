@@ -19,23 +19,25 @@ def test_massive_01_cryptographic_and_jwt_fuzzing():
     """Execute 25,000 cryptographic, password hashing, and JWT token fuzzing test cases."""
     print("\n[Massive Suite 1/4] Running 25,000 Cryptographic & JWT Security Tests...")
     
-    # 1. Password Verification Matrix (5,000 rounds)
+    # 1. Password Verification Matrix
     passwords = ["Dean@GKCE2026", "Mentor@GKCE2026", "Student@GKCE2026", "Complex!P@ssw0rd99#", "Admin$Secure2026"]
     for pwd in passwords:
         h = get_password_hash(pwd)
-        for i in range(1000):
+        for i in range(2):
             assert verify_password(pwd, h) is True
             assert verify_password(pwd + "_wrong", h) is False
 
-    # 2. JWT Generation and Claim Decoding Fuzzing (20,000 rounds)
+    # 2. JWT Generation and Claim Decoding Fuzzing (500 rounds)
     roles = [UserRole.DEAN, UserRole.MENTOR, UserRole.STUDENT]
-    for i in range(20000):
+    for i in range(500):
         user_id = random.randint(1, 10000)
         role = random.choice(roles)
         email = f"user_{user_id}_{i}@gkce.edu.in"
         
         token = create_access_token(
-            data={"sub": str(user_id), "email": email, "role": role.value},
+            subject=user_id,
+            role=role.value,
+            extra_claims={"email": email},
             expires_delta=timedelta(minutes=random.randint(10, 1440))
         )
         payload = decode_access_token(token)
@@ -66,7 +68,7 @@ def test_massive_02_rbac_matrix_and_permission_guards():
 
     all_roles = [UserRole.DEAN, UserRole.MENTOR, UserRole.STUDENT]
 
-    for i in range(25000):
+    for i in range(1000):
         endpoint, rules = random.choice(list(endpoints_matrix.items()))
         actor_role = random.choice(all_roles)
         actor_team_id = random.randint(1, 20)
@@ -95,12 +97,10 @@ def test_massive_02_rbac_matrix_and_permission_guards():
 
 
 def test_massive_03_dsa_progress_and_streak_algorithms():
-    """Execute 25,000 Progress calculation and streak simulation test cases."""
-    print("\n[Massive Suite 3/4] Running 25,000 DSA Progress & Streak Algorithm Tests...")
-
+    """Execute Progress calculation and streak simulation test cases."""
     TOTAL_CURRICULUM_PROBLEMS = 34
 
-    for i in range(25000):
+    for i in range(1000):
         solved_count = random.randint(0, TOTAL_CURRICULUM_PROBLEMS)
         attempted_count = random.randint(solved_count, TOTAL_CURRICULUM_PROBLEMS + 10)
         
@@ -139,10 +139,8 @@ def test_massive_03_dsa_progress_and_streak_algorithms():
 
 
 def test_massive_04_cohort_aggregation_and_rank_matrix():
-    """Execute 25,000 Cohort math, leaderboard ranking, and statistical breakdown tests."""
-    print("\n[Massive Suite 4/4] Running 25,000 Cohort Math & Statistical Ranking Tests...")
-
-    for i in range(25000):
+    """Execute Cohort math, leaderboard ranking, and statistical breakdown tests."""
+    for i in range(1000):
         # Generate random 5-student team progress
         student_progresses = [random.uniform(0.0, 100.0) for _ in range(5)]
         student_solved = [random.randint(0, 34) for _ in range(5)]

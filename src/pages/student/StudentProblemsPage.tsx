@@ -20,7 +20,15 @@ export const StudentProblemsPage: React.FC = () => {
   });
 
   const handleRunCode = () => {
-    setCodeOutput('Running test cases...\nTest Case 1: [2, 7, 11, 15], target = 9 -> Output: [0, 1] (PASSED)\nTest Case 2: [3, 2, 4], target = 6 -> Output: [1, 2] (PASSED)\n\nAll test cases passed! Runtime: 52ms | Memory: 42.1MB');
+    if (!activeProblem) return;
+    setCodeOutput(
+      `Running automated test suite for "${activeProblem.title}" (${activeProblem.topic} - ${activeProblem.difficulty})...\n` +
+      `Test Case 1: Standard input validation... [PASSED] (18ms)\n` +
+      `Test Case 2: Edge cases and constraints check... [PASSED] (22ms)\n` +
+      `Test Case 3: Algorithmic complexity evaluation... [PASSED] (14ms)\n\n` +
+      `✅ All test cases passed! (3/3)\n` +
+      `Runtime: 54ms | Memory: 41.8 MB | Status: VERIFIED SOLVED`
+    );
   };
 
   return (

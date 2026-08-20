@@ -15,10 +15,11 @@ export type DSALevel = 'Beginner' | 'Intermediate' | 'Advanced' | 'Mastery';
 
 export interface ActivityItem {
   id: string;
+  studentId?: string;
   action: string;
   problemTitle: string;
   topic: DSATopic;
-  timestamp: string;
+  timestamp?: string;
   timeAgo: string;
   status: 'Completed' | 'Attempted' | 'Passed';
   difficulty: 'Easy' | 'Medium' | 'Hard';
@@ -93,7 +94,8 @@ export interface Problem {
   difficulty: 'Easy' | 'Medium' | 'Hard';
   description: string;
   acceptanceRate: string;
-  solvedCount: number;
+  solvedCount?: number;
+  url?: string;
 }
 
 export interface CurrentUser {

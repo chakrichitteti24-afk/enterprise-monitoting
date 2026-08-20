@@ -39,5 +39,6 @@ class DSATopic(str, enum.Enum):
 
 class SubmissionStatus(str, enum.Enum):
     SOLVED = "SOLVED"
+    ACCEPTED = "SOLVED"
     ATTEMPTED = "ATTEMPTED"
     FAILED = "FAILED"

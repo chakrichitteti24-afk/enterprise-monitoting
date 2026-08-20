@@ -174,19 +174,19 @@ class DeanService:
         total_med_probs = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.difficulty == ProblemDifficulty.MEDIUM).scalar() or 1
         total_hard_probs = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.difficulty == ProblemDifficulty.HARD).scalar() or 1
 
-        easy_solved = self.db.query(func.count(distinct(Submission.student_id, Submission.problem_id))).join(DSAProblem).filter(
+        easy_solved = self.db.query(func.count(distinct(Submission.id))).join(DSAProblem).filter(
             DSAProblem.difficulty == ProblemDifficulty.EASY,
-            Submission.status == SubmissionStatus.ACCEPTED
+            Submission.status == SubmissionStatus.SOLVED
         ).scalar() or 0
 
-        med_solved = self.db.query(func.count(distinct(Submission.student_id, Submission.problem_id))).join(DSAProblem).filter(
+        med_solved = self.db.query(func.count(distinct(Submission.id))).join(DSAProblem).filter(
             DSAProblem.difficulty == ProblemDifficulty.MEDIUM,
-            Submission.status == SubmissionStatus.ACCEPTED
+            Submission.status == SubmissionStatus.SOLVED
         ).scalar() or 0
 
-        hard_solved = self.db.query(func.count(distinct(Submission.student_id, Submission.problem_id))).join(DSAProblem).filter(
+        hard_solved = self.db.query(func.count(distinct(Submission.id))).join(DSAProblem).filter(
             DSAProblem.difficulty == ProblemDifficulty.HARD,
-            Submission.status == SubmissionStatus.ACCEPTED
+            Submission.status == SubmissionStatus.SOLVED
         ).scalar() or 0
 
         diff_breakdown = DifficultyBreakdown(
@@ -203,9 +203,9 @@ class DeanService:
         for topic in DSATopic:
             t_probs = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.topic == topic).scalar() or 1
             t_total_potential = t_probs * total_students
-            t_solved = self.db.query(func.count(distinct(Submission.student_id, Submission.problem_id))).join(DSAProblem).filter(
+            t_solved = self.db.query(func.count(distinct(Submission.id))).join(DSAProblem).filter(
                 DSAProblem.topic == topic,
-                Submission.status == SubmissionStatus.ACCEPTED
+                Submission.status == SubmissionStatus.SOLVED
             ).scalar() or 0
             t_pct = round((t_solved / max(1, t_total_potential)) * 100, 1)
             topic_stats.append(

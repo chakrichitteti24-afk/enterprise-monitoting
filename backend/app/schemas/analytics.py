@@ -5,7 +5,7 @@ from app.schemas.team import TeamOut
 
 class TopicMasteryStats(BaseModel):
     topic: str
-    percentage: int
+    percentage: float
     total_solved: int
 
 

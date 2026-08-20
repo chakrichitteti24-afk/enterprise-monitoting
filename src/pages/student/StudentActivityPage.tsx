@@ -10,14 +10,22 @@ export const StudentActivityPage: React.FC = () => {
 
   if (!student) return null;
 
-  // Calendar mock matrix for last 28 days
+  const totalWeeklySubmissions = (student.submissionsHistory || []).reduce((acc, curr) => acc + curr.count, 0);
+
+  // 28-day activity heatmap aligned with student's active streak
   const days = Array.from({ length: 28 }, (_, i) => {
-    const isSolved = (i % 3 !== 0 && i > 3) || (i >= 16);
+    const daysAgo = 27 - i;
+    const isActiveDay = daysAgo < student.streak;
+    const solvedCount = isActiveDay
+      ? Math.min(4, Math.max(1, Math.floor((student.solved / 28) * 1.5) + (i % 2)))
+      : (i % 5 === 0 && i < 12 ? 1 : 0);
     return {
       day: i + 1,
-      solvedCount: isSolved ? (i % 4) + 1 : 0,
+      solvedCount,
     };
   });
+
+  const activeDaysCount = days.filter((d) => d.solvedCount > 0).length;
 
   return (
     <div className="space-y-6">
@@ -46,11 +54,11 @@ export const StudentActivityPage: React.FC = () => {
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Active Days (Month)</span>
-                <span className="font-bold text-emerald-700">22 / 28 Days</span>
+                <span className="font-bold text-emerald-700">{activeDaysCount} / 28 Days</span>
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Submissions This Week</span>
-                <span className="font-bold text-blue-700">14 Solved</span>
+                <span className="font-bold text-blue-700">{totalWeeklySubmissions > 0 ? totalWeeklySubmissions : student.recentActivities.length} Logged</span>
               </div>
             </div>
           </div>

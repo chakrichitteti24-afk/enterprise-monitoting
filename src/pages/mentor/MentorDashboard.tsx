@@ -26,9 +26,9 @@ export const MentorDashboard: React.FC = () => {
   const teamStudents = students.filter((s) => s.teamId === assignedTeamId || s.teamNumber === assignedTeamNumber);
   const team = teams.find((t) => t.id === assignedTeamId || t.teamNumber === assignedTeamNumber);
 
-  const avgProgress = team?.avgProgress || (teamStudents.length > 0 ? Math.round(teamStudents.reduce((a, b) => a + b.progress, 0) / teamStudents.length) : 78);
+  const avgProgress = teamStudents.length > 0 ? Math.round(teamStudents.reduce((a, b) => a + b.progress, 0) / teamStudents.length) : (team?.avgProgress || 0);
   const totalProblemsSolved = teamStudents.reduce((sum, st) => sum + st.solved, 0);
-  const avgStreak = teamStudents.length > 0 ? Math.round((teamStudents.reduce((sum, st) => sum + st.streak, 0) / teamStudents.length) * 10) / 10 : 7.2;
+  const avgStreak = teamStudents.length > 0 ? Math.round((teamStudents.reduce((sum, st) => sum + st.streak, 0) / teamStudents.length) * 10) / 10 : 0;
 
   const handleStudentClick = (student: Student) => {
     setSelectedStudent(student);
@@ -59,7 +59,7 @@ export const MentorDashboard: React.FC = () => {
             className="px-4 py-2.5 bg-slate-900 text-white rounded-2xl text-xs font-semibold hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-xs"
           >
             <Users className="w-3.5 h-3.5" />
-            <span>Manage 5 Students</span>
+            <span>Manage Students ({teamStudents.length})</span>
           </button>
         </div>
       </div>
@@ -84,7 +84,7 @@ export const MentorDashboard: React.FC = () => {
             <div className="mt-3">
               <div className="text-sm font-bold text-slate-900">{avgProgress}% Team Progress</div>
               <div className="text-[11px] text-slate-500 mt-0.5">
-                Target: &gt;75% milestone for GKCE Term Evaluation
+                Target: &gt;70% milestone for GKCE Term Evaluation
               </div>
             </div>
           </div>
@@ -101,13 +101,15 @@ export const MentorDashboard: React.FC = () => {
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
               <div className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider truncate">Avg Progress</div>
               <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">{avgProgress}%</div>
-              <div className="text-[10px] text-emerald-600 font-bold mt-1">↑ +4% this week</div>
+              <div className="text-[10px] text-emerald-600 font-bold mt-1">
+                {teamStudents.filter(s => s.progress >= 70).length} / {teamStudents.length} On Target
+              </div>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
               <div className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider truncate">Problems Solved</div>
               <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">{totalProblemsSolved}</div>
-              <div className="text-[10px] text-slate-400 font-medium mt-1">Across 5 students</div>
+              <div className="text-[10px] text-slate-400 font-medium mt-1">Across {teamStudents.length} students</div>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
@@ -121,7 +123,9 @@ export const MentorDashboard: React.FC = () => {
               <div className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-1">
                 {teamStudents.filter(s => s.status === 'Active').length} / {teamStudents.length}
               </div>
-              <div className="text-[10px] text-slate-400 font-medium mt-1">100% attendance</div>
+              <div className="text-[10px] text-slate-400 font-medium mt-1">
+                {teamStudents.length > 0 ? Math.round((teamStudents.filter(s => s.status === 'Active').length / teamStudents.length) * 100) : 0}% active rate
+              </div>
             </div>
           </div>
 
@@ -138,7 +142,9 @@ export const MentorDashboard: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {DSA_TOPICS.slice(0, 4).map((topic) => {
-                const perc = team?.topicPerformance[topic] || 75;
+                const perc = teamStudents.length > 0
+                  ? Math.round(teamStudents.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / teamStudents.length)
+                  : (team?.topicPerformance[topic] || 0);
                 return (
                   <div key={topic} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
                     <div className="flex justify-between text-[11px] font-medium text-slate-700 mb-1">

@@ -198,11 +198,13 @@ export const TeamDetailModal: React.FC = () => {
           {/* Team DSA Topics Mastery */}
           <div className="p-4 rounded-2xl border border-slate-200/70 bg-white space-y-3">
             <div className="text-xs font-bold text-slate-900">
-              Team Topic Performance (Average across 5 students)
+              Team Topic Performance (Average across {teamStudents.length} students)
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {DSA_TOPICS.map((topic) => {
-                const percentage = selectedTeam.topicPerformance[topic] || 0;
+                const percentage = teamStudents.length > 0
+                  ? Math.round(teamStudents.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / teamStudents.length)
+                  : (selectedTeam.topicPerformance[topic] || 0);
                 return (
                   <div key={topic} className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-100">
                     <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">

@@ -78,10 +78,10 @@ class MentorService:
             t_probs = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.topic == topic).scalar() or 1
             max_potential_solves = t_probs * max(1, len(student_ids))
             if student_ids:
-                actual_solves = self.db.query(func.count(distinct(Submission.student_id, Submission.problem_id))).join(DSAProblem).filter(
+                actual_solves = self.db.query(func.count(distinct(Submission.id))).join(DSAProblem).filter(
                     Submission.student_id.in_(student_ids),
                     DSAProblem.topic == topic,
-                    Submission.status == SubmissionStatus.ACCEPTED,
+                    Submission.status == SubmissionStatus.SOLVED,
                 ).scalar() or 0
                 topic_perf[topic.value] = min(100, round((actual_solves / max(1, max_potential_solves)) * 100))
             else:

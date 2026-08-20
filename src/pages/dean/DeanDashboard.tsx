@@ -69,7 +69,7 @@ export const DeanDashboard: React.FC = () => {
             className="px-4 py-2.5 bg-slate-900 text-white rounded-2xl text-xs font-semibold hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-xs"
           >
             <GraduationCap className="w-3.5 h-3.5 shrink-0" />
-            <span>View 100 Students</span>
+            <span>View {totalStudents} Students</span>
           </button>
         </div>
       </div>
@@ -145,14 +145,14 @@ export const DeanDashboard: React.FC = () => {
               strokeWidth={11}
               color="#1d4ed8"
               label="Completed"
-              subLabel="100 Students"
+              subLabel={`${totalStudents} Students`}
             />
             <div className="mt-3 space-y-1">
               <div className="text-sm font-bold text-slate-900">
                 {overallProgress}% DSA Completion
               </div>
               <div className="text-[11px] text-slate-500">
-                Across 100 students in 20 teams (5 students each)
+                Across {totalStudents} students in {totalTeams} mentored teams
               </div>
             </div>
 
@@ -223,43 +223,47 @@ export const DeanDashboard: React.FC = () => {
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-bold text-amber-900">
-                    {needsAttentionTeams.length} Teams flagged for Mentor Academic Review
+                    {needsAttentionTeams.length} Teams flagged for Academic Review
                   </div>
                   <div className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
-                    {needsAttentionTeams.map(t => t.teamNumber).join(', ')} require dynamic programming & recursion intervention.
+                    {needsAttentionTeams.length > 0
+                      ? `${needsAttentionTeams.map(t => t.teamNumber).join(', ')} currently have average progress below 65% and require mentor support.`
+                      : 'All teams are maintaining healthy progress above target thresholds.'}
                   </div>
                 </div>
-                <button
-                  onClick={() => setTeamStatusFilter('Needs Attention')}
-                  className="px-2.5 py-1 bg-white border border-amber-300 text-amber-900 rounded-xl text-xs font-semibold hover:bg-amber-100 shrink-0 shadow-2xs"
-                >
-                  Filter
-                </button>
+                {needsAttentionTeams.length > 0 && (
+                  <button
+                    onClick={() => setTeamStatusFilter('Needs Attention')}
+                    className="px-2.5 py-1 bg-white border border-amber-300 text-amber-900 rounded-xl text-xs font-semibold hover:bg-amber-100 shrink-0 shadow-2xs"
+                  >
+                    Filter
+                  </button>
+                )}
               </div>
             </div>
           </div>
 
           <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>20 Teams • Exactly 5 Students per Team</span>
+            <span>{totalTeams} Teams • Monitored Cohorts</span>
             <button
               onClick={() => setActiveTab('teams')}
               className="text-blue-600 hover:underline font-bold"
             >
-              View Full 20-Team Roster →
+              View Full Team Roster →
             </button>
           </div>
         </BentoCard>
       </div>
 
-      {/* Team Performance Grid: ALL 20 TEAMS */}
+      {/* Team Performance Grid */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/85 backdrop-blur-xl p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs">
           <div className="min-w-0">
             <h2 className="text-base font-bold text-slate-900 tracking-tight">
-              Team Performance Grid (All 20 Teams)
+              Team Performance Grid (All {totalTeams} Teams)
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Click any team card to drill down into its 5 students and individual performance.
+              Click any team card to drill down into its assigned students and individual performance.
             </p>
           </div>
 
@@ -295,55 +299,58 @@ export const DeanDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* 20 Teams Bento Cards Grid */}
+        {/* Teams Bento Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4">
-          {filteredTeams.map((team) => (
-            <motion.div
-              key={team.id}
-              whileHover={{ y: -2, scale: 1.01 }}
-              whileTap={{ scale: 0.985 }}
-              onClick={() => setSelectedTeam(team)}
-              className="p-4 sm:p-5 rounded-3xl border border-slate-200/90 bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group gpu-layer"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors truncate">
-                    {team.teamNumber}
-                  </span>
-                  <StatusBadge status={team.status} size="sm" />
-                </div>
-
-                <div className="text-xs text-slate-600 font-semibold">
-                  5 Students
-                </div>
-                <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                  Mentor: {team.mentorName}
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-500 font-medium">Avg Progress</span>
-                    <span className="font-bold text-slate-900">{team.avgProgress}%</span>
+          {filteredTeams.map((team) => {
+            const teamStudentCount = students.filter(s => s.teamId === team.id || s.teamNumber === team.teamNumber).length;
+            return (
+              <motion.div
+                key={team.id}
+                whileHover={{ y: -2, scale: 1.01 }}
+                whileTap={{ scale: 0.985 }}
+                onClick={() => setSelectedTeam(team)}
+                className="p-4 sm:p-5 rounded-3xl border border-slate-200/90 bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group gpu-layer"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors truncate">
+                      {team.teamNumber}
+                    </span>
+                    <StatusBadge status={team.status} size="sm" />
                   </div>
-                  <ProgressBar
-                    percentage={team.avgProgress}
-                    height="xs"
-                    color={team.avgProgress >= 80 ? 'emerald' : team.avgProgress >= 70 ? 'indigo' : 'amber'}
-                  />
 
-                  <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-                    <span>Problems:</span>
-                    <span className="font-bold text-slate-800">{team.totalSolved}</span>
+                  <div className="text-xs text-slate-600 font-semibold">
+                    {teamStudentCount} Students
+                  </div>
+                  <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                    Mentor: {team.mentorName}
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500 font-medium">Avg Progress</span>
+                      <span className="font-bold text-slate-900">{team.avgProgress}%</span>
+                    </div>
+                    <ProgressBar
+                      percentage={team.avgProgress}
+                      height="xs"
+                      color={team.avgProgress >= 80 ? 'emerald' : team.avgProgress >= 70 ? 'indigo' : 'amber'}
+                    />
+
+                    <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                      <span>Problems:</span>
+                      <span className="font-bold text-slate-800">{team.totalSolved}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-blue-600 font-bold group-hover:translate-x-0.5 transition-transform">
-                <span>View 5 Students</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </div>
-            </motion.div>
-          ))}
+                <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-blue-600 font-bold group-hover:translate-x-0.5 transition-transform">
+                  <span>View Students</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </div>

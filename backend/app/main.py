@@ -15,11 +15,14 @@ def _init_db():
         from app.models.user import User
         with SessionLocal() as db:
             if db.query(User).count() == 0:
-                from scripts.seed_data import seed
+                try:
+                    from scripts.seed_data import seed
+                except ImportError:
+                    from backend.scripts.seed_data import seed
                 seed(db_session=db)
     except Exception as e:
         # Non-blocking in case of external migrations or seed already present
-        print("Initial database check:", e)
+        print("Initial database check / seed:", e)
 
 _init_db()
 

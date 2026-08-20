@@ -21,18 +21,18 @@ from app.schemas.note import MentorNoteOut
 from app.schemas.problem import DSAProblemOut
 from app.core.exceptions import ResourceNotFoundException
 
-# Standardized curriculum constants
-TOPIC_TOTALS = {
-    DSATopic.ARRAYS: 25,
-    DSATopic.STRINGS: 20,
-    DSATopic.LINKED_LISTS: 15,
-    DSATopic.STACK: 12,
-    DSATopic.QUEUE: 10,
-    DSATopic.TREES: 20,
-    DSATopic.GRAPHS: 18,
-    DSATopic.DYNAMIC_PROGRAMMING: 20,
+# Standardized GKCE curriculum problem totals
+TOPIC_CURRICULUM_TOTALS = {
+    DSATopic.ARRAYS: 5,
+    DSATopic.STRINGS: 4,
+    DSATopic.LINKED_LISTS: 4,
+    DSATopic.STACK: 4,
+    DSATopic.QUEUE: 2,
+    DSATopic.TREES: 5,
+    DSATopic.GRAPHS: 4,
+    DSATopic.DYNAMIC_PROGRAMMING: 6,
 }
-TOTAL_CURRICULUM_PROBLEMS = sum(TOPIC_TOTALS.values())  # 140
+TOTAL_CURRICULUM_PROBLEMS = 34
 
 
 class StudentService:
@@ -85,7 +85,7 @@ class StudentService:
         # Real distinct problems solved by student
         actual_solved_count = self.db.query(func.count(distinct(Submission.problem_id))).filter(
             Submission.student_id == student_id,
-            Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.status == SubmissionStatus.SOLVED,
         ).scalar() or (prog.problems_solved if prog else 0)
 
         # Real total submissions attempted
@@ -103,7 +103,7 @@ class StudentService:
             topic_solved = self.db.query(func.count(distinct(Submission.problem_id))).join(DSAProblem).filter(
                 Submission.student_id == student_id,
                 DSAProblem.topic == topic,
-                Submission.status == SubmissionStatus.ACCEPTED,
+                Submission.status == SubmissionStatus.SOLVED,
             ).scalar() or 0
 
             pct = min(100, round((topic_solved / max(1, topic_total)) * 100))
@@ -121,19 +121,19 @@ class StudentService:
         easy_s = self.db.query(func.count(distinct(Submission.problem_id))).join(DSAProblem).filter(
             Submission.student_id == student_id,
             DSAProblem.difficulty == ProblemDifficulty.EASY,
-            Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.status == SubmissionStatus.SOLVED,
         ).scalar() or 0
 
         med_s = self.db.query(func.count(distinct(Submission.problem_id))).join(DSAProblem).filter(
             Submission.student_id == student_id,
             DSAProblem.difficulty == ProblemDifficulty.MEDIUM,
-            Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.status == SubmissionStatus.SOLVED,
         ).scalar() or 0
 
         hard_s = self.db.query(func.count(distinct(Submission.problem_id))).join(DSAProblem).filter(
             Submission.student_id == student_id,
             DSAProblem.difficulty == ProblemDifficulty.HARD,
-            Submission.status == SubmissionStatus.ACCEPTED,
+            Submission.status == SubmissionStatus.SOLVED,
         ).scalar() or 0
 
         diff_stats = DifficultyStats(

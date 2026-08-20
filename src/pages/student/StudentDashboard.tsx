@@ -5,6 +5,7 @@ import { ProgressRing } from '../../components/ui/ProgressRing';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { StreakBadge } from '../../components/ui/StreakBadge';
 import { TopicProgressList } from '../../components/ui/TopicProgressList';
+import { TOTAL_CURRICULUM_PROBLEMS } from '../../data/mockData';
 import {
   User,
   CheckCircle2,
@@ -132,7 +133,7 @@ export const StudentDashboard: React.FC = () => {
             <div className="text-center mt-3">
               <div className="text-sm font-bold text-slate-900">{student.progress}% DSA Progress</div>
               <div className="text-[11px] text-slate-500 mt-0.5">
-                {student.solved} of 140 core problems mastered
+                {student.solved} of {TOTAL_CURRICULUM_PROBLEMS} core problems mastered
               </div>
             </div>
           </div>
@@ -169,8 +170,8 @@ export const StudentDashboard: React.FC = () => {
                 </span>
               </div>
               <div className="flex items-center justify-between text-slate-600">
-                <span>Weekly Target</span>
-                <span className="font-bold text-emerald-700">8 / 10 Met</span>
+                <span>Recent Solves</span>
+                <span className="font-bold text-emerald-700">{student.recentActivities.length} Logged</span>
               </div>
             </div>
           </div>
@@ -196,8 +197,10 @@ export const StudentDashboard: React.FC = () => {
                 <span className="font-bold text-slate-800">{student.longestStreak} Days</span>
               </div>
               <div className="text-[11px] text-slate-400 border-t border-slate-200 pt-1.5 flex items-center justify-between">
-                <span>Consistency Score</span>
-                <span className="font-bold text-emerald-600">High (94%)</span>
+                <span>Consistency Level</span>
+                <span className="font-bold text-emerald-600">
+                  {student.streak >= 10 ? 'High' : student.streak >= 5 ? 'Moderate' : 'Active'} ({Math.min(100, Math.round((student.streak / Math.max(1, student.longestStreak)) * 100))}%)
+                </span>
               </div>
             </div>
           </div>

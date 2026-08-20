@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { BentoCard } from '../../components/ui/BentoCard';
 import { Settings, Save, Bell, Shield, BookOpen, Clock, Check } from 'lucide-react';
 import { DSA_TOPICS } from '../../data/mockData';
 
 export const DeanSettingsPage: React.FC = () => {
+  const { students, teams } = useAuth();
   const [academicTerm, setAcademicTerm] = useState('Academic Year 2025-26 (Spring Semester)');
   const [minPassThreshold, setMinPassThreshold] = useState(70);
   const [alertLowActivityDays, setAlertLowActivityDays] = useState(3);
@@ -69,7 +71,7 @@ export const DeanSettingsPage: React.FC = () => {
                 <input
                   type="text"
                   disabled
-                  value="100 Students"
+                  value={`${students.length} Students`}
                   className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600 font-mono"
                 />
               </div>
@@ -80,7 +82,7 @@ export const DeanSettingsPage: React.FC = () => {
                 <input
                   type="text"
                   disabled
-                  value="20 Teams (5 each)"
+                  value={`${teams.length} Teams`}
                   className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600 font-mono"
                 />
               </div>

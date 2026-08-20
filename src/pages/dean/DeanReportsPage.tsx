@@ -72,15 +72,15 @@ export const DeanReportsPage: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
               <div className="text-xs text-slate-500">Enrolled Students</div>
-              <div className="text-xl font-bold text-slate-900 mt-1">100</div>
+              <div className="text-xl font-bold text-slate-900 mt-1">{students.length}</div>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
               <div className="text-xs text-slate-500">Cohort Teams</div>
-              <div className="text-xl font-bold text-slate-900 mt-1">20 Teams (5/team)</div>
+              <div className="text-xl font-bold text-slate-900 mt-1">{teams.length} Teams</div>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
               <div className="text-xs text-slate-500">Assigned Mentors</div>
-              <div className="text-xl font-bold text-slate-900 mt-1">20 Faculty</div>
+              <div className="text-xl font-bold text-slate-900 mt-1">{mentors.length} Faculty</div>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
               <div className="text-xs text-slate-500">Batch Average</div>
@@ -99,22 +99,30 @@ export const DeanReportsPage: React.FC = () => {
               <tr className="bg-slate-100 font-semibold text-slate-700">
                 <th className="p-2.5 border border-slate-200">Topic Domain</th>
                 <th className="p-2.5 border border-slate-200 text-center">Core Problems</th>
-                <th className="p-2.5 border border-slate-200 text-center">100-Student Avg</th>
+                <th className="p-2.5 border border-slate-200 text-center">{students.length}-Student Avg</th>
                 <th className="p-2.5 border border-slate-200 text-right">Compliance Status</th>
               </tr>
             </thead>
             <tbody>
               {DSA_TOPICS.map((topic) => {
                 const avg = Math.round(
-                  students.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / students.length
+                  students.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / Math.max(1, students.length)
                 );
                 return (
                   <tr key={topic}>
                     <td className="p-2 border border-slate-200 font-medium">{topic}</td>
-                    <td className="p-2 border border-slate-200 text-center font-mono">15 - 25</td>
+                    <td className="p-2 border border-slate-200 text-center font-mono">
+                      {topic === 'Dynamic Programming' ? 6 : topic === 'Queue' ? 2 : topic === 'Strings' || topic === 'Linked Lists' || topic === 'Stack' || topic === 'Graphs' ? 4 : 5}
+                    </td>
                     <td className="p-2 border border-slate-200 text-center font-bold">{avg}%</td>
                     <td className="p-2 border border-slate-200 text-right">
-                      <span className="text-emerald-700 font-semibold">MEETS BENCHMARK</span>
+                      {avg >= 75 ? (
+                        <span className="text-emerald-700 font-semibold">MEETS BENCHMARK</span>
+                      ) : avg >= 60 ? (
+                        <span className="text-blue-700 font-semibold">IN PROGRESS</span>
+                      ) : (
+                        <span className="text-amber-700 font-semibold">NEEDS FOCUS</span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -123,10 +131,10 @@ export const DeanReportsPage: React.FC = () => {
           </table>
         </div>
 
-        {/* 20 Teams Performance Summary */}
+        {/* Teams Performance Summary */}
         <div className="space-y-3">
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
-            3. All 20 Teams Status Matrix
+            3. All {teams.length} Teams Status Matrix
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
             {teams.map((tm) => (
