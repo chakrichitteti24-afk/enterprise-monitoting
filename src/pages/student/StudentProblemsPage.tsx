@@ -152,7 +152,7 @@ export const StudentProblemsPage: React.FC = () => {
       {/* Problem Modal Simulator */}
       <AnimatePresence>
         {activeProblem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/40 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -161,12 +161,17 @@ export const StudentProblemsPage: React.FC = () => {
               onClick={() => setActiveProblem(null)}
             />
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 p-5 sm:p-6 z-10 space-y-4 max-h-[90vh] overflow-y-auto"
+              initial={{ y: '100%', opacity: 0.5 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100%', opacity: 0 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+              className="relative w-full max-w-2xl bg-white rounded-t-[32px] sm:rounded-3xl shadow-2xl border border-slate-200 p-5 sm:p-6 z-10 space-y-4 max-h-[88vh] sm:max-h-[90vh] overflow-y-auto gpu-layer"
             >
+              {/* Mobile drag handle */}
+              <div className="sm:hidden -mt-2 pb-1 flex justify-center">
+                <div className="w-12 h-1.5 rounded-full bg-slate-200" />
+              </div>
+
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-100">

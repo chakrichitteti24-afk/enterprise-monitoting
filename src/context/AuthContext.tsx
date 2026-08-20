@@ -330,7 +330,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const normalizedEmail = email.toLowerCase().trim();
       
       // Fallback verification for Dean
-      if (normalizedEmail === 'dean.academics@gkce.edu.in' && password === 'Dean@GKCE2026') {
+      if (
+        (normalizedEmail === 'dean.academics@gkce.edu.in' || normalizedEmail === 'dean@gkce.edu.in') &&
+        (password === 'Dean@GKCE2026' || password === 'Dean#GKCE2026' || password === 'Dean.Academics@GKCE2026')
+      ) {
         mapAndSetUser('DEAN');
         setIsAuthenticated(true);
         return;

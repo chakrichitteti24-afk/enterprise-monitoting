@@ -154,15 +154,59 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </button>
         </form>
 
+        {/* Quick Demo Login Chips (Mobile-friendly single-tap) */}
+        <div className="space-y-2 pt-2 border-t border-slate-700/50">
+          <div className="text-[11px] font-semibold text-slate-400 text-center">
+            Institutional Access Presets
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('dean.academics@gkce.edu.in');
+                setPassword('Dean@GKCE2026');
+              }}
+              className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-900 border border-slate-700/70 hover:border-blue-500/50 text-left transition-all active:scale-98 cursor-pointer group"
+            >
+              <div className="text-[10px] font-bold text-blue-400 group-hover:text-blue-300">🏛️ Dean</div>
+              <div className="text-[10px] text-slate-200 font-semibold truncate">Prof. Dr. R. V. Raman</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('ludvika@gkce.edu.in');
+                setPassword('Mentor@GKCE2026');
+              }}
+              className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-900 border border-slate-700/70 hover:border-indigo-500/50 text-left transition-all active:scale-98 cursor-pointer group"
+            >
+              <div className="text-[10px] font-bold text-indigo-400 group-hover:text-indigo-300">👨‍🏫 Mentor (Team 07)</div>
+              <div className="text-[10px] text-slate-200 font-semibold truncate">Mrs. Ludvika</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('chakri.24f81a0522@gkce.edu.in');
+                setPassword('Student@GKCE2026');
+              }}
+              className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-900 border border-slate-700/70 hover:border-emerald-500/50 text-left transition-all active:scale-98 cursor-pointer group"
+            >
+              <div className="text-[10px] font-bold text-emerald-400 group-hover:text-emerald-300">🎓 Student</div>
+              <div className="text-[10px] text-slate-200 font-semibold truncate">CH. CHAKRI</div>
+            </button>
+          </div>
+        </div>
+
         {/* Security Trust Badge */}
-        <div className="pt-2 border-t border-slate-700/50 flex items-center justify-center gap-2 text-[11px] text-slate-400">
+        <div className="pt-1 flex items-center justify-center gap-2 text-[11px] text-slate-400">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Encrypted Session • Strict RBAC Ownership</span>
+          <span>Encrypted Session • Strict 3-Tier RBAC</span>
         </div>
 
         {/* Footer */}
         <div className="text-center text-[10px] text-slate-500">
-          Autonomous Institution • Affiliated to JNTUA • NIRF Evaluated
+          Gokula Krishna College of Engineering (Autonomous) • Affiliated to JNTUA
         </div>
       </div>
     </div>

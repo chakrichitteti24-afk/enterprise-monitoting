@@ -4660,11 +4660,11 @@ export const PROBLEMS_BANK: Problem[] = [
 
 export const DEAN_USER: CurrentUser = {
   id: 'dean-1',
-  name: 'Dr. R. V. Raman',
+  name: 'Prof. Dr. R. V. Raman, Ph.D.',
   email: 'dean.academics@gkce.edu.in',
   role: 'DEAN',
   avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-  title: 'Dean of Academics & Institutional Development',
+  title: 'Dean of Academic Affairs & Head of Technical Training',
 };
 
 export const DEFAULT_MENTOR_USER: CurrentUser = {
