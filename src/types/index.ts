@@ -63,6 +63,7 @@ export interface Team {
   mentorName: string;
   mentorEmail: string;
   mentorDepartment: string;
+  mentorAvatar?: string;
   studentIds: string[];
   avgProgress: number;
   totalSolved: number;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Search, GraduationCap, Users, BookOpen, X, ArrowRight, Sparkles } from 'lucide-react';
+import { UserAvatar } from '../ui/UserAvatar';
 import { DSA_TOPICS } from '../../data/mockData';
 import { Student, Team } from '../../types';
 
@@ -60,26 +61,26 @@ export const GlobalSearchModal: React.FC = () => {
       s.name.toLowerCase().includes(query.toLowerCase()) ||
       s.rollNo.toLowerCase().includes(query.toLowerCase()) ||
       s.teamNumber.toLowerCase().includes(query.toLowerCase())
-  ).slice(0, 5);
+  );
 
   const filteredTeams = accessibleTeams().filter(
     (t) =>
       t.teamNumber.toLowerCase().includes(query.toLowerCase()) ||
-      t.mentorName.toLowerCase().includes(query.toLowerCase())
-  ).slice(0, 4);
+      t.mentorName.toLowerCase().includes(query.toLowerCase()) ||
+      t.name.toLowerCase().includes(query.toLowerCase())
+  );
 
-  const filteredTopics = DSA_TOPICS.filter((topic) =>
-    topic.toLowerCase().includes(query.toLowerCase())
-  ).slice(0, 4);
+  const filteredTopics = DSA_TOPICS.filter((tp) =>
+    tp.toLowerCase().includes(query.toLowerCase())
+  );
 
-  const handleSelectStudent = (student: Student) => {
-    setSelectedStudent(student);
+  const handleSelectStudent = (st: Student) => {
+    setSelectedStudent(st);
     setIsSearchOpen(false);
   };
 
-  const handleSelectTeam = (team: Team) => {
-    setSelectedTeam(team);
-    setActiveTab('teams');
+  const handleSelectTeam = (t: Team) => {
+    setSelectedTeam(t);
     setIsSearchOpen(false);
   };
 
@@ -89,29 +90,23 @@ export const GlobalSearchModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4 bg-slate-950/40 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-slate-950/40 backdrop-blur-md">
       <div
         className="fixed inset-0"
         onClick={() => setIsSearchOpen(false)}
       />
 
-      <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-10 animate-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-10">
         {/* Search Input Bar */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100 bg-slate-50/50">
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100">
           <Search className="w-5 h-5 text-slate-400 shrink-0" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={
-              role === 'DEAN'
-                ? 'Search 100 students, 20 teams, or topics...'
-                : role === 'MENTOR'
-                ? `Search in ${currentUser.teamNumber || 'Team 07'}...`
-                : 'Search your topics & problems...'
-            }
-            className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden"
+            placeholder="Search students, roll numbers, teams, or DSA topics..."
+            className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden font-medium"
           />
           {query && (
             <button
@@ -180,15 +175,17 @@ export const GlobalSearchModal: React.FC = () => {
                     className="w-full p-2 rounded-xl hover:bg-slate-50 flex items-center justify-between text-left transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <img
+                      <UserAvatar
                         src={st.avatar}
-                        alt={st.name}
-                        className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200"
+                        name={st.name}
+                        id={st.rollNo}
+                        role="STUDENT"
+                        size="sm"
                       />
                       <div>
                         <div className="text-xs font-semibold text-slate-900">{st.name}</div>
                         <div className="text-[11px] text-slate-500">
-                          {st.rollNo} • {st.teamNumber} • Mentor: {st.mentorName}
+                          {st.rollNo} • {st.teamNumber}
                         </div>
                       </div>
                     </div>
@@ -216,10 +213,18 @@ export const GlobalSearchModal: React.FC = () => {
                     onClick={() => handleSelectTeam(t)}
                     className="w-full p-2 rounded-xl hover:bg-slate-50 flex items-center justify-between text-left transition-colors"
                   >
-                    <div>
-                      <div className="text-xs font-semibold text-slate-900">{t.teamNumber}</div>
-                      <div className="text-[11px] text-slate-500">
-                        Mentor: {t.mentorName} • 5 Students
+                    <div className="flex items-center gap-3">
+                      <UserAvatar
+                        name={t.mentorName}
+                        role="MENTOR"
+                        size="sm"
+                        showBadge
+                      />
+                      <div>
+                        <div className="text-xs font-semibold text-slate-900">{t.teamNumber} - {t.name}</div>
+                        <div className="text-[11px] text-slate-500">
+                          Mentor: {t.mentorName}
+                        </div>
                       </div>
                     </div>
                     <div className="text-right">

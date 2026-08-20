@@ -26,27 +26,48 @@ export const Header: React.FC<HeaderProps> = ({
   onMobileMenuToggle,
   isMobileMenuOpen,
 }) => {
-  const { currentUser, role, setIsSearchOpen, setActiveTab, setSelectedStudent, setSelectedTeam, logout } = useAuth();
+  const {
+    currentUser,
+    role,
+    setIsSearchOpen,
+    setActiveTab,
+    setSelectedStudent,
+    setSelectedTeam,
+    logout,
+    students,
+    teams,
+  } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
+  const topTeam = teams.length > 0 ? [...teams].sort((a, b) => b.avgProgress - a.avgProgress)[0] : null;
+  const attentionStudentCount = students.filter((s) => s.status === 'Needs Attention').length;
+
   const notifications = [
-    {
-      id: 1,
-      title: 'Weekly DSA Benchmark Updated',
-      desc: 'Team 03 achieved 91% milestone completion.',
-      time: '10m ago',
-      icon: CheckCircle2,
-      color: 'text-emerald-600 bg-emerald-50',
-    },
-    {
-      id: 2,
-      title: 'Attention Required',
-      desc: '3 students in Team 16 have not solved problems this week.',
-      time: '1h ago',
-      icon: AlertTriangle,
-      color: 'text-amber-600 bg-amber-50',
-    },
+    ...(topTeam
+      ? [
+          {
+            id: 1,
+            title: `${topTeam.teamNumber} Leading Cohort`,
+            desc: `${topTeam.teamNumber} (${topTeam.mentorName}) verified at ${topTeam.avgProgress}% progress.`,
+            time: 'Live',
+            icon: CheckCircle2,
+            color: 'text-emerald-600 bg-emerald-50',
+          },
+        ]
+      : []),
+    ...(attentionStudentCount > 0
+      ? [
+          {
+            id: 2,
+            title: 'Active Mentorship Queue',
+            desc: `${attentionStudentCount} students currently flagged for faculty mentor check-in.`,
+            time: 'Real-time',
+            icon: AlertTriangle,
+            color: 'text-amber-600 bg-amber-50',
+          },
+        ]
+      : []),
   ];
 
   return (

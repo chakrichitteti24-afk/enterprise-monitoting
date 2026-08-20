@@ -13,6 +13,11 @@ export const StudentProgressPage: React.FC = () => {
 
   if (!student) return null;
 
+  const totalCurriculum =
+    student.difficultyStats.easy.total +
+    student.difficultyStats.medium.total +
+    student.difficultyStats.hard.total;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -35,7 +40,7 @@ export const StudentProgressPage: React.FC = () => {
             <ProgressRing percentage={student.progress} size={150} strokeWidth={12} />
             <div className="mt-4 space-y-1">
               <div className="text-base font-bold text-slate-900">{student.solved} Problems Solved</div>
-              <div className="text-xs text-slate-500">140 Required to reach 100% Mastery</div>
+              <div className="text-xs text-slate-500">{totalCurriculum} Required to reach 100% Mastery</div>
             </div>
           </div>
         </BentoCard>

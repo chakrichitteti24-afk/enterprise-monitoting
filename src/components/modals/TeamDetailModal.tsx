@@ -4,6 +4,7 @@ import { StatusBadge } from '../ui/StatusBadge';
 import { StreakBadge } from '../ui/StreakBadge';
 import { ProgressRing } from '../ui/ProgressRing';
 import { ProgressBar } from '../ui/ProgressBar';
+import { UserAvatar } from '../ui/UserAvatar';
 import { DSA_TOPICS } from '../../data/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, Mail, Phone, ChevronRight } from 'lucide-react';
@@ -48,72 +49,51 @@ export const TeamDetailModal: React.FC = () => {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: '100%', opacity: 0 }}
         transition={{ type: 'spring', damping: 30, stiffness: 350 }}
-        className="relative w-full max-w-4xl bg-white rounded-t-[32px] sm:rounded-[32px] shadow-2xl border border-slate-200/80 overflow-hidden z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col gpu-layer"
+        className="relative w-full max-w-2xl bg-white rounded-t-[32px] sm:rounded-[32px] shadow-2xl border border-slate-200/80 overflow-hidden z-10 max-h-[90vh] flex flex-col gpu-layer"
       >
-        {/* Mobile Swipe / Drag Handle */}
+        {/* Mobile Drag Indicator */}
         <div className="sm:hidden pt-3 pb-1 flex justify-center">
           <div className="w-12 h-1.5 rounded-full bg-slate-200" />
         </div>
 
         {/* Header */}
-        <div className="px-5 sm:px-6 py-4 sm:py-5 border-b border-slate-100 flex items-start justify-between bg-slate-50/70">
+        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
           <div>
-            <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
                 {selectedTeam.teamNumber}
-              </h2>
-              <StatusBadge status={selectedTeam.status} />
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-100">
-                Rank #{selectedTeam.rank || 1}
               </span>
+              <StatusBadge status={selectedTeam.status} />
             </div>
-            <div className="text-xs text-slate-500 mt-1">
-              5 Students • Mentor: <strong className="text-slate-800">{selectedTeam.mentorName}</strong> ({selectedTeam.mentorDepartment})
-            </div>
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight mt-1">
+              {selectedTeam.name}
+            </h2>
           </div>
 
           <motion.button
             whileTap={{ scale: 0.88 }}
             onClick={() => setSelectedTeam(null)}
-            className="p-2 rounded-2xl bg-white border border-slate-200 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
+            className="p-2 rounded-2xl bg-white border border-slate-200 text-slate-400 hover:text-slate-700 transition-colors"
           >
-            <X className="w-4 h-4 sm:w-5 sm:h-5" />
+            <X className="w-5 h-5" />
           </motion.button>
         </div>
 
-        {/* Content */}
-        <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-5 overscroll-contain">
-          {/* Top Bento Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4">
-            {/* Team Progress Ring */}
-            <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 flex flex-col items-center justify-center text-center">
-              <ProgressRing percentage={selectedTeam.avgProgress} size={110} strokeWidth={8} color="#1d4ed8" />
-              <div className="text-xs font-bold text-slate-800 mt-2">Team Average Progress</div>
-              <div className="text-[11px] text-slate-400">Target: 75% for mid-term review</div>
-            </div>
-
-            {/* Team Stats */}
-            <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 flex flex-col justify-between">
-              <div className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Team Aggregates
-              </div>
-              <div className="space-y-2 my-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Total Solved</span>
-                  <span className="font-bold text-slate-900 text-sm">{selectedTeam.totalSolved}</span>
+        {/* Modal Scroll Body */}
+        <div className="p-6 overflow-y-auto space-y-6">
+          {/* Top Grid: Progress & Mentor Card */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Average Progress Card */}
+            <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 flex items-center gap-4">
+              <ProgressRing percentage={selectedTeam.avgProgress} size={70} strokeWidth={7} />
+              <div>
+                <div className="text-xs text-slate-500 font-medium">Cohort Average Progress</div>
+                <div className="text-lg font-bold text-slate-900 mt-0.5">
+                  {selectedTeam.avgProgress}%
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Total Attempted</span>
-                  <span className="font-semibold text-slate-700">{selectedTeam.totalAttempted}</span>
+                <div className="text-[11px] text-slate-400 mt-0.5">
+                  {selectedTeam.totalSolved} total problems solved
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Average Streak</span>
-                  <span className="font-bold text-amber-700">{selectedTeam.avgStreak} Days</span>
-                </div>
-              </div>
-              <div className="text-[10px] text-slate-400 border-t border-slate-200/60 pt-1.5 flex justify-between">
-                <span>Active Cohort</span>
-                <span className="font-bold text-emerald-700">5 / 5 Students Enrolled</span>
               </div>
             </div>
 
@@ -124,10 +104,12 @@ export const TeamDetailModal: React.FC = () => {
                   Assigned Faculty Mentor
                 </div>
                 <div className="flex items-center gap-3">
-                  <img
-                    src={mentor?.avatar || selectedTeam.mentorEmail}
-                    alt={selectedTeam.mentorName}
-                    className="w-10 h-10 rounded-2xl object-cover border border-slate-200 shadow-2xs"
+                  <UserAvatar
+                    src={mentor?.avatar || selectedTeam.mentorAvatar}
+                    name={selectedTeam.mentorName}
+                    role="MENTOR"
+                    size="md"
+                    showBadge
                   />
                   <div>
                     <div className="text-xs font-bold text-slate-900">{selectedTeam.mentorName}</div>
@@ -150,12 +132,12 @@ export const TeamDetailModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Assigned 5 Students Grid */}
+          {/* Assigned Students Grid */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
                 <Users className="w-4 h-4 text-blue-600" />
-                Assigned Students (5)
+                Assigned Students ({teamStudents.length})
               </h3>
               <span className="text-[11px] text-slate-400">Click to view student dossier</span>
             </div>
@@ -170,10 +152,12 @@ export const TeamDetailModal: React.FC = () => {
                   className="p-3.5 rounded-2xl border border-slate-200/80 bg-white hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer flex items-center justify-between gap-3 sm:gap-4"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <img
+                    <UserAvatar
                       src={st.avatar}
-                      alt={st.name}
-                      className="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-200 shrink-0"
+                      name={st.name}
+                      id={st.rollNo}
+                      role="STUDENT"
+                      size="md"
                     />
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">

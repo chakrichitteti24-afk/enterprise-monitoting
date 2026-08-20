@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { BentoCard } from '../../components/ui/BentoCard';
 import { ProgressBar } from '../../components/ui/ProgressBar';
+import { UserAvatar } from '../../components/ui/UserAvatar';
 import { DSA_TOPICS } from '../../data/mockData';
 import { TrendingUp, Users, BookOpen } from 'lucide-react';
 
@@ -26,11 +27,11 @@ export const MentorProgressPage: React.FC = () => {
           {assignedTeamNumber} Curriculum Performance
         </h1>
         <p className="text-xs md:text-sm text-slate-500 mt-1">
-          Comparative breakdown of the 5 assigned students across all 8 DSA core curriculum modules.
+          Comparative breakdown of the {teamStudents.length} assigned students across all 8 DSA core curriculum modules.
         </p>
       </div>
 
-      {/* 5-Student Matrix Table */}
+      {/* Student Matrix Table */}
       <BentoCard
         title="Student vs Topic Mastery Matrix"
         subtitle="Live completion percentage per topic"
@@ -58,10 +59,12 @@ export const MentorProgressPage: React.FC = () => {
                 >
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2.5">
-                      <img
+                      <UserAvatar
                         src={st.avatar}
-                        alt={st.name}
-                        className="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 shrink-0"
+                        name={st.name}
+                        id={st.rollNo}
+                        role="STUDENT"
+                        size="xs"
                       />
                       <div>
                         <div className="font-bold text-slate-900 truncate max-w-[130px]">{st.name}</div>

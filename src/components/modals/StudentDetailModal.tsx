@@ -4,6 +4,7 @@ import { StatusBadge } from '../ui/StatusBadge';
 import { StreakBadge } from '../ui/StreakBadge';
 import { ProgressRing } from '../ui/ProgressRing';
 import { TopicProgressList } from '../ui/TopicProgressList';
+import { UserAvatar } from '../ui/UserAvatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -65,10 +66,12 @@ export const StudentDetailModal: React.FC = () => {
         {/* Header */}
         <div className="px-5 sm:px-6 py-4 sm:py-5 border-b border-slate-100 flex items-start justify-between bg-slate-50/70">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-            <img
+            <UserAvatar
               src={selectedStudent.avatar}
-              alt={selectedStudent.name}
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white border border-slate-200 shadow-2xs shrink-0"
+              name={selectedStudent.name}
+              id={selectedStudent.rollNo}
+              role="STUDENT"
+              size="xl"
             />
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
