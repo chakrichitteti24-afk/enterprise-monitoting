@@ -13,7 +13,7 @@ def test_login_success_dean(client: TestClient):
     assert "access_token" in data
     assert data["token_type"] == "bearer"
     assert data["user"]["role"] == "DEAN"
-    assert data["user"]["name"] == "Prof. Dr. R. V. Raman, Ph.D."
+    assert data["user"]["name"] == "Prof. Dr. V. Rama Devi, Ph.D."
 
 
 def test_login_success_student(client: TestClient):
