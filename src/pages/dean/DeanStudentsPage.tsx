@@ -36,6 +36,17 @@ export const DeanStudentsPage: React.FC = () => {
   const [dsaLevelInput, setDsaLevelInput] = useState<DSALevel>('Beginner');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteConfirmStudent, setDeleteConfirmStudent] = useState<Student | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const openEnrollModal = () => {
+    const nextRollNum = 100 + students.length + 1;
+    setRollInput(`24F81A05${nextRollNum < 1000 ? nextRollNum : Math.floor(100 + Math.random() * 899)}`);
+    setNameInput('');
+    setEmailInput('');
+    setTeamNumberInput(teams[0]?.teamNumber || 'Team 01');
+    setDsaLevelInput('Beginner');
+    setIsEnrollOpen(true);
+  };
 
   const filteredStudents = students.filter((s) => {
     const matchesSearch =
@@ -62,14 +73,18 @@ export const DeanStudentsPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
+      const studentRoll = rollInput.trim().toUpperCase();
+      const studentName = nameInput.trim();
       await addStudent({
-        name: nameInput.trim(),
-        rollNo: rollInput.trim().toUpperCase(),
-        email: emailInput.trim() || `${rollInput.trim().toLowerCase()}@gkce.edu.in`,
-        teamNumber: teamNumberInput,
+        name: studentName,
+        rollNo: studentRoll,
+        email: emailInput.trim() || `${studentRoll.toLowerCase()}@gkce.edu.in`,
+        teamNumber: teamNumberInput || teams[0]?.teamNumber || 'Team 01',
         dsaLevel: dsaLevelInput,
       });
       setIsEnrollOpen(false);
+      setSuccessMessage(`Student ${studentName} (${studentRoll}) enrolled in ${teamNumberInput || 'Team 01'}!`);
+      setTimeout(() => setSuccessMessage(null), 4000);
       setNameInput('');
       setRollInput('');
       setEmailInput('');
@@ -84,6 +99,8 @@ export const DeanStudentsPage: React.FC = () => {
     try {
       await removeStudent(student.id);
       setDeleteConfirmStudent(null);
+      setSuccessMessage(`Student ${student.name} (${student.rollNo}) de-enrolled.`);
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       console.error(err);
     }
@@ -116,16 +133,44 @@ export const DeanStudentsPage: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  // Lock body scroll for enroll/delete modals
+  React.useEffect(() => {
+    if (isEnrollOpen || deleteConfirmStudent) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isEnrollOpen, deleteConfirmStudent]);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
+      {/* Success Notification Banner */}
+      <AnimatePresence>
+        {successMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs"
+          >
+            <span>✅ {successMessage}</span>
+            <button onClick={() => setSuccessMessage(null)} className="text-emerald-600 hover:text-emerald-900 p-1">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white/85 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-blue-700 mb-1">
             <GraduationCap className="w-4 h-4" />
             <span>Enrolled Students Master Roster</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             {students.length} Monitored Students
           </h1>
           <p className="text-xs md:text-sm text-slate-500 mt-1">
@@ -133,27 +178,28 @@ export const DeanStudentsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap sm:flex-nowrap">
           <button
-            onClick={() => setIsEnrollOpen(true)}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all active:scale-98"
+            onClick={openEnrollModal}
+            className="flex-1 sm:flex-initial px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-98"
           >
             <Plus className="w-4 h-4" />
-            <span>Enroll New Student</span>
+            <span>Enroll Student</span>
           </button>
+
           <button
             onClick={exportToCSV}
-            className="px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-2xl text-xs font-semibold flex items-center gap-2 shadow-xs transition-colors"
+            className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
-            Export CSV ({filteredStudents.length})
+            <span>Export CSV ({filteredStudents.length})</span>
           </button>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
-        <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
+      <div className="bg-white/85 backdrop-blur-xl p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
+        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
           <div className="relative w-full md:w-96">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -163,12 +209,12 @@ export const DeanStudentsPage: React.FC = () => {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Search by student name, roll number (e.g. 24F81A0522)..."
+              placeholder="Search student, roll no (e.g. 24F81A0522)..."
               className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
             />
           </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 no-scrollbar">
             <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <select
               value={selectedTeam}
@@ -176,7 +222,7 @@ export const DeanStudentsPage: React.FC = () => {
                 setSelectedTeam(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden"
+              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden shrink-0"
             >
               <option value="All">All Teams ({teams.length})</option>
               {teams.map((t) => (
@@ -192,7 +238,7 @@ export const DeanStudentsPage: React.FC = () => {
                 setSelectedStatus(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden"
+              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden shrink-0"
             >
               <option value="All">All Statuses</option>
               <option value="Active">Active</option>
@@ -206,7 +252,7 @@ export const DeanStudentsPage: React.FC = () => {
                 setSelectedLevel(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden"
+              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden shrink-0"
             >
               <option value="All">All DSA Levels</option>
               <option value="Beginner">Beginner</option>
@@ -232,7 +278,7 @@ export const DeanStudentsPage: React.FC = () => {
                 setSelectedLevel('All');
                 setCurrentPage(1);
               }}
-              className="text-blue-600 hover:text-blue-700 font-semibold"
+              className="text-blue-600 hover:text-blue-700 font-semibold text-xs"
             >
               Reset Filters
             </button>
@@ -240,8 +286,68 @@ export const DeanStudentsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+      {/* Mobile Card Roster (<md) */}
+      <div className="md:hidden space-y-3">
+        {paginatedStudents.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 text-xs bg-white rounded-3xl border border-slate-200">
+            No students match your filter criteria.
+          </div>
+        ) : (
+          paginatedStudents.map((s) => (
+            <motion.div
+              key={s.id}
+              whileTap={{ scale: 0.985 }}
+              onClick={() => setSelectedStudent(s)}
+              className="p-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3 cursor-pointer hover:border-blue-300 transition-all"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <UserAvatar src={s.avatar} name={s.name} id={s.rollNo} role="STUDENT" size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-slate-900 text-sm truncate">{s.name}</div>
+                    <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                      <span className="font-mono font-bold text-blue-700">{s.rollNo}</span>
+                      <span>•</span>
+                      <span>{s.teamNumber}</span>
+                    </div>
+                  </div>
+                </div>
+                <StatusBadge status={s.status} size="sm" />
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 space-y-2">
+                <div>
+                  <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+                    <span>Progress ({s.dsaLevel})</span>
+                    <span className="font-bold text-slate-900">{s.progress}%</span>
+                  </div>
+                  <ProgressBar
+                    percentage={s.progress}
+                    height="xs"
+                    color={s.progress >= 80 ? 'emerald' : s.progress >= 60 ? 'indigo' : 'amber'}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                  <span>Solved: <strong className="text-slate-800">{s.solved}</strong>/34</span>
+                  <StreakBadge streak={s.streak} size="sm" />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                <span className="text-slate-400">Mentor: {s.mentorName}</span>
+                <span className="text-blue-600 font-bold flex items-center gap-0.5">
+                  <span>View Dossier</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+            </motion.div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table View (>=md) */}
+      <div className="hidden md:block bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -344,45 +450,45 @@ export const DeanStudentsPage: React.FC = () => {
             </tbody>
           </table>
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="p-4 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-xs text-slate-500">
-              Page <strong>{safeCurrentPage}</strong> of <strong>{totalPages}</strong>
-            </span>
-            <div className="flex gap-1">
-              <button
-                disabled={safeCurrentPage === 1}
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white"
-              >
-                Previous
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pg) => (
-                <button
-                  key={pg}
-                  onClick={() => setCurrentPage(pg)}
-                  className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
-                    pg === safeCurrentPage
-                      ? 'bg-blue-600 text-white shadow-2xs'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  {pg}
-                </button>
-              ))}
-              <button
-                disabled={safeCurrentPage === totalPages}
-                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between flex-wrap gap-2">
+          <span className="text-xs text-slate-500">
+            Page <strong>{safeCurrentPage}</strong> of <strong>{totalPages}</strong>
+          </span>
+          <div className="flex gap-1">
+            <button
+              disabled={safeCurrentPage === 1}
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white"
+            >
+              Prev
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pg) => (
+              <button
+                key={pg}
+                onClick={() => setCurrentPage(pg)}
+                className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
+                  pg === safeCurrentPage
+                    ? 'bg-blue-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                {pg}
+              </button>
+            ))}
+            <button
+              disabled={safeCurrentPage === totalPages}
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal: Enroll Student */}
       <AnimatePresence>
@@ -392,7 +498,7 @@ export const DeanStudentsPage: React.FC = () => {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-100 space-y-4"
+              className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2 text-slate-900 font-bold text-base">
@@ -443,7 +549,7 @@ export const DeanStudentsPage: React.FC = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Assign to Team</label>
                     <select
@@ -536,3 +642,4 @@ export const DeanStudentsPage: React.FC = () => {
     </div>
   );
 };
+

@@ -13,8 +13,6 @@ import {
   ExternalLink,
   LogOut,
   User as UserIcon,
-  Flame,
-  Sparkles,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -71,14 +69,14 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-2xl border-b border-slate-200/60 px-4 md:px-8 py-2.5 transition-all">
-      <div className="flex items-center justify-between gap-3 max-w-7xl mx-auto">
+    <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-2xl border-b border-slate-200/60 px-3 sm:px-6 md:px-8 py-2 sm:py-2.5 transition-all">
+      <div className="flex items-center justify-between gap-2 sm:gap-3 max-w-7xl mx-auto">
         {/* Left: Brand / Mobile Toggle */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={onMobileMenuToggle}
-            className="md:hidden p-2 rounded-2xl bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 transition-colors"
+            className="md:hidden p-2 rounded-2xl bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 transition-colors shrink-0"
             aria-label="Toggle navigation menu"
           >
             {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -90,42 +88,34 @@ export const Header: React.FC<HeaderProps> = ({
               setSelectedStudent(null);
               setSelectedTeam(null);
             }}
-            className="flex items-center gap-2.5 sm:gap-3 cursor-pointer select-none group"
+            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group shrink-0"
           >
             <motion.div
-              whileHover={{ scale: 1.05, rotate: 2 }}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 tracking-tighter"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 tracking-tighter shrink-0"
             >
               GK
             </motion.div>
             <div>
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1.5">
                 <span className="font-bold text-slate-900 tracking-tight text-sm sm:text-base group-hover:text-blue-700 transition-colors">
                   GKCE
                 </span>
-                <span className="text-slate-300 font-light hidden sm:inline">|</span>
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-100 hidden sm:inline-block">
+                <span className="text-slate-300 font-light hidden md:inline">|</span>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-100 hidden md:inline-block">
                   DSA Monitor
                 </span>
               </div>
-              <div className="text-[10px] text-slate-400 leading-none truncate max-w-[160px] sm:max-w-none hidden md:block">
+              <div className="text-[10px] text-slate-400 leading-none truncate hidden lg:block">
                 Gokula Krishna College of Engineering
               </div>
             </div>
           </div>
         </div>
 
-        {/* Dynamic Island Status Capsule for Mobile */}
-        {role === 'STUDENT' && currentUser.studentData && (
-          <div className="sm:hidden flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50/90 border border-amber-200/70 text-amber-900 text-[11px] font-semibold shadow-2xs">
-            <Flame className="w-3 h-3 fill-amber-500 text-amber-500 animate-bounce" />
-            <span>{currentUser.studentData.streak}d Streak</span>
-          </div>
-        )}
-
-        {/* Center: Search Bar Button (Cmd+K) */}
-        <div className="flex-1 max-w-md mx-2 hidden sm:block">
+        {/* Center: Search Bar Button (Cmd+K) on Desktop */}
+        <div className="flex-1 max-w-md mx-2 hidden md:block">
           <motion.button
             whileTap={{ scale: 0.99 }}
             onClick={() => setIsSearchOpen(true)}
@@ -142,15 +132,15 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Right: Quick Switcher & User Profile */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* Quick Role Switcher */}
           <QuickRoleSwitcher />
 
-          {/* Search Trigger for Mobile */}
+          {/* Search Trigger for Mobile/Tablet */}
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => setIsSearchOpen(true)}
-            className="sm:hidden p-2 rounded-2xl bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 transition-colors"
+            className="md:hidden p-2 rounded-2xl bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 transition-colors shrink-0"
             aria-label="Open search"
           >
             <Search className="w-4 h-4" />
@@ -160,8 +150,11 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative">
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 rounded-2xl bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 transition-colors"
+              onClick={() => {
+                setShowNotifications(!showNotifications);
+                setShowProfileMenu(false);
+              }}
+              className="relative p-2 rounded-2xl bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 transition-colors shrink-0"
               aria-label="Notifications"
             >
               <Bell className="w-4 h-4" />
@@ -172,7 +165,7 @@ export const Header: React.FC<HeaderProps> = ({
               {showNotifications && (
                 <>
                   <div
-                    className="fixed inset-0 z-40"
+                    className="fixed inset-0 z-40 bg-slate-950/20 backdrop-blur-2xs"
                     onClick={() => setShowNotifications(false)}
                   />
                   <motion.div
@@ -180,15 +173,18 @@ export const Header: React.FC<HeaderProps> = ({
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ type: 'spring', stiffness: 450, damping: 30 }}
-                    className="absolute right-0 mt-2 w-80 bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200 p-3.5 z-50"
+                    className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1.5rem)] bg-white rounded-3xl shadow-2xl border border-slate-200 p-3.5 z-50 overscroll-contain"
                   >
                     <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                       <span className="font-bold text-xs text-slate-900">Notifications</span>
-                      <span className="text-[11px] text-blue-600 font-medium cursor-pointer hover:underline">
-                        Mark all read
+                      <span
+                        onClick={() => setShowNotifications(false)}
+                        className="text-[11px] text-blue-600 font-medium cursor-pointer hover:underline"
+                      >
+                        Dismiss
                       </span>
                     </div>
-                    <div className="mt-2 space-y-2">
+                    <div className="mt-2 space-y-2 max-h-[60vh] overflow-y-auto">
                       {notifications.map((n) => (
                         <div
                           key={n.id}
@@ -215,8 +211,12 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative">
             <motion.button
               whileTap={{ scale: 0.95 }}
-              onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-2 pl-1 pr-1.5 sm:pr-2.5 py-1 rounded-2xl bg-slate-100/80 hover:bg-slate-200/80 transition-colors border border-slate-200/50"
+              onClick={() => {
+                setShowProfileMenu(!showProfileMenu);
+                setShowNotifications(false);
+              }}
+              className="flex items-center gap-2 p-1 sm:px-2 py-1 rounded-2xl bg-slate-100/80 hover:bg-slate-200/80 transition-colors border border-slate-200/50 shrink-0"
+              aria-label="User profile menu"
             >
               <UserAvatar
                 src={currentUser.avatar}
@@ -226,10 +226,10 @@ export const Header: React.FC<HeaderProps> = ({
                 showBadge
               />
               <div className="text-left hidden lg:block">
-                <div className="text-xs font-bold text-slate-900 leading-tight">
+                <div className="text-xs font-bold text-slate-900 leading-tight truncate max-w-[120px]">
                   {currentUser.name}
                 </div>
-                <div className="text-[10px] text-slate-500 leading-none">
+                <div className="text-[10px] text-slate-500 leading-none truncate max-w-[120px]">
                   {role === 'DEAN' ? 'Dean' : role === 'MENTOR' ? `Mentor • ${currentUser.teamNumber}` : `Student • ${currentUser.studentData?.rollNo}`}
                 </div>
               </div>
@@ -239,7 +239,7 @@ export const Header: React.FC<HeaderProps> = ({
               {showProfileMenu && (
                 <>
                   <div
-                    className="fixed inset-0 z-40"
+                    className="fixed inset-0 z-40 bg-slate-950/20 backdrop-blur-2xs"
                     onClick={() => setShowProfileMenu(false)}
                   />
                   <motion.div
@@ -247,13 +247,13 @@ export const Header: React.FC<HeaderProps> = ({
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ type: 'spring', stiffness: 450, damping: 30 }}
-                    className="absolute right-0 mt-2 w-64 bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200 p-2 z-50"
+                    className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white rounded-3xl shadow-2xl border border-slate-200 p-2 z-50 overscroll-contain"
                   >
                     <div className="px-3 py-2.5 border-b border-slate-100">
-                      <div className="font-bold text-xs text-slate-900">{currentUser.name}</div>
+                      <div className="font-bold text-xs text-slate-900 truncate">{currentUser.name}</div>
                       <div className="text-[11px] text-slate-500 truncate">{currentUser.email}</div>
                       <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 text-[10px] font-semibold border border-blue-100">
-                        Active Role: <strong>{role}</strong>
+                        Role: <strong>{role}</strong>
                       </div>
                     </div>
                     <div className="py-1">
@@ -261,12 +261,14 @@ export const Header: React.FC<HeaderProps> = ({
                         <button
                           onClick={() => {
                             setActiveTab('profile');
+                            setSelectedStudent(null);
+                            setSelectedTeam(null);
                             setShowProfileMenu(false);
                           }}
                           className="w-full text-left px-3 py-2 rounded-xl text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 font-medium"
                         >
                           <UserIcon className="w-3.5 h-3.5 text-slate-400" />
-                          My Profile & Badges
+                          <span>My Profile & Record</span>
                         </button>
                       )}
                       <a
@@ -276,7 +278,7 @@ export const Header: React.FC<HeaderProps> = ({
                         className="w-full text-left px-3 py-2 rounded-xl text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 font-medium"
                       >
                         <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-                        GKCE Portal
+                        <span>GKCE Portal</span>
                       </a>
                     </div>
                     <div className="pt-1 border-t border-slate-100">
@@ -285,10 +287,10 @@ export const Header: React.FC<HeaderProps> = ({
                           setShowProfileMenu(false);
                           logout();
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs text-red-600 hover:bg-red-50 flex items-center gap-2.5 font-semibold"
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 font-semibold"
                       >
                         <LogOut className="w-3.5 h-3.5" />
-                        Sign Out
+                        <span>Sign Out</span>
                       </button>
                     </div>
                   </motion.div>
@@ -301,3 +303,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+

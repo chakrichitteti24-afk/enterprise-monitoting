@@ -52,8 +52,8 @@ export const MobileNav: React.FC = () => {
   const items = getMobileNavItems();
 
   return (
-    <div className="md:hidden fixed bottom-[max(12px,env(safe-area-inset-bottom))] left-0 right-0 z-40 px-3 sm:px-4 pointer-events-none flex justify-center">
-      <nav className="glass-dock rounded-full p-1.5 flex items-center gap-1 shadow-2xl pointer-events-auto max-w-md w-full justify-around border border-white/80">
+    <div className="md:hidden fixed bottom-[max(8px,env(safe-area-inset-bottom))] left-0 right-0 z-40 px-2 sm:px-4 pointer-events-none flex justify-center">
+      <nav className="glass-dock rounded-full p-1 sm:p-1.5 flex items-center gap-0.5 sm:gap-1 shadow-2xl pointer-events-auto max-w-md w-full justify-around border border-white/80">
         {items.map((item) => {
           const isActive = activeTab === item.id;
           const Icon = item.icon;
@@ -62,8 +62,9 @@ export const MobileNav: React.FC = () => {
             <motion.button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
-              whileTap={{ scale: 0.88 }}
-              className="relative flex flex-col items-center justify-center py-1.5 px-3 rounded-full flex-1 transition-colors select-none"
+              whileTap={{ scale: 0.9 }}
+              className="relative flex flex-col items-center justify-center py-1 sm:py-1.5 px-1.5 sm:px-2.5 rounded-full flex-1 transition-colors select-none min-w-0"
+              aria-label={item.label}
             >
               {isActive && (
                 <motion.div
@@ -74,12 +75,12 @@ export const MobileNav: React.FC = () => {
               )}
 
               <Icon
-                className={`w-5 h-5 transition-transform duration-200 z-10 ${
+                className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-200 z-10 shrink-0 ${
                   isActive ? 'text-blue-600 stroke-[2.5px] scale-105' : 'text-slate-500'
                 }`}
               />
               <span
-                className={`text-[10px] tracking-tight transition-colors z-10 mt-0.5 ${
+                className={`text-[9px] sm:text-[10px] tracking-tight transition-colors z-10 mt-0.5 truncate max-w-full ${
                   isActive ? 'font-bold text-blue-700' : 'font-medium text-slate-500'
                 }`}
               >
@@ -92,3 +93,4 @@ export const MobileNav: React.FC = () => {
     </div>
   );
 };
+

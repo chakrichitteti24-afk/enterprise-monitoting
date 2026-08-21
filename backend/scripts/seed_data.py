@@ -213,7 +213,7 @@ def seed(db_session: Session = None):
         # 1. Dean User
         print("[2/6] Creating Dean Administrator...")
         dean_user = User(
-            name="Prof. Dr. V. Rama Devi, Ph.D.",
+            name="Sudo Users",
             email="root@gkce.edu.in",
             password_hash=dean_pwd_hash,
             role=UserRole.DEAN,

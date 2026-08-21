@@ -24,6 +24,17 @@ export const StudentProblemsPage: React.FC = () => {
     return matchesSearch && matchesTopic && matchesDifficulty;
   });
 
+  // Lock background body scroll while problem modal is open
+  React.useEffect(() => {
+    if (activeProblem) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [activeProblem]);
+
   const handleRunCode = async () => {
     if (!activeProblem) return;
     setCodeOutput(
@@ -65,11 +76,11 @@ export const StudentProblemsPage: React.FC = () => {
             />
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">
+          <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
             <select
               value={selectedTopic}
               onChange={(e) => setSelectedTopic(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden shrink-0"
             >
               <option value="All">All Topics ({DSA_TOPICS.length})</option>
               {DSA_TOPICS.map((top) => (
@@ -80,7 +91,7 @@ export const StudentProblemsPage: React.FC = () => {
             <select
               value={selectedDifficulty}
               onChange={(e) => setSelectedDifficulty(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden shrink-0"
             >
               <option value="All">All Difficulties</option>
               <option value="Easy">Easy</option>
@@ -152,12 +163,12 @@ export const StudentProblemsPage: React.FC = () => {
       {/* Problem Modal Simulator */}
       <AnimatePresence>
         {activeProblem && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/40 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0"
+              className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm"
               onClick={() => setActiveProblem(null)}
             />
             <motion.div
@@ -165,11 +176,19 @@ export const StudentProblemsPage: React.FC = () => {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0 }}
               transition={{ type: 'spring', damping: 28, stiffness: 350 }}
-              className="relative w-full max-w-2xl bg-white rounded-t-[32px] sm:rounded-3xl shadow-2xl border border-slate-200 p-5 sm:p-6 z-10 space-y-4 max-h-[88vh] sm:max-h-[90vh] overflow-y-auto gpu-layer"
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0.05, bottom: 0.6 }}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 100 || info.velocity.y > 300) {
+                  setActiveProblem(null);
+                }
+              }}
+              className="relative w-full max-w-2xl bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6 z-10 space-y-4 max-h-[88vh] sm:max-h-[90vh] overflow-y-auto gpu-layer overscroll-contain"
             >
               {/* Mobile drag handle */}
-              <div className="sm:hidden -mt-2 pb-1 flex justify-center">
-                <div className="w-12 h-1.5 rounded-full bg-slate-200" />
+              <div className="sm:hidden -mt-1 pb-1 flex justify-center cursor-grab">
+                <div className="w-12 h-1.5 rounded-full bg-slate-300" />
               </div>
 
               <div className="flex items-start justify-between gap-3">

@@ -22,6 +22,26 @@ export const DeanTeamsPage: React.FC = () => {
   const [selectedMentorId, setSelectedMentorId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteConfirmTeam, setDeleteConfirmTeam] = useState<Team | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const openCreateModal = () => {
+    const nextNum = teams.length + 1;
+    setTeamNumberInput(`Team ${nextNum < 10 ? '0' : ''}${nextNum}`);
+    setTeamNameInput('');
+    setSelectedMentorId(mentors[0]?.id || '');
+    setIsCreateOpen(true);
+  };
+
+  // Lock body scroll while modals are open
+  React.useEffect(() => {
+    if (isCreateOpen || deleteConfirmTeam) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isCreateOpen, deleteConfirmTeam]);
 
   const filteredTeams = teams
     .filter((t) => {
@@ -41,20 +61,23 @@ export const DeanTeamsPage: React.FC = () => {
 
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teamNumberInput.trim() || !teamNameInput.trim()) return;
+    const finalTeamNum = teamNumberInput.trim() || `Team ${teams.length + 1 < 10 ? '0' : ''}${teams.length + 1}`;
+    const finalTeamName = teamNameInput.trim() || `Cohort ${teams.length + 1}`;
 
     setIsSubmitting(true);
     try {
-      const matchedMentor = mentors.find(m => m.id === selectedMentorId);
+      const matchedMentor = mentors.find(m => m.id === selectedMentorId) || mentors[0];
       await addTeam({
-        teamNumber: teamNumberInput.trim(),
-        name: teamNameInput.trim(),
+        teamNumber: finalTeamNum,
+        name: finalTeamName,
         mentorId: matchedMentor?.id,
         mentorName: matchedMentor?.name,
         mentorEmail: matchedMentor?.email,
         mentorDepartment: matchedMentor?.department,
       });
       setIsCreateOpen(false);
+      setSuccessMessage(`Cohort "${finalTeamNum} - ${finalTeamName}" created successfully!`);
+      setTimeout(() => setSuccessMessage(null), 4000);
       setTeamNumberInput('');
       setTeamNameInput('');
       setSelectedMentorId('');
@@ -69,6 +92,8 @@ export const DeanTeamsPage: React.FC = () => {
     try {
       await removeTeam(team.id);
       setDeleteConfirmTeam(null);
+      setSuccessMessage(`Team ${team.teamNumber} removed.`);
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       console.error(err);
     }
@@ -76,6 +101,23 @@ export const DeanTeamsPage: React.FC = () => {
 
   return (
     <div className="space-y-5 sm:space-y-6">
+      {/* Success Notification Banner */}
+      <AnimatePresence>
+        {successMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs"
+          >
+            <span>✅ {successMessage}</span>
+            <button onClick={() => setSuccessMessage(null)} className="text-emerald-600 hover:text-emerald-900 p-1">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="bg-white/85 backdrop-blur-xl p-5 md:p-6 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -93,12 +135,13 @@ export const DeanTeamsPage: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setIsCreateOpen(true)}
+            onClick={openCreateModal}
             className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all active:scale-98"
           >
             <Plus className="w-4 h-4" />
             <span>Create New Team</span>
           </button>
+
 
           {/* View mode toggle */}
           <div className="bg-slate-100 p-1 rounded-2xl flex items-center gap-1">

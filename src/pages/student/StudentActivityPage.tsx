@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { BentoCard } from '../../components/ui/BentoCard';
 import { StreakBadge } from '../../components/ui/StreakBadge';
-import { Activity, Calendar, CheckCircle2, Clock, Flame, Award } from 'lucide-react';
+import { Activity, Calendar, CheckCircle2, Clock } from 'lucide-react';
 
 export const StudentActivityPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -28,26 +28,26 @@ export const StudentActivityPage: React.FC = () => {
   const activeDaysCount = days.filter((d) => d.solvedCount > 0).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+      <div className="bg-white/85 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs">
         <div className="flex items-center gap-2 text-xs font-semibold text-blue-700 mb-1">
           <Activity className="w-4 h-4" />
           <span>Activity Timeline & Consistency</span>
         </div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Submission Logs & Streak</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Submission Logs & Streak</h1>
         <p className="text-xs md:text-sm text-slate-500 mt-1">
           Real-time activity feed, daily solve milestones, and streak records.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
         {/* Streak & Consistency Bento */}
         <BentoCard title="Current Streak" subtitle="Daily coding momentum" className="col-span-1">
           <div className="space-y-4 pt-2">
             <StreakBadge streak={student.streak} size="lg" />
 
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 text-xs space-y-2.5">
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-xs space-y-2.5">
               <div className="flex justify-between text-slate-600">
                 <span>Longest Streak</span>
                 <span className="font-bold text-slate-900">{student.longestStreak} Days</span>
@@ -72,21 +72,21 @@ export const StudentActivityPage: React.FC = () => {
           className="col-span-1 md:col-span-2"
         >
           <div className="space-y-3 pt-2">
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {days.map((d) => (
                 <div
                   key={d.day}
-                  className={`h-10 rounded-lg flex flex-col items-center justify-center border transition-all text-xs font-mono ${
+                  className={`h-9 sm:h-10 rounded-xl flex flex-col items-center justify-center border transition-all text-xs font-mono min-w-0 ${
                     d.solvedCount > 2
-                      ? 'bg-blue-600 text-white border-blue-700 font-bold'
+                      ? 'bg-blue-600 text-white border-blue-700 font-bold shadow-2xs'
                       : d.solvedCount > 0
-                      ? 'bg-blue-100 text-blue-900 border-blue-200'
+                      ? 'bg-blue-100 text-blue-900 border-blue-200 font-semibold'
                       : 'bg-slate-50 text-slate-400 border-slate-100'
                   }`}
                   title={`Day ${d.day}: ${d.solvedCount} problems solved`}
                 >
-                  <span className="text-[10px] opacity-75">{d.day}</span>
-                  {d.solvedCount > 0 && <span className="text-[9px] font-bold">+{d.solvedCount}</span>}
+                  <span className="text-[10px] sm:text-xs opacity-75">{d.day}</span>
+                  {d.solvedCount > 0 && <span className="text-[8px] sm:text-[9px] font-bold">+{d.solvedCount}</span>}
                 </div>
               ))}
             </div>
@@ -110,7 +110,7 @@ export const StudentActivityPage: React.FC = () => {
             subtitle="Verified solutions submitted on GKCE code bench"
             icon={<Clock className="w-4 h-4 text-slate-700" />}
           >
-            <div className="space-y-3 pt-2">
+            <div className="space-y-2.5 pt-2">
               {student.recentActivities.length === 0 ? (
                 <div className="py-8 text-center text-slate-400 text-xs bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
                   No submissions logged yet. Navigate to the <strong>Problems Bank</strong> to solve coding challenges and build your activity streak!
@@ -119,24 +119,24 @@ export const StudentActivityPage: React.FC = () => {
                 student.recentActivities.map((act) => (
                   <div
                     key={act.id}
-                    className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/60 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                    className="p-3 sm:p-3.5 rounded-2xl border border-slate-100 bg-slate-50/60 flex items-center justify-between hover:bg-slate-50 transition-colors gap-2"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
                         <CheckCircle2 className="w-4 h-4" />
                       </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-900">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-slate-900 truncate">
                           {act.action} {act.problemTitle}
                         </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
+                        <div className="text-[11px] text-slate-500 mt-0.5 truncate">
                           Topic: {act.topic} • Complexity: {act.difficulty}
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-xs font-semibold text-slate-700">{act.timeAgo}</span>
-                      <div className="text-[10px] text-emerald-600 font-medium">Verified Solved</div>
+                    <div className="text-right shrink-0">
+                      <span className="text-xs font-semibold text-slate-700 block">{act.timeAgo}</span>
+                      <div className="text-[10px] text-emerald-600 font-bold block">Verified Solved</div>
                     </div>
                   </div>
                 ))
@@ -148,3 +148,4 @@ export const StudentActivityPage: React.FC = () => {
     </div>
   );
 };
+

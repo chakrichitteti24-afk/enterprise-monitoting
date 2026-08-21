@@ -32,8 +32,23 @@ import { DeanSettingsPage } from './pages/dean/DeanSettingsPage';
 import { LoginPage } from './pages/auth/LoginPage';
 
 const MainLayout: React.FC = () => {
-  const { role, activeTab, isAuthenticated, isLoadingAuth } = useAuth();
+  const { role, activeTab, setActiveTab, isAuthenticated, isLoadingAuth } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Automatically sanitize activeTab when role changes to prevent stuck tabs
+  React.useEffect(() => {
+    const validDeanTabs = ['dashboard', 'teams', 'students', 'progress', 'analytics', 'reports', 'settings'];
+    const validMentorTabs = ['dashboard', 'my-team', 'students', 'progress'];
+    const validStudentTabs = ['dashboard', 'my-progress', 'problems', 'activity', 'profile'];
+
+    if (role === 'DEAN' && !validDeanTabs.includes(activeTab)) {
+      setActiveTab('dashboard');
+    } else if (role === 'MENTOR' && !validMentorTabs.includes(activeTab)) {
+      setActiveTab('dashboard');
+    } else if (role === 'STUDENT' && !validStudentTabs.includes(activeTab)) {
+      setActiveTab('dashboard');
+    }
+  }, [role, activeTab, setActiveTab]);
 
   if (isLoadingAuth) {
     return (
@@ -108,8 +123,9 @@ const MainLayout: React.FC = () => {
     return <DeanDashboard />;
   };
 
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100/70 text-slate-900 flex flex-col antialiased selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100/70 text-slate-900 flex flex-col antialiased selection:bg-blue-600 selection:text-white overflow-x-hidden">
       {/* Global Header */}
       <Header
         isMobileMenuOpen={isMobileMenuOpen}
@@ -117,7 +133,7 @@ const MainLayout: React.FC = () => {
       />
 
       {/* Main Workspace Body */}
-      <div className="flex-1 flex max-w-7xl w-full mx-auto">
+      <div className="flex-1 flex max-w-7xl w-full mx-auto min-w-0">
         {/* Desktop Sidebar */}
         <Sidebar className="hidden md:flex" />
 
@@ -129,7 +145,7 @@ const MainLayout: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-slate-950/40 backdrop-blur-md"
+                className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm"
                 onClick={() => setIsMobileMenuOpen(false)}
               />
               <motion.div
@@ -137,7 +153,7 @@ const MainLayout: React.FC = () => {
                 animate={{ x: 0 }}
                 exit={{ x: '-100%' }}
                 transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-                className="relative w-72 bg-white/95 backdrop-blur-2xl h-full z-10 shadow-2xl flex flex-col justify-between"
+                className="relative w-72 max-w-[85vw] bg-white h-full z-10 shadow-2xl flex flex-col justify-between"
               >
                 <Sidebar onItemClick={() => setIsMobileMenuOpen(false)} />
               </motion.div>
@@ -146,7 +162,7 @@ const MainLayout: React.FC = () => {
         </AnimatePresence>
 
         {/* Main Content Area with fluid AnimatePresence transition */}
-        <main className="flex-1 p-3.5 sm:p-5 md:p-8 pb-28 md:pb-12 min-w-0 overflow-y-auto gpu-layer">
+        <main className="flex-1 p-3 sm:p-5 md:p-8 pb-24 sm:pb-28 md:pb-12 min-w-0 overflow-y-auto gpu-layer">
           <AnimatePresence mode="wait">
             <motion.div
               key={`${role}-${activeTab}`}
@@ -154,10 +170,10 @@ const MainLayout: React.FC = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.994 }}
               transition={{
-                duration: 0.22,
+                duration: 0.2,
                 ease: [0.16, 1, 0.3, 1],
               }}
-              className="w-full"
+              className="w-full min-w-0"
             >
               {renderContent()}
             </motion.div>
@@ -168,7 +184,7 @@ const MainLayout: React.FC = () => {
       {/* Mobile Floating Liquid Dock */}
       <MobileNav />
 
-      {/* Global Interactive Modals with Liquid Physics */}
+      {/* Global Interactive Modals */}
       <GlobalSearchModal />
       <StudentDetailModal />
       <TeamDetailModal />

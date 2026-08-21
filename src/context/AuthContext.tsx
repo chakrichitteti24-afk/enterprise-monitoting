@@ -64,15 +64,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
-  const [students, setStudents] = useState<Student[]>(ALL_STUDENTS);
-  const [teams, setTeams] = useState<Team[]>(ALL_TEAMS);
+  const [students, setStudents] = useState<Student[]>(() => {
+    const saved = localStorage.getItem('gkce_students');
+    return saved ? JSON.parse(saved) : ALL_STUDENTS;
+  });
+  const [teams, setTeams] = useState<Team[]>(() => {
+    const saved = localStorage.getItem('gkce_teams');
+    return saved ? JSON.parse(saved) : ALL_TEAMS;
+  });
   const [mentors] = useState<Mentor[]>(ALL_MENTORS);
+
+  useEffect(() => {
+    localStorage.setItem('gkce_students', JSON.stringify(students));
+  }, [students]);
+
+  useEffect(() => {
+    localStorage.setItem('gkce_teams', JSON.stringify(teams));
+  }, [teams]);
 
   const addTeam = async (teamData: Partial<Team>) => {
     try {
-      const teamNum = teamData.teamNumber || `Team ${teams.length + 1 < 10 ? '0' : ''}${teams.length + 1}`;
-      const name = teamData.name || `Cohort ${teams.length + 1}`;
+      const nextNum = teams.length + 1;
+      const teamNum = teamData.teamNumber?.trim() || `Team ${nextNum < 10 ? '0' : ''}${nextNum}`;
+      const name = teamData.name?.trim() || `Cohort ${nextNum}`;
       
+      const matchedMentor = mentors.find(m => m.id === teamData.mentorId || m.name === teamData.mentorName) || mentors[0];
+
       // Try backend if token exists
       try {
         await createTeamApi({ team_number: teamNum, name });
@@ -84,10 +101,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: `team-${Date.now()}`,
         teamNumber: teamNum,
         name: name,
-        mentorId: teamData.mentorId || 'mentor-1',
-        mentorName: teamData.mentorName || 'Dr. K. Suresh Kumar',
-        mentorEmail: teamData.mentorEmail || 'suresh.kumar@gkce.edu.in',
-        mentorDepartment: teamData.mentorDepartment || 'Computer Science & Engg',
+        mentorId: teamData.mentorId || matchedMentor.id,
+        mentorName: teamData.mentorName || matchedMentor.name,
+        mentorEmail: teamData.mentorEmail || matchedMentor.email,
+        mentorDepartment: teamData.mentorDepartment || matchedMentor.department,
         studentIds: [],
         avgProgress: 0,
         totalSolved: 0,
@@ -133,11 +150,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addStudent = async (studentData: Partial<Student>) => {
     try {
-      const roll = studentData.rollNo || `24F81A05${Math.floor(100 + Math.random() * 900)}`;
+      const roll = (studentData.rollNo || `24F81A05${Math.floor(100 + Math.random() * 900)}`).toUpperCase();
       const name = studentData.name || 'New Student';
       const email = studentData.email || `${roll.toLowerCase()}@gkce.edu.in`;
-      const tNum = studentData.teamNumber || 'Team 01';
-      const matchedTeam = teams.find(t => t.teamNumber === tNum) || teams[0];
+      const tNum = studentData.teamNumber || teams[0]?.teamNumber || 'Team 01';
+      const matchedTeam = teams.find(t => t.teamNumber === tNum || t.id === studentData.teamId) || teams[0];
 
       try {
         const teamNumId = parseInt(matchedTeam.id.replace('team-', ''), 10) || 1;
@@ -192,11 +209,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       setStudents(prev => [newS, ...prev]);
+
+      // Synchronize team's studentIds
+      setTeams(prev =>
+        prev.map(t =>
+          t.id === matchedTeam.id || t.teamNumber === matchedTeam.teamNumber
+            ? { ...t, studentIds: [...(t.studentIds || []), newS.id] }
+            : t
+        )
+      );
     } catch (err) {
       console.error('Error adding student:', err);
       throw err;
     }
   };
+
 
   const removeStudent = async (studentId: string) => {
     try {
