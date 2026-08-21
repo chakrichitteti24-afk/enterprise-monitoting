@@ -162,7 +162,7 @@ const MainLayout: React.FC = () => {
         </AnimatePresence>
 
         {/* Main Content Area with fluid AnimatePresence transition */}
-        <main className="flex-1 p-3 sm:p-5 md:p-8 pb-24 sm:pb-28 md:pb-12 min-w-0 overflow-y-auto gpu-layer">
+        <main className="flex-1 p-3 sm:p-5 md:p-8 pb-24 sm:pb-28 md:pb-12 min-w-0 overflow-y-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={`${role}-${activeTab}`}

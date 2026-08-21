@@ -9,7 +9,7 @@ import { Layers, Search, ChevronRight, LayoutGrid, List, Plus, Trash2, X, Shield
 import { Team } from '../../types';
 
 export const DeanTeamsPage: React.FC = () => {
-  const { teams, mentors, setSelectedTeam, addTeam, removeTeam } = useAuth();
+  const { teams, mentors, setSelectedTeam, addTeam, removeTeam, updateTeam } = useAuth();
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
@@ -81,8 +81,9 @@ export const DeanTeamsPage: React.FC = () => {
       setTeamNumberInput('');
       setTeamNameInput('');
       setSelectedMentorId('');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert(err.message || 'Failed to create team. Check connection.');
     } finally {
       setIsSubmitting(false);
     }
@@ -374,12 +375,12 @@ export const DeanTeamsPage: React.FC = () => {
       {/* Modal: Create Team */}
       <AnimatePresence>
         {isCreateOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-xs">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-100 space-y-4"
+              className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 space-y-4"
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2 text-slate-900 font-bold text-base">
@@ -460,12 +461,12 @@ export const DeanTeamsPage: React.FC = () => {
       {/* Modal: Delete Team Confirmation */}
       <AnimatePresence>
         {deleteConfirmTeam && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-xs">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4 text-center"
+              className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 space-y-4 text-center"
             >
               <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
                 <ShieldAlert className="w-6 h-6" />

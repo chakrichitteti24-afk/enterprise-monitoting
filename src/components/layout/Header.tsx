@@ -250,10 +250,25 @@ export const Header: React.FC<HeaderProps> = ({
                     className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white rounded-3xl shadow-2xl border border-slate-200 p-2 z-50 overscroll-contain"
                   >
                     <div className="px-3 py-2.5 border-b border-slate-100">
-                      <div className="font-bold text-xs text-slate-900 truncate">{currentUser.name}</div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-bold text-xs text-slate-900 truncate">{currentUser.name}</div>
+                        {role === 'DEAN' && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[9px] font-black tracking-wider border border-amber-300 uppercase shrink-0">
+                            SUDO
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[11px] text-slate-500 truncate">{currentUser.email}</div>
-                      <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 text-[10px] font-semibold border border-blue-100">
-                        Role: <strong>{role}</strong>
+                      <div
+                        className={`mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                          role === 'DEAN'
+                            ? 'bg-amber-50 text-amber-900 border-amber-200'
+                            : role === 'MENTOR'
+                            ? 'bg-blue-50 text-blue-800 border-blue-100'
+                            : 'bg-emerald-50 text-emerald-800 border-emerald-100'
+                        }`}
+                      >
+                        Role: <strong>{role === 'DEAN' ? 'DEAN (SUDO ADMIN)' : role}</strong>
                       </div>
                     </div>
                     <div className="py-1">

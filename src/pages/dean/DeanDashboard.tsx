@@ -15,6 +15,8 @@ import {
   Search,
   AlertTriangle,
   Award,
+  Plus,
+  UserPlus,
 } from 'lucide-react';
 
 export const DeanDashboard: React.FC = () => {
@@ -57,19 +59,26 @@ export const DeanDashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
           <button
-            onClick={() => setActiveTab('reports')}
-            className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-semibold transition-colors"
+            onClick={() => setActiveTab('teams')}
+            className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-2xl text-xs font-bold transition-colors flex items-center gap-1.5 border border-indigo-200"
           >
-            Export Report
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Team</span>
           </button>
           <button
             onClick={() => setActiveTab('students')}
-            className="px-4 py-2.5 bg-slate-900 text-white rounded-2xl text-xs font-semibold hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-xs"
+            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs"
           >
-            <GraduationCap className="w-3.5 h-3.5 shrink-0" />
-            <span>View {totalStudents} Students</span>
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Enroll Student</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('reports')}
+            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-semibold transition-colors"
+          >
+            Export
           </button>
         </div>
       </div>

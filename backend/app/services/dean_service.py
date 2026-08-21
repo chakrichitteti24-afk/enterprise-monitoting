@@ -353,6 +353,10 @@ class DeanService:
             mentor = self.mentor_repo.get_by_id(team_in.mentor_id)
             if mentor:
                 mentor.assigned_team_id = team.id
+        elif team_in.mentor_name:
+            mentor = self.db.query(Mentor).join(User).filter(User.name == team_in.mentor_name).first()
+            if mentor:
+                mentor.assigned_team_id = team.id
 
         self.db.commit()
         full_team = self.team_repo.get_by_id_with_details(team.id) or team
@@ -379,6 +383,14 @@ class DeanService:
                 new_mentor = self.mentor_repo.get_by_id(team_in.mentor_id)
                 if new_mentor:
                     new_mentor.assigned_team_id = team.id
+        elif team_in.mentor_name is not None:
+            old_mentor = self.db.query(Mentor).filter(Mentor.assigned_team_id == team.id).first()
+            if old_mentor:
+                old_mentor.assigned_team_id = None
+            
+            new_mentor = self.db.query(Mentor).join(User).filter(User.name == team_in.mentor_name).first()
+            if new_mentor:
+                new_mentor.assigned_team_id = team.id
 
         self.db.commit()
         full_team = self.team_repo.get_by_id_with_details(team.id) or team
@@ -418,11 +430,21 @@ class DeanService:
                 detail=f"Roll number '{student_in.roll_number}' is already registered.",
             )
 
-        team = self.team_repo.get_by_id(student_in.team_id)
+        team = None
+        if student_in.team_id:
+            team = self.team_repo.get_by_id(student_in.team_id)
+        if not team and student_in.team_number:
+            team = self.team_repo.get_by_team_number(student_in.team_number)
+        if not team and student_in.team_id:
+            team = self.team_repo.get_by_team_number(f"Team {student_in.team_id:02d}") or self.team_repo.get_by_team_number(f"Team {student_in.team_id}")
         if not team:
+            team = self.db.query(Team).first()
+
+        if not team:
+            identifier = student_in.team_number or student_in.team_id or "Unknown"
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Target team with ID {student_in.team_id} does not exist.",
+                detail=f"Target team '{identifier}' does not exist.",
             )
 
         # 1. Create User
@@ -494,6 +516,10 @@ class DeanService:
             if not team:
                 raise HTTPException(status_code=404, detail="Target team not found.")
             student.team_id = team.id
+        elif student_in.team_number:
+            team = self.team_repo.get_by_team_number(student_in.team_number)
+            if team:
+                student.team_id = team.id
 
         if student_in.dsa_level:
             student.dsa_level = student_in.dsa_level

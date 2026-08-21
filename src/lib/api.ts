@@ -102,14 +102,14 @@ export async function getMeApi(): Promise<LoginResponse['user']> {
 // -------------------------------------------------------------
 // Dean Administrative API Operations
 // -------------------------------------------------------------
-export async function createTeamApi(payload: { team_number: string; name: string; mentor_id?: number }) {
+export async function createTeamApi(payload: { team_number: string; name: string; mentor_id?: number; mentor_name?: string }) {
   return apiRequest<any>('/dean/teams', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
-export async function updateTeamApi(teamId: number, payload: { name?: string; mentor_id?: number; status?: string }) {
+export async function updateTeamApi(teamId: number, payload: { name?: string; mentor_id?: number; mentor_name?: string; status?: string }) {
   return apiRequest<any>(`/dean/teams/${teamId}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
@@ -126,7 +126,8 @@ export async function createStudentApi(payload: {
   name: string;
   roll_number: string;
   email: string;
-  team_id: number;
+  team_id?: number;
+  team_number?: string;
   password?: string;
   dsa_level?: string;
   status?: string;
@@ -144,6 +145,7 @@ export async function updateStudentApi(
     roll_number?: string;
     email?: string;
     team_id?: number;
+    team_number?: string;
     dsa_level?: string;
     status?: string;
   }

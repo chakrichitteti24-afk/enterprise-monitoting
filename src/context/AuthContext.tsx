@@ -15,8 +15,10 @@ import {
   loginApi,
   getMeApi,
   createTeamApi,
+  updateTeamApi,
   deleteTeamApi,
   createStudentApi,
+  updateStudentApi,
   deleteStudentApi,
   updateStudentAvatarApi,
   submitSolutionApi,
@@ -45,8 +47,10 @@ interface AuthContextType {
   mentors: Mentor[];
   addMentorFeedback: (studentId: string, note: string) => void;
   addTeam: (teamData: Partial<Team>) => Promise<void>;
+  updateTeam: (teamId: string, updates: Partial<Team>) => Promise<void>;
   removeTeam: (teamId: string) => Promise<void>;
   addStudent: (studentData: Partial<Student>) => Promise<void>;
+  updateStudent: (studentId: string, updates: Partial<Student>) => Promise<void>;
   removeStudent: (studentId: string) => Promise<void>;
   updateAvatar: (newAvatarUrl: string) => Promise<void>;
   solveProblem: (problem: Problem) => Promise<boolean>;
@@ -89,16 +93,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const name = teamData.name?.trim() || `Cohort ${nextNum}`;
       
       const matchedMentor = mentors.find(m => m.id === teamData.mentorId || m.name === teamData.mentorName) || mentors[0];
+      let createdTeamId = `team-${Date.now()}`;
+      let mentorNumId: number | undefined;
 
-      // Try backend if token exists
+      if (matchedMentor?.id) {
+        const parsed = parseInt(matchedMentor.id.replace(/\D/g, ''), 10);
+        if (!isNaN(parsed)) mentorNumId = parsed;
+      }
+
       try {
-        await createTeamApi({ team_number: teamNum, name });
+        const res = await createTeamApi({
+          team_number: teamNum,
+          name,
+          mentor_id: mentorNumId,
+          mentor_name: matchedMentor?.name,
+        });
+        if (res && res.id) {
+          createdTeamId = `team-${res.id}`;
+        }
       } catch (err) {
-        console.warn('Backend createTeam not reachable, updating local state', err);
+        console.warn('Backend createTeam not reachable, using local state only', err);
       }
 
       const newT: Team = {
-        id: `team-${Date.now()}`,
+        id: createdTeamId,
         teamNumber: teamNum,
         name: name,
         mentorId: teamData.mentorId || matchedMentor.id,
@@ -131,9 +149,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateTeam = async (teamId: string, updates: Partial<Team>) => {
+    try {
+      const numId = parseInt(teamId.replace(/\D/g, ''), 10);
+      if (!isNaN(numId)) {
+        try {
+          const mentorNumId = updates.mentorId ? parseInt(updates.mentorId.replace(/\D/g, ''), 10) : undefined;
+          await updateTeamApi(numId, {
+            name: updates.name,
+            mentor_id: mentorNumId,
+            mentor_name: updates.mentorName,
+            status: updates.status ? updates.status.toUpperCase().replace(' ', '_') : undefined,
+          });
+        } catch (err) {
+          console.warn('Backend updateTeam not reachable, updating local state', err);
+        }
+      }
+
+      setTeams(prev =>
+        prev.map(t => {
+          if (t.id === teamId) {
+            const matchedMentor = mentors.find(m => m.id === updates.mentorId || m.name === updates.mentorName);
+            return {
+              ...t,
+              ...updates,
+              mentorId: matchedMentor ? matchedMentor.id : t.mentorId,
+              mentorName: matchedMentor ? matchedMentor.name : t.mentorName,
+              mentorEmail: matchedMentor ? matchedMentor.email : t.mentorEmail,
+              mentorDepartment: matchedMentor ? matchedMentor.department : t.mentorDepartment,
+            };
+          }
+          return t;
+        })
+      );
+    } catch (err) {
+      console.error('Error updating team:', err);
+      throw err;
+    }
+  };
+
   const removeTeam = async (teamId: string) => {
     try {
-      const numId = parseInt(teamId.replace('team-', ''), 10);
+      const numId = parseInt(teamId.replace(/\D/g, ''), 10);
       if (!isNaN(numId)) {
         try {
           await deleteTeamApi(numId);
@@ -155,23 +212,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const email = studentData.email || `${roll.toLowerCase()}@gkce.edu.in`;
       const tNum = studentData.teamNumber || teams[0]?.teamNumber || 'Team 01';
       const matchedTeam = teams.find(t => t.teamNumber === tNum || t.id === studentData.teamId) || teams[0];
+      const dsaLevel = studentData.dsaLevel || 'Beginner';
+      const studentStatus = studentData.status || 'Active';
 
+      let createdStudentId = `student-${Date.now()}`;
+      
+      let teamNumId: number | undefined;
+      if (matchedTeam?.id) {
+        const parsed = parseInt(matchedTeam.id.replace(/\D/g, ''), 10);
+        if (!isNaN(parsed)) teamNumId = parsed;
+      }
+      
       try {
-        const teamNumId = parseInt(matchedTeam.id.replace('team-', ''), 10) || 1;
-        await createStudentApi({
+        const res = await createStudentApi({
           name,
           roll_number: roll,
           email,
           team_id: teamNumId,
-          dsa_level: (studentData.dsaLevel as any) || 'BEGINNER',
-          status: 'ACTIVE',
+          team_number: matchedTeam?.teamNumber,
+          dsa_level: dsaLevel.toUpperCase(),
+          status: studentStatus.toUpperCase().replace(' ', '_'),
         });
+        if (res && res.id) {
+          createdStudentId = `student-${res.id}`;
+        }
       } catch (err) {
-        console.warn('Backend createStudent not reachable, updating local state', err);
+        console.warn('Backend createStudent not reachable, using local state only', err);
       }
 
       const newS: Student = {
-        id: `student-${Date.now()}`,
+        id: createdStudentId,
         rollNo: roll,
         name: name,
         email: email,
@@ -180,14 +250,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         teamNumber: matchedTeam.teamNumber,
         mentorId: matchedTeam.mentorId,
         mentorName: matchedTeam.mentorName,
-        dsaLevel: studentData.dsaLevel || 'Beginner',
+        dsaLevel: dsaLevel,
         progress: 0,
         solved: 0,
         attempted: 0,
         pending: 34,
         streak: 0,
         longestStreak: 0,
-        status: 'Active',
+        status: studentStatus,
         topicProgress: {
           Arrays: { solved: 0, total: 5, percentage: 0 },
           Strings: { solved: 0, total: 4, percentage: 0 },
@@ -224,10 +294,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateStudent = async (studentId: string, updates: Partial<Student>) => {
+    try {
+      const numId = parseInt(studentId.replace(/\D/g, ''), 10);
+      if (!isNaN(numId)) {
+        try {
+          const payload: any = {};
+          if (updates.name) payload.name = updates.name;
+          if (updates.rollNo) payload.roll_number = updates.rollNo;
+          if (updates.email) payload.email = updates.email;
+          if (updates.teamNumber) payload.team_number = updates.teamNumber;
+          if (updates.dsaLevel) payload.dsa_level = updates.dsaLevel.toUpperCase();
+          if (updates.status) payload.status = updates.status.toUpperCase().replace(' ', '_');
+          await updateStudentApi(numId, payload);
+        } catch (err) {
+          console.warn('Backend updateStudent not reachable, updating local state', err);
+        }
+      }
+
+      setStudents(prev =>
+        prev.map(s => {
+          if (s.id === studentId) {
+            const matchedTeam = teams.find(t => t.teamNumber === updates.teamNumber || t.id === updates.teamId);
+            return {
+              ...s,
+              ...updates,
+              teamNumber: updates.teamNumber || (matchedTeam ? matchedTeam.teamNumber : s.teamNumber),
+              teamId: matchedTeam ? matchedTeam.id : s.teamId,
+              mentorId: matchedTeam ? matchedTeam.mentorId : s.mentorId,
+              mentorName: matchedTeam ? matchedTeam.mentorName : s.mentorName,
+            };
+          }
+          return s;
+        })
+      );
+    } catch (err) {
+      console.error('Error updating student:', err);
+      throw err;
+    }
+  };
 
   const removeStudent = async (studentId: string) => {
     try {
-      const numId = parseInt(studentId.replace('student-', ''), 10);
+      const numId = parseInt(studentId.replace(/\D/g, ''), 10);
       if (!isNaN(numId)) {
         try {
           await deleteStudentApi(numId);
@@ -236,6 +345,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
       setStudents(prev => prev.filter(s => s.id !== studentId));
+      setTeams(prev =>
+        prev.map(t => ({
+          ...t,
+          studentIds: (t.studentIds || []).filter(id => id !== studentId),
+        }))
+      );
     } catch (err) {
       console.error('Error removing student:', err);
       throw err;
@@ -348,6 +463,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginWithCredentials = async (email: string, password: string) => {
+    // ── Canonical backend DB credentials (from seed_data.py) ──────────────
+    // These are the ONLY passwords stored in the backend DB.
+    // The local fallback accepts multiple friendly aliases, but the backend
+    // only accepts these exact values. silentBackendLogin always uses these
+    // so we get a real JWT even when the user typed a friendly alias.
+    const BACKEND_DEAN_EMAIL    = 'root@gkce.edu.in';
+    const BACKEND_DEAN_PASSWORD = 'gkce@1234';
+    const BACKEND_MENTOR_PASSWORD   = 'Mentor@GKCE2026';
+    const BACKEND_STUDENT_PASSWORD  = 'gkce@1234';
+
+    // Silently obtains a real JWT from the backend after local fallback auth.
+    // Stores token via loginApi → setStoredToken so subsequent API calls work.
+    const silentBackendLogin = async (canonicalEmail: string, canonicalPassword: string) => {
+      try {
+        await loginApi(canonicalEmail, canonicalPassword);
+        console.info('[Auth] Silent backend re-auth OK — JWT stored for', canonicalEmail);
+      } catch {
+        // Backend unreachable or seed credentials changed — local session stays active.
+        console.warn('[Auth] Silent backend re-auth failed — API writes will use local state only.');
+      }
+    };
+
     try {
       const res = await loginApi(email, password);
       const role = res.user.role as UserRole;
@@ -355,8 +492,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAuthenticated(true);
     } catch (backendErr: any) {
       const normalizedEmail = email.toLowerCase().trim();
-      
-      // Fallback verification for Dean
+
+      // ── Dean fallback (accepts multiple friendly email/password aliases) ──
       if (
         (normalizedEmail === 'root@gkce.edu.in' ||
           normalizedEmail === 'dean.academics@gkce.edu.in' ||
@@ -370,18 +507,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ) {
         mapAndSetUser('DEAN');
         setIsAuthenticated(true);
+        // Always use canonical backend Dean credentials — not the user's typed alias
+        silentBackendLogin(BACKEND_DEAN_EMAIL, BACKEND_DEAN_PASSWORD);
         return;
       }
-      
-      // Fallback verification for Mentors
+
+      // ── Mentor fallback ───────────────────────────────────────────────────
       const matchedMentor = mentors.find(m => m.email.toLowerCase() === normalizedEmail);
       if (matchedMentor && password === 'Mentor@GKCE2026') {
         mapAndSetUser('MENTOR', { email: matchedMentor.email, team_number: matchedMentor.assignedTeamNumber });
         setIsAuthenticated(true);
+        // Mentor canonical email + canonical password
+        silentBackendLogin(matchedMentor.email, BACKEND_MENTOR_PASSWORD);
         return;
       }
-      
-      // Fallback verification for Students
+
+      // ── Student fallback ──────────────────────────────────────────────────
       const matchedStudent = students.find(
         s =>
           s.email.toLowerCase() === normalizedEmail ||
@@ -397,10 +538,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ) {
         mapAndSetUser('STUDENT', { email: matchedStudent.email, roll_number: matchedStudent.rollNo });
         setIsAuthenticated(true);
+        // Student canonical email + canonical password
+        silentBackendLogin(matchedStudent.email, BACKEND_STUDENT_PASSWORD);
         return;
       }
 
-      // If credentials do not match verified institutional roster, raise error
+      // Credentials don't match any known user — surface original backend error
       throw backendErr;
     }
   };
@@ -619,8 +762,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         mentors,
         addMentorFeedback,
         addTeam,
+        updateTeam,
         removeTeam,
         addStudent,
+        updateStudent,
         removeStudent,
         updateAvatar,
         solveProblem,

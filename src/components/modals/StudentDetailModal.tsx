@@ -80,24 +80,12 @@ export const StudentDetailModal: React.FC = () => {
 
           {/* Modal / Bottom Sheet Box */}
           <motion.div
-            initial={{ y: '100%', opacity: 0.5 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: '100%', opacity: 0 }}
-            transition={{ type: 'spring', damping: 30, stiffness: 350 }}
-            drag="y"
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0.05, bottom: 0.6 }}
-            onDragEnd={(_, info) => {
-              if (info.offset.y > 100 || info.velocity.y > 300) {
-                handleClose();
-              }
-            }}
+            initial={{ scale: 0.96, opacity: 0, y: 12 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.96, opacity: 0, y: 12 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="relative w-full max-w-3xl bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-10 max-h-[90vh] flex flex-col gpu-layer overscroll-contain"
           >
-            {/* Mobile Drag Indicator Handle */}
-            <div className="sm:hidden pt-3 pb-1 flex justify-center cursor-grab active:cursor-grabbing">
-              <div className="w-12 h-1.5 rounded-full bg-slate-300" />
-            </div>
 
             {/* Header */}
             <div className="px-4 sm:px-6 py-3.5 sm:py-5 border-b border-slate-100 flex items-start justify-between bg-slate-50/80 gap-3">

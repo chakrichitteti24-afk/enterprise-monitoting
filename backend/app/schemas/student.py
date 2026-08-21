@@ -9,10 +9,45 @@ class StudentCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     roll_number: str = Field(..., min_length=4, max_length=20)
     email: EmailStr
-    team_id: int
+    team_id: Optional[int] = None
+    team_number: Optional[str] = None
     password: Optional[str] = Field(default="Student@GKCE2026", min_length=6)
     dsa_level: DSALevel = DSALevel.BEGINNER
     status: StudentStatus = StudentStatus.ACTIVE
+
+    @field_validator("dsa_level", mode="before")
+    @classmethod
+    def validate_dsa_level(cls, v):
+        if isinstance(v, str):
+            v_clean = v.strip().upper()
+            if v_clean in DSALevel.__members__:
+                return DSALevel(v_clean)
+            mapping = {
+                "BEGINNER": DSALevel.BEGINNER,
+                "INTERMEDIATE": DSALevel.INTERMEDIATE,
+                "ADVANCED": DSALevel.ADVANCED,
+                "MASTERY": DSALevel.MASTERY,
+            }
+            if v_clean in mapping:
+                return mapping[v_clean]
+        return v
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def validate_status(cls, v):
+        if isinstance(v, str):
+            v_clean = v.strip().upper().replace(" ", "_")
+            if v_clean in StudentStatus.__members__:
+                return StudentStatus(v_clean)
+            mapping = {
+                "ACTIVE": StudentStatus.ACTIVE,
+                "NEEDS_ATTENTION": StudentStatus.NEEDS_ATTENTION,
+                "NEEDS ATTENTION": StudentStatus.NEEDS_ATTENTION,
+                "INACTIVE": StudentStatus.INACTIVE,
+            }
+            if v_clean in mapping:
+                return mapping[v_clean]
+        return v
 
 
 class StudentUpdate(BaseModel):
@@ -20,8 +55,47 @@ class StudentUpdate(BaseModel):
     roll_number: Optional[str] = Field(default=None, min_length=4, max_length=20)
     email: Optional[EmailStr] = None
     team_id: Optional[int] = None
+    team_number: Optional[str] = None
     dsa_level: Optional[DSALevel] = None
     status: Optional[StudentStatus] = None
+
+    @field_validator("dsa_level", mode="before")
+    @classmethod
+    def validate_dsa_level(cls, v):
+        if v is None:
+            return v
+        if isinstance(v, str):
+            v_clean = v.strip().upper()
+            if v_clean in DSALevel.__members__:
+                return DSALevel(v_clean)
+            mapping = {
+                "BEGINNER": DSALevel.BEGINNER,
+                "INTERMEDIATE": DSALevel.INTERMEDIATE,
+                "ADVANCED": DSALevel.ADVANCED,
+                "MASTERY": DSALevel.MASTERY,
+            }
+            if v_clean in mapping:
+                return mapping[v_clean]
+        return v
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def validate_status(cls, v):
+        if v is None:
+            return v
+        if isinstance(v, str):
+            v_clean = v.strip().upper().replace(" ", "_")
+            if v_clean in StudentStatus.__members__:
+                return StudentStatus(v_clean)
+            mapping = {
+                "ACTIVE": StudentStatus.ACTIVE,
+                "NEEDS_ATTENTION": StudentStatus.NEEDS_ATTENTION,
+                "NEEDS ATTENTION": StudentStatus.NEEDS_ATTENTION,
+                "INACTIVE": StudentStatus.INACTIVE,
+            }
+            if v_clean in mapping:
+                return mapping[v_clean]
+        return v
 
 
 class AvatarUpdate(BaseModel):

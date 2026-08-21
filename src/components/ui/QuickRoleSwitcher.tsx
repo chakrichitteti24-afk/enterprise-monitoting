@@ -73,6 +73,11 @@ export const QuickRoleSwitcher: React.FC = () => {
                     <div className="min-w-0">
                       <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                         <span>{role === 'DEAN' ? 'Dean (Academics)' : role === 'MENTOR' ? 'Faculty Mentor' : 'Student'}</span>
+                        {role === 'DEAN' && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[9px] font-black border border-amber-300 uppercase tracking-wider">
+                            SUDO
+                          </span>
+                        )}
                       </div>
                       <div className="text-[10px] text-slate-500 truncate mt-0.5">
                         {role === 'DEAN' ? 'Macro overview across all teams' : role === 'MENTOR' ? `Managing ${currentUser.teamNumber}` : `Viewing profile for ${currentUser.studentData?.rollNo}`}
