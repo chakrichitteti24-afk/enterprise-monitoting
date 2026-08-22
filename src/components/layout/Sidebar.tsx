@@ -13,6 +13,7 @@ import {
   Activity,
   User,
   Layers,
+  Award,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -39,6 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '', onItemClick })
           : 0;
         return [
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: undefined },
+          { id: 'exams', label: 'Weekly Exams', icon: Award, badge: 'Root' },
           { id: 'teams', label: 'Teams', icon: Layers, badge: String(teams.length) },
           { id: 'students', label: 'Students', icon: GraduationCap, badge: String(students.length) },
           { id: 'progress', label: 'Progress', icon: TrendingUp, badge: `${deanAvgProgress}%` },
@@ -56,6 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '', onItemClick })
           : 0;
         return [
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: undefined },
+          { id: 'exams', label: 'Weekly Exams', icon: Award, badge: undefined },
           { id: 'my-team', label: 'My Team', icon: Users, badge: currentUser.teamNumber || 'Team 07' },
           { id: 'students', label: 'Students', icon: GraduationCap, badge: String(myTeamStudents.length) },
           { id: 'progress', label: 'Progress', icon: TrendingUp, badge: `${myTeamAvg}%` },
@@ -65,6 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '', onItemClick })
         const studentProg = currentUser.studentData?.progress ?? 0;
         return [
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: undefined },
+          { id: 'exams', label: 'Weekly Exams', icon: Award, badge: 'Live' },
           { id: 'my-progress', label: 'My Progress', icon: TrendingUp, badge: `${studentProg}%` },
           { id: 'problems', label: 'Problems', icon: Code2, badge: undefined },
           { id: 'activity', label: 'Activity', icon: Activity, badge: undefined },

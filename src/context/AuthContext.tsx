@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { CurrentUser, Mentor, Problem, Student, Team, UserRole, DSATopic } from '../types';
+import { CurrentUser, Mentor, Problem, Student, Team, UserRole, DSATopic, WeeklyExam, ExamStatus, StudentExamSubmission } from '../types';
+import { INITIAL_WEEKLY_EXAMS } from '../data/mockExams';
 import { PROBLEMS_BANK_100 } from '../data/dsaCurriculum100';
 import {
   ALL_MENTORS,
@@ -58,6 +59,12 @@ interface AuthContextType {
   toggleMentorProblemVerification: (studentId: string, problemId: string, verified: boolean) => void;
   batchVerifyDayProblems: (studentId: string, dayNumber: number, verified: boolean) => void;
   batchVerifyTeamProblem: (teamIdentifier: string, problemId: string, verified: boolean) => void;
+  exams: WeeklyExam[];
+  createWeeklyExam: (examData: Partial<WeeklyExam>) => Promise<void>;
+  updateWeeklyExam: (examId: string, updates: Partial<WeeklyExam>) => Promise<void>;
+  deleteWeeklyExam: (examId: string) => Promise<void>;
+  setExamStatus: (examId: string, status: ExamStatus) => Promise<void>;
+  submitExamSolution: (examId: string, answers: Record<string, string>) => Promise<StudentExamSubmission>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -81,6 +88,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : ALL_TEAMS;
   });
   const [mentors] = useState<Mentor[]>(ALL_MENTORS);
+  const [exams, setExams] = useState<WeeklyExam[]>(() => {
+    const saved = localStorage.getItem('gkce_weekly_exams');
+    return saved ? JSON.parse(saved) : INITIAL_WEEKLY_EXAMS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('gkce_weekly_exams', JSON.stringify(exams));
+  }, [exams]);
 
   useEffect(() => {
     localStorage.setItem('gkce_students', JSON.stringify(students));
@@ -930,6 +945,133 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  // ==========================================
+  // ROOT ONLY (DEAN) WEEKLY EXAM ACTIONS
+  // ==========================================
+  const createWeeklyExam = async (examData: Partial<WeeklyExam>): Promise<void> => {
+    if (currentUser.role !== 'DEAN') {
+      throw new Error('[RBAC Blocked] Only Dean/Root (SUDO) is authorized to schedule weekly DSA exams.');
+    }
+
+    const newExamId = `exam-week-${String(examData.weekNumber || exams.length + 1).padStart(2, '0')}-${Date.now()}`;
+    const newExam: WeeklyExam = {
+      id: newExamId,
+      weekNumber: examData.weekNumber || exams.length + 1,
+      title: examData.title || `Week ${examData.weekNumber || exams.length + 1} Assessment`,
+      description: examData.description || 'Weekly standardized DSA coding examination scheduled by Dean of Academic Affairs.',
+      topicFocus: examData.topicFocus || 'DSA Core Curriculum',
+      scheduledDate: examData.scheduledDate || new Date().toISOString().split('T')[0],
+      startTime: examData.startTime || '10:00 AM',
+      durationMinutes: examData.durationMinutes || 60,
+      totalMarks: examData.totalMarks || 100,
+      passMarks: examData.passMarks || 50,
+      status: examData.status || 'SCHEDULED',
+      createdBy: 'Dean of Academic Affairs (SUDO)',
+      questions: examData.questions && examData.questions.length > 0 ? examData.questions : [],
+      submissions: [],
+    };
+
+    setExams(prev => [newExam, ...prev]);
+  };
+
+  const updateWeeklyExam = async (examId: string, updates: Partial<WeeklyExam>): Promise<void> => {
+    if (currentUser.role !== 'DEAN') {
+      throw new Error('[RBAC Blocked] Only Dean/Root (SUDO) can update weekly exam specifications.');
+    }
+
+    setExams(prev =>
+      prev.map(ex => (ex.id === examId ? { ...ex, ...updates } : ex))
+    );
+  };
+
+  const deleteWeeklyExam = async (examId: string): Promise<void> => {
+    if (currentUser.role !== 'DEAN') {
+      throw new Error('[RBAC Blocked] Only Dean/Root (SUDO) can delete weekly exams.');
+    }
+
+    setExams(prev => prev.filter(ex => ex.id !== examId));
+  };
+
+  const setExamStatus = async (examId: string, status: ExamStatus): Promise<void> => {
+    if (currentUser.role !== 'DEAN') {
+      throw new Error('[RBAC Blocked] Only Dean/Root (SUDO) can change exam lifecycle status.');
+    }
+
+    setExams(prev =>
+      prev.map(ex => (ex.id === examId ? { ...ex, status } : ex))
+    );
+  };
+
+  const submitExamSolution = async (
+    examId: string,
+    answers: Record<string, string>
+  ): Promise<StudentExamSubmission> => {
+    const student = currentUser.studentData;
+    if (!student) {
+      throw new Error('Only enrolled students can take and submit exams.');
+    }
+
+    const exam = exams.find(e => e.id === examId);
+    if (!exam) {
+      throw new Error('Exam not found.');
+    }
+
+    // Auto-grade simulation (each answered question awards marks)
+    const questions = exam.questions || [];
+    let score = 0;
+    let solvedCount = 0;
+    const answerDetails: Record<string, any> = {};
+
+    questions.forEach((q, idx) => {
+      const code = answers[q.id] || '';
+      const hasCode = code.trim().length > 15;
+      const passedTestCases = hasCode ? (idx === 4 ? 2 : 3) : 0;
+      const totalTestCases = 3;
+      const marksEarned = Math.round((passedTestCases / totalTestCases) * q.marks);
+      score += marksEarned;
+      if (passedTestCases >= 2) solvedCount += 1;
+
+      answerDetails[q.id] = {
+        code,
+        language: 'Java',
+        passedTestCases,
+        totalTestCases,
+        marksAwarded: marksEarned,
+      };
+    });
+
+    const newSubmission: StudentExamSubmission = {
+      id: `sub-${examId}-${student.id}-${Date.now()}`,
+      studentId: student.id,
+      studentName: student.name,
+      studentRollNo: student.rollNo,
+      teamNumber: student.teamNumber,
+      examId,
+      status: 'EVALUATED',
+      score,
+      totalMarks: exam.totalMarks,
+      questionsSolved: solvedCount,
+      passedCount: solvedCount,
+      totalQuestionCount: questions.length,
+      submittedAt: new Date().toISOString(),
+      timeSpentMinutes: Math.min(exam.durationMinutes, 45),
+      answers: answerDetails,
+    };
+
+    // Update Exam submissions in state
+    setExams(prev =>
+      prev.map(ex => {
+        if (ex.id === examId) {
+          const currentSubs = (ex.submissions || []).filter(s => s.studentId !== student.id);
+          return { ...ex, submissions: [newSubmission, ...currentSubs] };
+        }
+        return ex;
+      })
+    );
+
+    return newSubmission;
+  };
+
   // Keyboard shortcut for Cmd/Ctrl+K search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -977,6 +1119,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toggleMentorProblemVerification,
         batchVerifyDayProblems,
         batchVerifyTeamProblem,
+        exams,
+        createWeeklyExam,
+        updateWeeklyExam,
+        deleteWeeklyExam,
+        setExamStatus,
+        submitExamSolution,
       }}
     >
       {children}

@@ -14,11 +14,13 @@ import { StudentProgressPage } from './pages/student/StudentProgressPage';
 import { StudentProblemsPage } from './pages/student/StudentProblemsPage';
 import { StudentActivityPage } from './pages/student/StudentActivityPage';
 import { StudentProfilePage } from './pages/student/StudentProfilePage';
+import { StudentExamsPage } from './pages/student/StudentExamsPage';
 
 // Mentor Pages
 import { MentorDashboard } from './pages/mentor/MentorDashboard';
 import { MentorStudentsPage } from './pages/mentor/MentorStudentsPage';
 import { MentorProgressPage } from './pages/mentor/MentorProgressPage';
+import { MentorExamsPage } from './pages/mentor/MentorExamsPage';
 
 // Dean Pages
 import { DeanDashboard } from './pages/dean/DeanDashboard';
@@ -27,6 +29,7 @@ import { DeanStudentsPage } from './pages/dean/DeanStudentsPage';
 import { DeanAnalyticsPage } from './pages/dean/DeanAnalyticsPage';
 import { DeanReportsPage } from './pages/dean/DeanReportsPage';
 import { DeanSettingsPage } from './pages/dean/DeanSettingsPage';
+import { DeanExamsPage } from './pages/dean/DeanExamsPage';
 
 // Auth Page
 import { LoginPage } from './pages/auth/LoginPage';
@@ -37,9 +40,9 @@ const MainLayout: React.FC = () => {
 
   // Automatically sanitize activeTab when role changes to prevent stuck tabs
   React.useEffect(() => {
-    const validDeanTabs = ['dashboard', 'teams', 'students', 'progress', 'analytics', 'reports', 'settings'];
-    const validMentorTabs = ['dashboard', 'my-team', 'students', 'progress'];
-    const validStudentTabs = ['dashboard', 'my-progress', 'problems', 'activity', 'profile'];
+    const validDeanTabs = ['dashboard', 'exams', 'teams', 'students', 'progress', 'analytics', 'reports', 'settings'];
+    const validMentorTabs = ['dashboard', 'exams', 'my-team', 'students', 'progress'];
+    const validStudentTabs = ['dashboard', 'exams', 'my-progress', 'problems', 'activity', 'profile'];
 
     if (role === 'DEAN' && !validDeanTabs.includes(activeTab)) {
       setActiveTab('dashboard');
@@ -71,6 +74,8 @@ const MainLayout: React.FC = () => {
       switch (activeTab) {
         case 'dashboard':
           return <StudentDashboard />;
+        case 'exams':
+          return <StudentExamsPage />;
         case 'my-progress':
           return <StudentProgressPage />;
         case 'problems':
@@ -90,6 +95,8 @@ const MainLayout: React.FC = () => {
         case 'dashboard':
         case 'my-team':
           return <MentorDashboard />;
+        case 'exams':
+          return <MentorExamsPage />;
         case 'students':
           return <MentorStudentsPage />;
         case 'progress':
@@ -104,6 +111,8 @@ const MainLayout: React.FC = () => {
       switch (activeTab) {
         case 'dashboard':
           return <DeanDashboard />;
+        case 'exams':
+          return <DeanExamsPage />;
         case 'teams':
           return <DeanTeamsPage />;
         case 'students':

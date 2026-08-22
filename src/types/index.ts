@@ -114,3 +114,63 @@ export interface CurrentUser {
   teamId?: string;
   teamNumber?: string;
 }
+
+export type ExamStatus = 'SCHEDULED' | 'LIVE' | 'COMPLETED';
+
+export interface ExamQuestion {
+  id: string;
+  questionNumber: number;
+  title: string;
+  topic: DSATopic;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  description: string;
+  marks: number;
+  starterCode?: {
+    java?: string;
+    cpp?: string;
+    python?: string;
+  };
+  testCases?: { input: string; output: string; isHidden?: boolean }[];
+}
+
+export interface StudentExamSubmission {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentRollNo: string;
+  teamNumber: string;
+  examId: string;
+  status: 'SUBMITTED' | 'IN_PROGRESS' | 'EVALUATED' | 'MISSED';
+  score: number;
+  totalMarks: number;
+  questionsSolved: number;
+  submittedAt?: string;
+  timeSpentMinutes?: number;
+  passedCount?: number;
+  totalQuestionCount?: number;
+  answers?: Record<string, {
+    code: string;
+    language: string;
+    passedTestCases: number;
+    totalTestCases: number;
+    marksAwarded: number;
+  }>;
+}
+
+export interface WeeklyExam {
+  id: string;
+  weekNumber: number; // e.g. 1, 2, 3, 4
+  title: string; // e.g. "Week 01 Assessment: Basics & Number Logic"
+  description: string;
+  topicFocus: string; // e.g. "Basics, Loops & Number Logic"
+  scheduledDate: string; // e.g. "2026-08-28"
+  startTime: string; // e.g. "10:00 AM"
+  durationMinutes: number; // e.g. 60
+  totalMarks: number; // e.g. 100
+  passMarks: number; // e.g. 50
+  status: ExamStatus; // 'SCHEDULED' | 'LIVE' | 'COMPLETED'
+  createdBy: string; // "Dean of Academic Affairs (SUDO)"
+  questions: ExamQuestion[];
+  submissions?: StudentExamSubmission[];
+}
+
