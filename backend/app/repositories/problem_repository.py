@@ -1,5 +1,5 @@
 from typing import Optional, List, Tuple
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import select, func, or_
 from app.models.problem import DSAProblem
 from app.models.enums import ProblemDifficulty, DSATopic
