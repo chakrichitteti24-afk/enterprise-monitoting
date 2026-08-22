@@ -475,7 +475,7 @@ export const DeanStudentsPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="py-3.5 px-4 text-slate-700">
-                      <strong className="text-slate-900">{s.solved}</strong> / 34
+                      <strong className="text-slate-900">{s.solved}</strong> / 100
                     </td>
                     <td className="py-3.5 px-4">
                       <StreakBadge streak={s.streak} size="sm" />

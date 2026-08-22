@@ -5,6 +5,7 @@ import { ProgressRing } from '../../components/ui/ProgressRing';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { StreakBadge } from '../../components/ui/StreakBadge';
 import { TopicProgressList } from '../../components/ui/TopicProgressList';
+import { UserAvatar } from '../../components/ui/UserAvatar';
 import { TOTAL_CURRICULUM_PROBLEMS } from '../../data/mockData';
 import {
   User,
@@ -72,10 +73,12 @@ export const StudentDashboard: React.FC = () => {
         >
           <div className="space-y-3 pt-1">
             <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-              <img
+              <UserAvatar
                 src={student.avatar}
-                alt={student.name}
-                className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 shrink-0"
+                name={student.name}
+                id={student.rollNo}
+                role="STUDENT"
+                size="md"
               />
               <div className="min-w-0 flex-1">
                 <div className="font-bold text-sm text-slate-900 truncate leading-snug">{student.name}</div>

@@ -258,7 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         progress: 0,
         solved: 0,
         attempted: 0,
-        pending: 34,
+        pending: 100,
         streak: 0,
         longestStreak: 0,
         status: studentStatus,
@@ -643,8 +643,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const newSolved = targetStudent.solved + 1;
     const newAttempted = Math.max(targetStudent.attempted + 1, newSolved);
-    const newPending = Math.max(0, 34 - newSolved);
-    const newProgress = Math.min(100, Math.round((newSolved / 34) * 100));
+    const newPending = Math.max(0, 100 - newSolved);
+    const newProgress = Math.min(100, Math.round((newSolved / 100) * 100));
     const newStreak = targetStudent.streak + 1;
     const newLongestStreak = Math.max(targetStudent.longestStreak, newStreak);
     const newLevel = newProgress >= 85 ? 'Mastery' : newProgress >= 65 ? 'Advanced' : newProgress >= 40 ? 'Intermediate' : 'Beginner';

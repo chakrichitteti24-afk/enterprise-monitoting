@@ -56,11 +56,11 @@ export const StudentProgressPage: React.FC = () => {
                 </span>
                 <span className="font-semibold text-slate-900">
                   {student.difficultyStats.easy.solved} / {student.difficultyStats.easy.total} (
-                  {Math.round((student.difficultyStats.easy.solved / student.difficultyStats.easy.total) * 100)}%)
+                  {Math.round((student.difficultyStats.easy.solved / Math.max(1, student.difficultyStats.easy.total)) * 100)}%)
                 </span>
               </div>
               <ProgressBar
-                percentage={(student.difficultyStats.easy.solved / student.difficultyStats.easy.total) * 100}
+                percentage={(student.difficultyStats.easy.solved / Math.max(1, student.difficultyStats.easy.total)) * 100}
                 color="emerald"
                 height="md"
               />
@@ -74,11 +74,11 @@ export const StudentProgressPage: React.FC = () => {
                 </span>
                 <span className="font-semibold text-slate-900">
                   {student.difficultyStats.medium.solved} / {student.difficultyStats.medium.total} (
-                  {Math.round((student.difficultyStats.medium.solved / student.difficultyStats.medium.total) * 100)}%)
+                  {Math.round((student.difficultyStats.medium.solved / Math.max(1, student.difficultyStats.medium.total)) * 100)}%)
                 </span>
               </div>
               <ProgressBar
-                percentage={(student.difficultyStats.medium.solved / student.difficultyStats.medium.total) * 100}
+                percentage={(student.difficultyStats.medium.solved / Math.max(1, student.difficultyStats.medium.total)) * 100}
                 color="amber"
                 height="md"
               />
@@ -92,11 +92,11 @@ export const StudentProgressPage: React.FC = () => {
                 </span>
                 <span className="font-semibold text-slate-900">
                   {student.difficultyStats.hard.solved} / {student.difficultyStats.hard.total} (
-                  {Math.round((student.difficultyStats.hard.solved / student.difficultyStats.hard.total) * 100)}%)
+                  {Math.round((student.difficultyStats.hard.solved / Math.max(1, student.difficultyStats.hard.total)) * 100)}%)
                 </span>
               </div>
               <ProgressBar
-                percentage={(student.difficultyStats.hard.solved / student.difficultyStats.hard.total) * 100}
+                percentage={(student.difficultyStats.hard.solved / Math.max(1, student.difficultyStats.hard.total)) * 100}
                 color="slate"
                 height="md"
               />
