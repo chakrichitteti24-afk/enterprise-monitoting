@@ -210,6 +210,15 @@ export const ALL_MENTORS: Mentor[] = [
     "assignedTeamId": "team-20",
     "assignedTeamNumber": "Team 20",
     "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "mentor-21",
+    "name": "Mrs. Gayathri",
+    "email": "gayathri@gkce.edu.in",
+    "department": "Computer Science & Engg",
+    "assignedTeamId": "team-21",
+    "assignedTeamNumber": "Team 21",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Mentor_Gayathri&backgroundColor=dbeafe&radius=16&clothingColor=2563eb"
   }
 ];
 
