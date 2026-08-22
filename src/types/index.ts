@@ -52,6 +52,7 @@ export interface Student {
   recentActivities: ActivityItem[];
   submissionsHistory: { date: string; count: number }[];
   mentorFeedbackNotes?: { id: string; date: string; author: string; note: string }[];
+  verifiedProblemIds?: string[]; // IDs of problems signed off / ticked by faculty mentor
   leetcodeUsername?: string;
   githubUsername?: string;
 }
@@ -89,6 +90,9 @@ export interface Mentor {
 
 export interface Problem {
   id: string;
+  dayNumber: number; // 1 to 20
+  dayQuestionNumber: number; // 1 to 5
+  dayTopic?: string;
   title: string;
   topic: DSATopic;
   difficulty: 'Easy' | 'Medium' | 'Hard';

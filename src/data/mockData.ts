@@ -1,12 +1,14 @@
 // GKCE DSA Student Monitoring Platform — Clean Baseline Dataset (0% Fresh Start)
 // Total Students: 46 authentic GKCE CSE Students enrolled
 // Total Teams: 20 Mentored Teams
-// Total DSA Curriculum Problems: 34 Core Challenges
+// Total DSA Curriculum Problems: 100 Core Challenges (20 Days x 5 Questions/Day)
 // All progress and solves are earned dynamically in real-time as students solve problems.
 
 import { CurrentUser, Mentor, Problem, Student, Team } from '../types';
+import { PROBLEMS_BANK_100, TOTAL_CURRICULUM_PROBLEMS as CURRICULUM_100_TOTAL, TOTAL_CURRICULUM_DAYS, PROBLEMS_PER_DAY, DAILY_TOPIC_THEMES } from './dsaCurriculum100';
 
-export const TOTAL_CURRICULUM_PROBLEMS = 34;
+export { TOTAL_CURRICULUM_DAYS, PROBLEMS_PER_DAY, DAILY_TOPIC_THEMES, PROBLEMS_BANK_100 };
+export const TOTAL_CURRICULUM_PROBLEMS = CURRICULUM_100_TOTAL;
 
 export const DSA_TOPICS = [
   'Arrays',
@@ -20,14 +22,14 @@ export const DSA_TOPICS = [
 ] as const;
 
 export const TOPIC_CURRICULUM_TOTALS: Record<string, number> = {
-  Arrays: 5,
-  Strings: 4,
-  'Linked Lists': 4,
-  Stack: 4,
-  Queue: 2,
-  Trees: 5,
-  Graphs: 4,
-  'Dynamic Programming': 6,
+  Arrays: 15,
+  Strings: 10,
+  'Linked Lists': 10,
+  Stack: 10,
+  Queue: 10,
+  Trees: 15,
+  Graphs: 15,
+  'Dynamic Programming': 15,
 };
 
 export const ALL_MENTORS: Mentor[] = [
@@ -4392,280 +4394,7 @@ export const ALL_TEAMS: Team[] = [
   }
 ];
 
-export const PROBLEMS_BANK: Problem[] = [
-  {
-    "id": "prob-1",
-    "title": "Two Sum",
-    "topic": "Arrays",
-    "difficulty": "Easy",
-    "description": "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.",
-    "acceptanceRate": "54.2%"
-  },
-  {
-    "id": "prob-2",
-    "title": "Best Time to Buy and Sell Stock",
-    "topic": "Arrays",
-    "difficulty": "Easy",
-    "description": "You want to maximize your profit by choosing a single day to buy one stock and choosing a different day in the future to sell that stock.",
-    "acceptanceRate": "53.8%"
-  },
-  {
-    "id": "prob-3",
-    "title": "3Sum",
-    "topic": "Arrays",
-    "difficulty": "Medium",
-    "description": "Given an integer array nums, return all the triplets [nums[i], nums[j], nums[k]] such that i != j, i != k, and j != k, and nums[i] + nums[j] + nums[k] == 0.",
-    "acceptanceRate": "34.1%"
-  },
-  {
-    "id": "prob-4",
-    "title": "Container With Most Water",
-    "topic": "Arrays",
-    "difficulty": "Medium",
-    "description": "Find two lines that together with the x-axis form a container, such that the container contains the most water.",
-    "acceptanceRate": "55.0%"
-  },
-  {
-    "id": "prob-5",
-    "title": "Trapping Rain Water",
-    "topic": "Arrays",
-    "difficulty": "Hard",
-    "description": "Given n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.",
-    "acceptanceRate": "60.4%"
-  },
-  {
-    "id": "prob-6",
-    "title": "Valid Anagram",
-    "topic": "Strings",
-    "difficulty": "Easy",
-    "description": "Given two strings s and t, return true if t is an anagram of s, and false otherwise.",
-    "acceptanceRate": "64.2%"
-  },
-  {
-    "id": "prob-7",
-    "title": "Longest Substring Without Repeating Characters",
-    "topic": "Strings",
-    "difficulty": "Medium",
-    "description": "Given a string s, find the length of the longest substring without repeating characters.",
-    "acceptanceRate": "35.0%"
-  },
-  {
-    "id": "prob-8",
-    "title": "Longest Palindromic Substring",
-    "topic": "Strings",
-    "difficulty": "Medium",
-    "description": "Given a string s, return the longest palindromic substring in s.",
-    "acceptanceRate": "33.8%"
-  },
-  {
-    "id": "prob-9",
-    "title": "Minimum Window Substring",
-    "topic": "Strings",
-    "difficulty": "Hard",
-    "description": "Given two strings s and t of lengths m and n respectively, return the minimum window substring of s such that every character in t (including duplicates) is included in the window.",
-    "acceptanceRate": "42.5%"
-  },
-  {
-    "id": "prob-10",
-    "title": "Reverse Linked List",
-    "topic": "Linked Lists",
-    "difficulty": "Easy",
-    "description": "Given the head of a singly linked list, reverse the list, and return the reversed list.",
-    "acceptanceRate": "75.4%"
-  },
-  {
-    "id": "prob-11",
-    "title": "Merge Two Sorted Lists",
-    "topic": "Linked Lists",
-    "difficulty": "Easy",
-    "description": "You are given the heads of two sorted linked lists list1 and list2. Merge the two lists into one sorted list.",
-    "acceptanceRate": "64.2%"
-  },
-  {
-    "id": "prob-12",
-    "title": "Linked List Cycle",
-    "topic": "Linked Lists",
-    "difficulty": "Easy",
-    "description": "Given head, the head of a linked list, determine if the linked list has a cycle in it.",
-    "acceptanceRate": "50.1%"
-  },
-  {
-    "id": "prob-13",
-    "title": "Reorder List",
-    "topic": "Linked Lists",
-    "difficulty": "Medium",
-    "description": "You are given the head of a singly linked-list. Reorder the list to be on the specified alternating format.",
-    "acceptanceRate": "55.2%"
-  },
-  {
-    "id": "prob-14",
-    "title": "Valid Parentheses",
-    "topic": "Stack",
-    "difficulty": "Easy",
-    "description": "Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.",
-    "acceptanceRate": "40.8%"
-  },
-  {
-    "id": "prob-15",
-    "title": "Min Stack",
-    "topic": "Stack",
-    "difficulty": "Medium",
-    "description": "Design a stack that supports push, pop, top, and retrieving the minimum element in constant time.",
-    "acceptanceRate": "53.9%"
-  },
-  {
-    "id": "prob-16",
-    "title": "Daily Temperatures",
-    "topic": "Stack",
-    "difficulty": "Medium",
-    "description": "Given an array of integers temperatures represents the daily temperatures, return an array answer such that answer[i] is the number of days you have to wait after the ith day to get a warmer temperature.",
-    "acceptanceRate": "66.2%"
-  },
-  {
-    "id": "prob-17",
-    "title": "Largest Rectangle in Histogram",
-    "topic": "Stack",
-    "difficulty": "Hard",
-    "description": "Given an array of integers heights representing the histogram's bar height where the width of each bar is 1, return the area of the largest rectangle in the histogram.",
-    "acceptanceRate": "44.1%"
-  },
-  {
-    "id": "prob-18",
-    "title": "Implement Queue using Stacks",
-    "topic": "Queue",
-    "difficulty": "Easy",
-    "description": "Implement a first in first out (FIFO) queue using only two stacks.",
-    "acceptanceRate": "65.3%"
-  },
-  {
-    "id": "prob-19",
-    "title": "Sliding Window Maximum",
-    "topic": "Queue",
-    "difficulty": "Hard",
-    "description": "You are given an array of integers nums, there is a sliding window of size k which is moving from the very left of the array to the very right.",
-    "acceptanceRate": "46.8%"
-  },
-  {
-    "id": "prob-20",
-    "title": "Maximum Depth of Binary Tree",
-    "topic": "Trees",
-    "difficulty": "Easy",
-    "description": "Given the root of a binary tree, return its maximum depth.",
-    "acceptanceRate": "75.6%"
-  },
-  {
-    "id": "prob-21",
-    "title": "Invert Binary Tree",
-    "topic": "Trees",
-    "difficulty": "Easy",
-    "description": "Given the root of a binary tree, invert the tree, and return its root.",
-    "acceptanceRate": "77.1%"
-  },
-  {
-    "id": "prob-22",
-    "title": "Binary Tree Level Order Traversal",
-    "topic": "Trees",
-    "difficulty": "Medium",
-    "description": "Given the root of a binary tree, return the level order traversal of its nodes' values. (i.e., from left to right, level by level).",
-    "acceptanceRate": "67.0%"
-  },
-  {
-    "id": "prob-23",
-    "title": "Validate Binary Search Tree",
-    "topic": "Trees",
-    "difficulty": "Medium",
-    "description": "Given the root of a binary tree, determine if it is a valid binary search tree (BST).",
-    "acceptanceRate": "33.0%"
-  },
-  {
-    "id": "prob-24",
-    "title": "Binary Tree Maximum Path Sum",
-    "topic": "Trees",
-    "difficulty": "Hard",
-    "description": "A path in a binary tree is a sequence of nodes where each pair of adjacent nodes has an edge. Return the maximum path sum of any non-empty path.",
-    "acceptanceRate": "40.1%"
-  },
-  {
-    "id": "prob-25",
-    "title": "Number of Islands",
-    "topic": "Graphs",
-    "difficulty": "Medium",
-    "description": "Given an m x n 2D binary grid grid which represents a map of '1's (land) and '0's (water), return the number of islands.",
-    "acceptanceRate": "59.2%"
-  },
-  {
-    "id": "prob-26",
-    "title": "Clone Graph",
-    "topic": "Graphs",
-    "difficulty": "Medium",
-    "description": "Given a reference of a node in a connected undirected graph. Return a deep copy (clone) of the graph.",
-    "acceptanceRate": "56.4%"
-  },
-  {
-    "id": "prob-27",
-    "title": "Course Schedule",
-    "topic": "Graphs",
-    "difficulty": "Medium",
-    "description": "There are a total of numCourses courses you have to take, labeled from 0 to numCourses - 1. Return true if you can finish all courses.",
-    "acceptanceRate": "47.2%"
-  },
-  {
-    "id": "prob-28",
-    "title": "Word Ladder",
-    "topic": "Graphs",
-    "difficulty": "Hard",
-    "description": "A transformation sequence from word beginWord to word endWord using a dictionary wordList is a sequence of words beginWord -> s1 -> s2 -> ... -> sk such that every adjacent pair of words differs by a single letter. Return the number of words in the shortest transformation sequence.",
-    "acceptanceRate": "38.6%"
-  },
-  {
-    "id": "prob-29",
-    "title": "Climbing Stairs",
-    "topic": "Dynamic Programming",
-    "difficulty": "Easy",
-    "description": "You are climbing a staircase. It takes n steps to reach the top. Each time you can either climb 1 or 2 steps. In how many distinct ways can you climb to the top?",
-    "acceptanceRate": "53.1%"
-  },
-  {
-    "id": "prob-30",
-    "title": "House Robber",
-    "topic": "Dynamic Programming",
-    "difficulty": "Medium",
-    "description": "You are a professional robber planning to rob houses along a street. Determine the maximum amount of money you can rob tonight without alerting the police.",
-    "acceptanceRate": "51.3%"
-  },
-  {
-    "id": "prob-31",
-    "title": "Coin Change",
-    "topic": "Dynamic Programming",
-    "difficulty": "Medium",
-    "description": "You are given an integer array coins representing coins of different denominations and an integer amount. Return the fewest number of coins that you need to make up that amount.",
-    "acceptanceRate": "44.0%"
-  },
-  {
-    "id": "prob-32",
-    "title": "Longest Increasing Subsequence",
-    "topic": "Dynamic Programming",
-    "difficulty": "Medium",
-    "description": "Given an integer array nums, return the length of the longest strictly increasing subsequence.",
-    "acceptanceRate": "54.8%"
-  },
-  {
-    "id": "prob-33",
-    "title": "Min Cost Climbing Stairs",
-    "topic": "Dynamic Programming",
-    "difficulty": "Easy",
-    "description": "You are given an integer array cost where cost[i] is the cost of ith step on a staircase. Return the minimum cost to reach the top of the floor.",
-    "acceptanceRate": "66.5%"
-  },
-  {
-    "id": "prob-34",
-    "title": "Edit Distance",
-    "topic": "Dynamic Programming",
-    "difficulty": "Hard",
-    "description": "Given two strings word1 and word2, return the minimum number of operations required to convert word1 to word2.",
-    "acceptanceRate": "56.8%"
-  }
-];
+export const PROBLEMS_BANK: Problem[] = PROBLEMS_BANK_100;
 
 export const DEAN_USER: CurrentUser = {
   id: 'dean-1',

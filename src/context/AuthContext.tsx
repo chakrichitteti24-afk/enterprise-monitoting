@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CurrentUser, Mentor, Problem, Student, Team, UserRole, DSATopic } from '../types';
+import { PROBLEMS_BANK_100 } from '../data/dsaCurriculum100';
 import {
   ALL_MENTORS,
   ALL_STUDENTS,
@@ -54,6 +55,9 @@ interface AuthContextType {
   removeStudent: (studentId: string) => Promise<void>;
   updateAvatar: (newAvatarUrl: string) => Promise<void>;
   solveProblem: (problem: Problem) => Promise<boolean>;
+  toggleMentorProblemVerification: (studentId: string, problemId: string, verified: boolean) => void;
+  batchVerifyDayProblems: (studentId: string, dayNumber: number, verified: boolean) => void;
+  batchVerifyTeamProblem: (teamIdentifier: string, problemId: string, verified: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -736,6 +740,196 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  // Recalculate student metrics from verifiedProblemIds
+  const recalculateStudentMetrics = (student: Student, verifiedIds: string[]): Student => {
+    const verifiedSet = new Set(verifiedIds);
+    const verifiedProblems = PROBLEMS_BANK_100.filter(p => verifiedSet.has(p.id));
+    const solvedCount = verifiedProblems.length;
+    const progress = Math.min(100, Math.round((solvedCount / 100) * 100));
+    const pending = Math.max(0, 100 - solvedCount);
+    const attempted = Math.max(student.attempted || 0, solvedCount);
+
+    const topicProgress: Record<DSATopic, { solved: number; total: number; percentage: number }> = {
+      Arrays: { solved: 0, total: 55, percentage: 0 },
+      Strings: { solved: 0, total: 15, percentage: 0 },
+      'Linked Lists': { solved: 0, total: 10, percentage: 0 },
+      Stack: { solved: 0, total: 10, percentage: 0 },
+      Queue: { solved: 0, total: 5, percentage: 0 },
+      Trees: { solved: 0, total: 5, percentage: 0 },
+      Graphs: { solved: 0, total: 0, percentage: 0 },
+      'Dynamic Programming': { solved: 0, total: 0, percentage: 0 },
+    };
+
+    const difficultyStats = {
+      easy: { solved: 0, total: 70 },
+      medium: { solved: 0, total: 28 },
+      hard: { solved: 0, total: 2 },
+    };
+
+    for (const prob of verifiedProblems) {
+      if (topicProgress[prob.topic]) {
+        topicProgress[prob.topic].solved += 1;
+      }
+      const diffKey = prob.difficulty.toLowerCase() as 'easy' | 'medium' | 'hard';
+      if (difficultyStats[diffKey]) {
+        difficultyStats[diffKey].solved += 1;
+      }
+    }
+
+    for (const topic of Object.keys(topicProgress) as DSATopic[]) {
+      const tData = topicProgress[topic];
+      tData.percentage = tData.total > 0 ? Math.min(100, Math.round((tData.solved / tData.total) * 100)) : (tData.solved > 0 ? 100 : 0);
+    }
+
+    const dsaLevel = progress >= 85 ? 'Mastery' : progress >= 65 ? 'Advanced' : progress >= 40 ? 'Intermediate' : 'Beginner';
+    const streak = solvedCount > 0 ? Math.max(1, Math.min(20, Math.ceil(solvedCount / 5))) : 0;
+
+    return {
+      ...student,
+      verifiedProblemIds: verifiedIds,
+      solved: solvedCount,
+      pending,
+      attempted,
+      progress,
+      streak,
+      longestStreak: Math.max(student.longestStreak || 0, streak),
+      dsaLevel: dsaLevel as any,
+      topicProgress,
+      difficultyStats,
+    };
+  };
+
+  // Recalculate team metrics from students
+  const recalculateTeamMetrics = (teamIdOrNumber: string, currentStudents: Student[]) => {
+    setTeams(prevTeams =>
+      prevTeams.map(t => {
+        if (t.id === teamIdOrNumber || t.teamNumber === teamIdOrNumber) {
+          const teamSts = currentStudents.filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber);
+          const tSolved = teamSts.reduce((acc, s) => acc + (s.solved || 0), 0);
+          const tAttempted = teamSts.reduce((acc, s) => acc + (s.attempted || 0), 0);
+          const tAvgProg = teamSts.length > 0 ? Math.round(teamSts.reduce((acc, s) => acc + s.progress, 0) / teamSts.length) : 0;
+          const tAvgStreak = teamSts.length > 0 ? Math.round(teamSts.reduce((acc, s) => acc + s.streak, 0) / teamSts.length) : 0;
+
+          const tPerf: Record<string, number> = {};
+          const topicCaps: Record<string, number> = {
+            Arrays: 55, Strings: 15, 'Linked Lists': 10, Stack: 10, Queue: 5, Trees: 5, Graphs: 0, 'Dynamic Programming': 0,
+          };
+          for (const top of Object.keys(topicCaps)) {
+            const cap = topicCaps[top];
+            if (cap > 0) {
+              const totalTopicCap = cap * teamSts.length;
+              const solvedTopic = teamSts.reduce((acc, s) => acc + (s.topicProgress[top as DSATopic]?.solved || 0), 0);
+              tPerf[top] = Math.min(100, Math.round((solvedTopic / Math.max(1, totalTopicCap)) * 100));
+            } else {
+              tPerf[top] = 0;
+            }
+          }
+
+          return {
+            ...t,
+            totalSolved: tSolved,
+            totalAttempted: tAttempted,
+            avgProgress: tAvgProg,
+            avgStreak: tAvgStreak,
+            topicPerformance: tPerf,
+          };
+        }
+        return t;
+      })
+    );
+  };
+
+  // Mentor verification toggle
+  const toggleMentorProblemVerification = (studentId: string, problemId: string, verified: boolean) => {
+    // Strict RBAC: Only Mentors and Dean can verify problem completion
+    if (currentUser.role === 'STUDENT') {
+      console.warn('[RBAC] Students cannot self-verify problem completions.');
+      return;
+    }
+
+    setStudents(prevStudents => {
+      const updated = prevStudents.map(st => {
+        if (st.id === studentId || st.rollNo === studentId) {
+          const currentVerified = new Set(st.verifiedProblemIds || []);
+          if (verified) {
+            currentVerified.add(problemId);
+          } else {
+            currentVerified.delete(problemId);
+          }
+          const updatedStudent = recalculateStudentMetrics(st, Array.from(currentVerified));
+          
+          if (currentUser.studentData?.id === st.id || currentUser.studentData?.rollNo === st.rollNo) {
+            setCurrentUser(curr => ({ ...curr, studentData: updatedStudent }));
+          }
+          return updatedStudent;
+        }
+        return st;
+      });
+
+      const targetStudent = updated.find(s => s.id === studentId || s.rollNo === studentId);
+      if (targetStudent) {
+        recalculateTeamMetrics(targetStudent.teamNumber, updated);
+      }
+      return updated;
+    });
+  };
+
+  // Batch verify 5 problems for a specific day for a student
+  const batchVerifyDayProblems = (studentId: string, dayNumber: number, verified: boolean) => {
+    if (currentUser.role === 'STUDENT') return;
+    const dayProblemIds = PROBLEMS_BANK_100.filter(p => p.dayNumber === dayNumber).map(p => p.id);
+
+    setStudents(prevStudents => {
+      const updated = prevStudents.map(st => {
+        if (st.id === studentId || st.rollNo === studentId) {
+          const currentVerified = new Set(st.verifiedProblemIds || []);
+          for (const pid of dayProblemIds) {
+            if (verified) {
+              currentVerified.add(pid);
+            } else {
+              currentVerified.delete(pid);
+            }
+          }
+          const updatedStudent = recalculateStudentMetrics(st, Array.from(currentVerified));
+          if (currentUser.studentData?.id === st.id) {
+            setCurrentUser(curr => ({ ...curr, studentData: updatedStudent }));
+          }
+          return updatedStudent;
+        }
+        return st;
+      });
+
+      const targetStudent = updated.find(s => s.id === studentId || s.rollNo === studentId);
+      if (targetStudent) {
+        recalculateTeamMetrics(targetStudent.teamNumber, updated);
+      }
+      return updated;
+    });
+  };
+
+  // Batch verify a specific problem across all members of a team
+  const batchVerifyTeamProblem = (teamIdentifier: string, problemId: string, verified: boolean) => {
+    if (currentUser.role === 'STUDENT') return;
+
+    setStudents(prevStudents => {
+      const updated = prevStudents.map(st => {
+        if (st.teamId === teamIdentifier || st.teamNumber === teamIdentifier) {
+          const currentVerified = new Set(st.verifiedProblemIds || []);
+          if (verified) {
+            currentVerified.add(problemId);
+          } else {
+            currentVerified.delete(problemId);
+          }
+          return recalculateStudentMetrics(st, Array.from(currentVerified));
+        }
+        return st;
+      });
+
+      recalculateTeamMetrics(teamIdentifier, updated);
+      return updated;
+    });
+  };
+
   // Keyboard shortcut for Cmd/Ctrl+K search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -780,6 +974,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         removeStudent,
         updateAvatar,
         solveProblem,
+        toggleMentorProblemVerification,
+        batchVerifyDayProblems,
+        batchVerifyTeamProblem,
       }}
     >
       {children}
