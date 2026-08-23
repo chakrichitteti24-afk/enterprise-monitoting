@@ -1,304 +1,243 @@
-import { WeeklyExam, ExamQuestion, StudentExamSubmission } from '../types';
+import { WeeklyExam, ExamQuestion, StudentExamSubmission, Problem } from '../types';
 import { ALL_STUDENTS } from './mockData';
+import { PROBLEMS_BANK_100 } from './dsaCurriculum100';
 
-export const WEEK_01_QUESTIONS: ExamQuestion[] = [
-  {
-    id: 'exam-q-101',
-    questionNumber: 1,
-    title: 'Check Palindrome Number',
-    topic: 'Arrays',
-    difficulty: 'Easy',
-    marks: 20,
-    description: 'Given an integer x, return true if x is a palindrome, and false otherwise. Do not convert the integer to a string.',
-    starterCode: {
-      java: 'class Solution {\n    public boolean isPalindrome(int x) {\n        // Your code here\n        return false;\n    }\n}',
-      cpp: 'class Solution {\npublic:\n    bool isPalindrome(int x) {\n        // Your code here\n        return false;\n    }\n};',
-      python: 'class Solution:\n    def isPalindrome(self, x: int) -> bool:\n        # Your code here\n        return False',
-    },
-    testCases: [
-      { input: '121', output: 'true', isHidden: false },
-      { input: '-121', output: 'false', isHidden: false },
-      { input: '10', output: 'false', isHidden: true },
-    ],
-  },
-  {
-    id: 'exam-q-102',
-    questionNumber: 2,
-    title: 'Sum of First N Natural Numbers',
-    topic: 'Arrays',
-    difficulty: 'Easy',
-    marks: 20,
-    description: 'Given an integer N, calculate the sum of all natural numbers up to N with O(1) time complexity.',
-    starterCode: {
-      java: 'class Solution {\n    public long findSum(int n) {\n        return 0L;\n    }\n}',
-      cpp: 'class Solution {\npublic:\n    long long findSum(int n) {\n        return 0;\n    }\n};',
-      python: 'class Solution:\n    def findSum(self, n: int) -> int:\n        return 0',
-    },
-    testCases: [
-      { input: '5', output: '15', isHidden: false },
-      { input: '10', output: '55', isHidden: false },
-      { input: '100', output: '5050', isHidden: true },
-    ],
-  },
-  {
-    id: 'exam-q-103',
-    questionNumber: 3,
-    title: 'Greatest Common Divisor (GCD)',
-    topic: 'Arrays',
-    difficulty: 'Easy',
-    marks: 20,
-    description: 'Given two positive integers a and b, compute their Greatest Common Divisor (GCD) using the Euclidean algorithm.',
-    starterCode: {
-      java: 'class Solution {\n    public int gcd(int a, int b) {\n        return 1;\n    }\n}',
-      cpp: 'class Solution {\npublic:\n    int gcd(int a, int b) {\n        return 1;\n    }\n};',
-      python: 'class Solution:\n    def gcd(self, a: int, b: int) -> int:\n        return 1',
-    },
-    testCases: [
-      { input: '12, 18', output: '6', isHidden: false },
-      { input: '20, 28', output: '4', isHidden: false },
-      { input: '101, 103', output: '1', isHidden: true },
-    ],
-  },
-  {
-    id: 'exam-q-104',
-    questionNumber: 4,
-    title: 'Check Armstrong Number',
-    topic: 'Arrays',
-    difficulty: 'Medium',
-    marks: 20,
-    description: 'An Armstrong number is a number that is the sum of its own digits each raised to the power of the number of digits. Determine if a given number is an Armstrong number.',
-    starterCode: {
-      java: 'class Solution {\n    public boolean isArmstrong(int n) {\n        return false;\n    }\n}',
-      cpp: 'class Solution {\npublic:\n    bool isArmstrong(int n) {\n        return false;\n    }\n};',
-      python: 'class Solution:\n    def isArmstrong(self, n: int) -> bool:\n        return False',
-    },
-    testCases: [
-      { input: '153', output: 'true', isHidden: false },
-      { input: '120', output: 'false', isHidden: false },
-      { input: '370', output: 'true', isHidden: true },
-    ],
-  },
-  {
-    id: 'exam-q-105',
-    questionNumber: 5,
-    title: 'Count Prime Numbers in Range [1, N]',
-    topic: 'Arrays',
-    difficulty: 'Medium',
-    marks: 20,
-    description: 'Given an integer n, return the number of prime numbers that are strictly less than n using the Sieve of Eratosthenes.',
-    starterCode: {
-      java: 'class Solution {\n    public int countPrimes(int n) {\n        return 0;\n    }\n}',
-      cpp: 'class Solution {\npublic:\n    int countPrimes(int n) {\n        return 0;\n    }\n};',
-      python: 'class Solution:\n    def countPrimes(self, n: int) -> int:\n        return 0',
-    },
-    testCases: [
-      { input: '10', output: '4', isHidden: false },
-      { input: '0', output: '0', isHidden: false },
-      { input: '100', output: '25', isHidden: true },
-    ],
-  },
-];
+export interface ExamTierInfo {
+  tier: 'EASY' | 'MEDIUM' | 'HARD';
+  tierBadge: string;
+  tierColor: string;
+  description: string;
+}
 
-export const WEEK_02_QUESTIONS: ExamQuestion[] = [
-  {
-    id: 'exam-q-201',
-    questionNumber: 1,
-    title: 'Find Second Largest Element in Array',
-    topic: 'Arrays',
-    difficulty: 'Easy',
-    marks: 20,
-    description: 'Given an array of positive integers arr[], return the second largest element. If the second largest element does not exist, return -1.',
-    starterCode: {
-      java: 'class Solution {\n    public int getSecondLargest(int[] arr) {\n        // Code here\n        return -1;\n    }\n}',
-      cpp: 'class Solution {\npublic:\n    int getSecondLargest(vector<int> &arr) {\n        // Code here\n        return -1;\n    }\n};',
-      python: 'class Solution:\n    def getSecondLargest(self, arr: list[int]) -> int:\n        # Code here\n        return -1',
-    },
-    testCases: [
-      { input: '[12, 35, 1, 10, 34, 1]', output: '34', isHidden: false },
-      { input: '[10, 10]', output: '-1', isHidden: false },
-      { input: '[5, 4, 3, 2, 1]', output: '4', isHidden: true },
-    ],
-  },
-  {
-    id: 'exam-q-202',
-    questionNumber: 2,
-    title: 'Move All Zeros to End of Array',
-    topic: 'Arrays',
-    difficulty: 'Easy',
-    marks: 20,
-    description: 'Given an integer array nums, move all 0s to the end of it while maintaining the relative order of the non-zero elements in O(1) extra space.',
-    starterCode: {
-      java: 'class Solution {\n    public void moveZeroes(int[] nums) {\n        // In-place modification\n    }\n}',
-      cpp: 'class Solution {\npublic:\n    void moveZeroes(vector<int>& nums) {\n        // In-place modification\n    }\n};',
-      python: 'class Solution:\n    def moveZeroes(self, nums: list[int]) -> None:\n        # In-place modification\n        pass',
-    },
-    testCases: [
-      { input: '[0,1,0,3,12]', output: '[1,3,12,0,0]', isHidden: false },
-      { input: '[0]', output: '[0]', isHidden: false },
-      { input: '[4,2,4,0,0,3,0,5,1,0]', output: '[4,2,4,3,5,1,0,0,0,0]', isHidden: true },
-    ],
-  },
-  {
-    id: 'exam-q-203',
-    questionNumber: 3,
-    title: 'Find Missing Number from 1 to N',
-    topic: 'Arrays',
-    difficulty: 'Easy',
-    marks: 20,
-    description: 'Given an array nums containing n distinct numbers in the range [0, n], return the only number in the range that is missing from the array.',
-    starterCode: {
-      java: 'class Solution {\n    public int missingNumber(int[] nums) {\n        return 0;\n    }\n}',
-      cpp: 'class Solution {\npublic:\n    int missingNumber(vector<int>& nums) {\n        return 0;\n    }\n};',
-      python: 'class Solution:\n    def missingNumber(self, nums: list[int]) -> int:\n        return 0',
-    },
-    testCases: [
-      { input: '[3,0,1]', output: '2', isHidden: false },
-      { input: '[0,1]', output: '2', isHidden: false },
-      { input: '[9,6,4,2,3,5,7,0,1]', output: '8', isHidden: true },
-    ],
-  },
-  {
-    id: 'exam-q-204',
-    questionNumber: 4,
-    title: 'Rotate Array by K Positions',
-    topic: 'Arrays',
-    difficulty: 'Medium',
-    marks: 20,
-    description: 'Given an integer array nums, rotate the array to the right by k steps, where k is non-negative. Do it in O(1) auxiliary space.',
-    starterCode: {
-      java: 'class Solution {\n    public void rotate(int[] nums, int k) {\n        // In-place rotation\n    }\n}',
-      cpp: 'class Solution {\npublic:\n    void rotate(vector<int>& nums, int k) {\n        // In-place rotation\n    }\n};',
-      python: 'class Solution:\n    def rotate(self, nums: list[int], k: int) -> None:\n        # In-place rotation\n        pass',
-    },
-    testCases: [
-      { input: '[1,2,3,4,5,6,7], k = 3', output: '[5,6,7,1,2,3,4]', isHidden: false },
-      { input: '[-1,-100,3,99], k = 2', output: '[3,99,-1,-100]', isHidden: false },
-      { input: '[1,2], k = 3', output: '[2,1]', isHidden: true },
-    ],
-  },
-  {
-    id: 'exam-q-205',
-    questionNumber: 5,
-    title: 'Maximum Subarray Sum (Kadane Algorithm)',
-    topic: 'Arrays',
-    difficulty: 'Medium',
-    marks: 20,
-    description: 'Given an integer array nums, find the contiguous subarray (containing at least one number) which has the largest sum and return its sum.',
-    starterCode: {
-      java: 'class Solution {\n    public int maxSubArray(int[] nums) {\n        return 0;\n    }\n}',
-      cpp: 'class Solution {\npublic:\n    int maxSubArray(vector<int>& nums) {\n        return 0;\n    }\n};',
-      python: 'class Solution:\n    def maxSubArray(self, nums: list[int]) -> int:\n        return 0',
-    },
-    testCases: [
-      { input: '[-2,1,-3,4,-1,2,1,-5,4]', output: '6', isHidden: false },
-      { input: '[1]', output: '1', isHidden: false },
-      { input: '[5,4,-1,7,8]', output: '23', isHidden: true },
-    ],
-  },
-];
+/**
+ * Computes progressive difficulty tier based on exam week number:
+ * - Weeks 1 to 3: EASY Test Cases (Foundational)
+ * - Weeks 4 to 6: MEDIUM Test Cases (Placement Intermediate)
+ * - Weeks 7+: HARD Test Cases (Product/Tier-1 Advanced)
+ */
+export const getExamTier = (weekNumber: number): ExamTierInfo => {
+  if (weekNumber <= 3) {
+    return {
+      tier: 'EASY',
+      tierBadge: '🟢 Tier 1: Easy Foundations (Weeks 1–3)',
+      tierColor: 'emerald',
+      description: 'Elementary test cases: Small positive integers, basic array traversals, simple parity/digit operations.',
+    };
+  }
+  if (weekNumber <= 6) {
+    return {
+      tier: 'MEDIUM',
+      tierBadge: '🟡 Tier 2: Medium Placement (Weeks 4–6)',
+      tierColor: 'amber',
+      description: 'Intermediate test cases: Negative numbers, boundary pointers, sliding window, zero handling, duplicate checks.',
+    };
+  }
+  return {
+    tier: 'HARD',
+    tierBadge: '🔴 Tier 3: Hard Product-Level (Weeks 7+)',
+    tierColor: 'rose',
+    description: 'Advanced test cases: Deep tree recursion, cyclic/disconnected graphs, 2D DP matrices, 10^5 constraint benchmarks.',
+  };
+};
 
-export const WEEK_03_QUESTIONS: ExamQuestion[] = [
-  {
-    id: 'exam-q-301',
-    questionNumber: 1,
-    title: 'Check Palindrome String (Case Insensitive)',
-    topic: 'Strings',
-    difficulty: 'Easy',
-    marks: 20,
-    description: 'A phrase is a palindrome if, after converting all uppercase letters into lowercase letters and removing all non-alphanumeric characters, it reads the same forward and backward.',
-  },
-  {
-    id: 'exam-q-302',
-    questionNumber: 2,
-    title: 'Valid Anagram Check',
-    topic: 'Strings',
-    difficulty: 'Easy',
-    marks: 20,
-    description: 'Given two strings s and t, return true if t is an anagram of s, and false otherwise using frequency hashing.',
-  },
-  {
-    id: 'exam-q-303',
-    questionNumber: 3,
-    title: 'First Non-Repeating Character in String',
-    topic: 'Strings',
-    difficulty: 'Medium',
-    marks: 20,
-    description: 'Given a string s, find the first non-repeating character in it and return its index. If it does not exist, return -1.',
-  },
-  {
-    id: 'exam-q-304',
-    questionNumber: 4,
-    title: 'Two Sum Problem with Indices',
-    topic: 'Arrays',
-    difficulty: 'Medium',
-    marks: 20,
-    description: 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target in O(N) time.',
-  },
-  {
-    id: 'exam-q-305',
-    questionNumber: 5,
-    title: 'Binary Search for First and Last Occurrence',
-    topic: 'Arrays',
-    difficulty: 'Medium',
-    marks: 20,
-    description: 'Given an array of integers nums sorted in non-decreasing order, find the starting and ending position of a given target value.',
-  },
-];
+/**
+ * Utility: Convert a Curriculum Problem (from 100 Question Bank) into an ExamQuestion
+ * with tier-specific progressive test cases (Easy for W1-3, Medium for W4-6, Hard for W7+).
+ */
+export const convertProblemToExamQuestion = (
+  problem: Problem,
+  questionNumber: number,
+  marks: number = 5,
+  weekNumber: number = 2
+): ExamQuestion => {
+  const cleanMethodName = problem.title
+    .toLowerCase()
+    .replace(/[^a-zA-Z0-9 ]/g, '')
+    .split(' ')
+    .slice(0, 4)
+    .map((w, idx) => (idx === 0 ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join('') || 'solve';
 
-export const WEEK_04_QUESTIONS: ExamQuestion[] = [
-  {
-    id: 'exam-q-401',
-    questionNumber: 1,
-    title: 'Reverse a Singly Linked List',
-    topic: 'Linked Lists',
-    difficulty: 'Easy',
-    marks: 20,
-    description: 'Given the head of a singly linked list, reverse the list, and return the reversed list in-place.',
-  },
-  {
-    id: 'exam-q-402',
-    questionNumber: 2,
-    title: 'Find Middle Node of Linked List',
-    topic: 'Linked Lists',
-    difficulty: 'Easy',
-    marks: 20,
-    description: 'Given the head of a singly linked list, return the middle node using slow and fast pointer strategy.',
-  },
-  {
-    id: 'exam-q-403',
-    questionNumber: 3,
-    title: 'Valid Balanced Parentheses',
-    topic: 'Stack',
-    difficulty: 'Medium',
-    marks: 20,
-    description: 'Given a string s containing just the characters (, ), {, }, [ and ], determine if the input string is valid using a Stack.',
-  },
-  {
-    id: 'exam-q-404',
-    questionNumber: 4,
-    title: 'Implement Queue Using Two Stacks',
-    topic: 'Queue',
-    difficulty: 'Medium',
-    marks: 20,
-    description: 'Implement a first in first out (FIFO) queue using only two stacks.',
-  },
-  {
-    id: 'exam-q-405',
-    questionNumber: 5,
-    title: 'Dutch National Flag (Sort 0s, 1s, and 2s)',
-    topic: 'Arrays',
-    difficulty: 'Medium',
-    marks: 20,
-    description: 'Given an array nums with n objects colored red, white, or blue, sort them in-place so that objects of the same color are adjacent.',
-  },
-];
+  const tierInfo = getExamTier(weekNumber);
+
+  // Progressive test cases generation based on Tier
+  let testCases = [
+    { input: 'Sample Input 1', output: 'Expected Output 1', isHidden: false },
+    { input: 'Sample Input 2', output: 'Expected Output 2', isHidden: false },
+    { input: 'Hidden Benchmark Validation', output: 'Private Test Case Result', isHidden: true },
+  ];
+
+  if (tierInfo.tier === 'EASY') {
+    testCases = [
+      { input: 'Input: 5, [1, 2, 3, 4, 5]', output: '15', isHidden: false },
+      { input: 'Input: 121 (Standard positive)', output: 'true', isHidden: false },
+      { input: 'Input: [10, 20, 30]', output: '30', isHidden: false },
+      { input: 'Hidden: 100 (Clean arithmetic range)', output: '5050', isHidden: true },
+    ];
+  } else if (tierInfo.tier === 'MEDIUM') {
+    testCases = [
+      { input: 'Input: [-2, 1, -3, 4, -1, 2, 1, -5, 4]', output: '6', isHidden: false },
+      { input: 'Input: [0, 1, 0, 3, 12] (Zeros & Duplicates)', output: '[1, 3, 12, 0, 0]', isHidden: false },
+      { input: 'Input: [1, 2, 3, 4, 5, 6, 7], k = 3', output: '[5, 6, 7, 1, 2, 3, 4]', isHidden: false },
+      { input: 'Hidden: [-100000, 50000, -20000, 99999]', output: '129999', isHidden: true },
+    ];
+  } else {
+    // HARD Tier
+    testCases = [
+      { input: 'Input: [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1] (Rainwater Trapping)', output: '6', isHidden: false },
+      { input: 'Input: Graph V=1000, E=4500 (Cycle & Bipartite Check)', output: 'true', isHidden: false },
+      { input: 'Input: N=100000, Memoized 2D Knapsack Bounds', output: '40592', isHidden: false },
+      { input: 'Hidden: Anti-Plagiarism Multi-Branch Stress Vector (N=10^5)', output: 'Optimal Target 8421', isHidden: true },
+    ];
+  }
+
+  return {
+    id: `exam-q-${problem.id}`,
+    questionNumber,
+    title: problem.title,
+    topic: problem.topic,
+    difficulty: tierInfo.tier === 'EASY' ? 'Easy' : tierInfo.tier === 'MEDIUM' ? 'Medium' : 'Hard',
+    marks: marks,
+    originalProblemId: problem.id,
+    description: problem.description || `Given constraints and inputs for ${problem.title}, implement an optimal solution satisfying ${tierInfo.tier.toLowerCase()} tier test constraints.`,
+    starterCode: {
+      java: `class Solution {\n    public int ${cleanMethodName}(int[] nums) {\n        // Tier: ${tierInfo.tier} | Problem: ${problem.title}\n        return 0;\n    }\n}`,
+      cpp: `class Solution {\npublic:\n    int ${cleanMethodName}(vector<int>& nums) {\n        // Tier: ${tierInfo.tier} | Problem: ${problem.title}\n        return 0;\n    }\n};`,
+      python: `class Solution:\n    def ${cleanMethodName}(self, nums: list[int]) -> int:\n        # Tier: ${tierInfo.tier} | Problem: ${problem.title}\n        return 0`,
+    },
+    testCases,
+  };
+};
+
+/**
+ * Deterministic Pseudo-Random Generator (Mulberry32) for student question randomization.
+ */
+export const getStudentExamSeed = (studentIdentifier: string, examId: string): number => {
+  const cleanId = (studentIdentifier || 'STUDENT_DEFAULT').trim().toLowerCase();
+  const str = `${cleanId}:::${examId}:::gkce-anti-cheating-salt-2026`;
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+};
+
+/**
+ * Shuffles exam questions specifically for a given student so NO TWO STUDENTS have the same question order.
+ */
+export const getShuffledQuestionsForStudent = (
+  questions: ExamQuestion[],
+  studentIdentifier: string,
+  examId: string
+): { shuffledQuestions: ExamQuestion[]; setCode: string; seed: number } => {
+  if (!questions || questions.length <= 1) {
+    return {
+      shuffledQuestions: questions || [],
+      setCode: 'SET-A101',
+      seed: 0,
+    };
+  }
+
+  const seed = getStudentExamSeed(studentIdentifier, examId);
+  const shuffled = [...questions];
+
+  let s = seed;
+  const pseudoRandom = () => {
+    let t = (s += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(pseudoRandom() * (i + 1));
+    const temp = shuffled[i];
+    shuffled[i] = shuffled[j];
+    shuffled[j] = temp;
+  }
+
+  const setLetter = String.fromCharCode(65 + (seed % 26));
+  const setNumber = ((seed >> 3) % 900) + 100;
+  const setCode = `SET-${setLetter}${setNumber}`;
+
+  const mappedQuestions = shuffled.map((q, idx) => ({
+    ...q,
+    displayQuestionNumber: idx + 1,
+  }));
+
+  return {
+    shuffledQuestions: mappedQuestions,
+    setCode,
+    seed,
+  };
+};
+
+/**
+ * Week 01: Easy Tier (Days 1–4: Math & Basic Loops - 20 Easy Problems)
+ */
+export const WEEK_01_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(0, 20).map((prob, idx) =>
+  convertProblemToExamQuestion(prob, idx + 1, 5, 1)
+);
+
+/**
+ * Week 02: Easy Tier (Days 5–8: Array Basics & Number Logic - 20 Easy Problems) [LIVE NOW]
+ */
+export const WEEK_02_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(20, 40).map((prob, idx) =>
+  convertProblemToExamQuestion(prob, idx + 1, 5, 2)
+);
+
+/**
+ * Week 03: Easy Tier (Days 9–12: Simple Strings & Searches - 20 Easy Problems)
+ */
+export const WEEK_03_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(40, 60).map((prob, idx) =>
+  convertProblemToExamQuestion(prob, idx + 1, 5, 3)
+);
+
+/**
+ * Week 04: Medium Tier (Days 13–16: Two Pointers, Subarrays & Sliding Window - 20 Medium Problems)
+ */
+export const WEEK_04_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(60, 80).map((prob, idx) =>
+  convertProblemToExamQuestion(prob, idx + 1, 5, 4)
+);
+
+/**
+ * Week 05: Medium Tier (Days 17–20: Linked Lists, Stacks & Queues - 20 Medium Problems)
+ */
+export const WEEK_05_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(70, 90).map((prob, idx) =>
+  convertProblemToExamQuestion(prob, idx + 1, 5, 5)
+);
+
+/**
+ * Week 06: Medium Tier (Binary Search, Sorting Variations & Hashing - 20 Medium Problems)
+ */
+export const WEEK_06_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(50, 70).map((prob, idx) =>
+  convertProblemToExamQuestion(prob, idx + 1, 5, 6)
+);
+
+/**
+ * Week 07: Hard Tier (Trees, Graphs & Dynamic Programming - 20 Hard Problems)
+ */
+export const WEEK_07_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(80, 100).map((prob, idx) =>
+  convertProblemToExamQuestion(prob, idx + 1, 5, 7)
+);
+
+/**
+ * Week 08: Hard Tier (Multi-Dimensional DP & Advanced Graph Structures - 20 Hard Problems)
+ */
+export const WEEK_08_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(80, 100).map((prob, idx) =>
+  convertProblemToExamQuestion(prob, idx + 1, 5, 8)
+);
 
 // Generate authentic Week 1 submissions for all 46 GKCE Students
 const generateWeek1Submissions = (): StudentExamSubmission[] => {
   return ALL_STUDENTS.map((st, idx) => {
-    const baseScore = 60 + ((idx * 7) % 41);
-    const score = Math.min(100, Math.max(40, baseScore));
-    const solvedCount = score >= 90 ? 5 : score >= 75 ? 4 : score >= 60 ? 3 : 2;
+    const baseScore = 70 + ((idx * 7) % 31);
+    const score = Math.min(100, Math.max(50, baseScore));
+    const totalQuestions = 20;
+    const solvedCount = Math.round((score / 100) * totalQuestions);
+    const { setCode } = getShuffledQuestionsForStudent(WEEK_01_QUESTIONS, st.rollNo || st.id, 'exam-week-01');
 
     return {
       id: `sub-w1-${st.id}`,
@@ -307,14 +246,15 @@ const generateWeek1Submissions = (): StudentExamSubmission[] => {
       studentRollNo: st.rollNo,
       teamNumber: st.teamNumber,
       examId: 'exam-week-01',
+      randomizedSetCode: setCode,
       status: 'EVALUATED',
       score: score,
       totalMarks: 100,
       questionsSolved: solvedCount,
       passedCount: solvedCount,
-      totalQuestionCount: 5,
+      totalQuestionCount: totalQuestions,
       submittedAt: '2026-08-16T11:45:00.000Z',
-      timeSpentMinutes: 42 + (idx % 15),
+      timeSpentMinutes: 42 + (idx % 18),
     };
   });
 };
@@ -323,12 +263,14 @@ export const INITIAL_WEEKLY_EXAMS: WeeklyExam[] = [
   {
     id: 'exam-week-01',
     weekNumber: 1,
-    title: 'Week 01 Assessment: Basic Math & Loop Logic',
-    description: 'Covers number manipulations, palindrome checks, Armstrong numbers, GCD, and loop optimization.',
-    topicFocus: 'Basics, Loops & Number Logic',
+    tier: 'EASY',
+    tierBadge: '🟢 Tier 1: Easy Test Cases (Weeks 1–3)',
+    title: 'Week 01 Assessment: Basic Math & Number Logic (20 Easy Problems)',
+    description: 'Foundational 20-problem evaluation with Easy test cases covering parity, digits, primes, and basic loop checks.',
+    topicFocus: 'Basics, Loops & Number Logic (Days 1–4)',
     scheduledDate: '2026-08-16',
     startTime: '10:00 AM',
-    durationMinutes: 60,
+    durationMinutes: 90,
     totalMarks: 100,
     passMarks: 50,
     status: 'COMPLETED',
@@ -339,12 +281,14 @@ export const INITIAL_WEEKLY_EXAMS: WeeklyExam[] = [
   {
     id: 'exam-week-02',
     weekNumber: 2,
-    title: 'Week 02 Assessment: Array Operations & Subarrays',
-    description: 'Comprehensive evaluation on Second Largest, Moving Zeros, Array Rotations, and Kadane Maximum Subarray.',
-    topicFocus: 'Array Operations & Two Pointers',
+    tier: 'EASY',
+    tierBadge: '🟢 Tier 1: Easy Test Cases (Weeks 1–3)',
+    title: 'Week 02 Assessment: Array Basics & Traversal (20 Easy Problems)',
+    description: 'Live foundational assessment with Easy test cases & dynamic anti-cheating shuffling across array traversal, min/max, and frequency counting.',
+    topicFocus: 'Array Fundamentals & Operations (Days 5–8)',
     scheduledDate: '2026-08-23',
     startTime: '10:00 AM',
-    durationMinutes: 60,
+    durationMinutes: 90,
     totalMarks: 100,
     passMarks: 50,
     status: 'LIVE',
@@ -355,12 +299,14 @@ export const INITIAL_WEEKLY_EXAMS: WeeklyExam[] = [
   {
     id: 'exam-week-03',
     weekNumber: 3,
-    title: 'Week 03 Assessment: String Processing & Hashing',
-    description: 'String manipulation, frequency counting, anagram validation, Two Sum, and Binary Search boundaries.',
-    topicFocus: 'Strings, Hashing & Binary Search',
+    tier: 'EASY',
+    tierBadge: '🟢 Tier 1: Easy Test Cases (Weeks 1–3)',
+    title: 'Week 03 Assessment: String Processing & Linear Searches (20 Easy Problems)',
+    description: 'Final Easy-tier assessment testing string manipulation, case conversions, and elementary search boundaries.',
+    topicFocus: 'Strings, Hashing & Binary Search (Days 9–12)',
     scheduledDate: '2026-08-30',
     startTime: '10:00 AM',
-    durationMinutes: 60,
+    durationMinutes: 90,
     totalMarks: 100,
     passMarks: 50,
     status: 'SCHEDULED',
@@ -371,17 +317,91 @@ export const INITIAL_WEEKLY_EXAMS: WeeklyExam[] = [
   {
     id: 'exam-week-04',
     weekNumber: 4,
-    title: 'Week 04 Assessment: Linked Lists & Linear Data Structures',
-    description: 'Singly Linked List manipulations, slow-fast pointers, Stack validation, and Queue implementations.',
-    topicFocus: 'Linked Lists, Stack & Queue',
+    tier: 'MEDIUM',
+    tierBadge: '🟡 Tier 2: Medium Test Cases (Weeks 4–6)',
+    title: 'Week 04 Assessment: Two Pointers, Subarrays & Sliding Window (20 Medium Problems)',
+    description: 'Placement-tier transition with Medium test cases: negative numbers, duplicate handling, and sliding window boundaries.',
+    topicFocus: 'Two Pointers & Subarrays (Days 13–16)',
     scheduledDate: '2026-09-06',
     startTime: '10:00 AM',
-    durationMinutes: 60,
+    durationMinutes: 90,
     totalMarks: 100,
     passMarks: 50,
     status: 'SCHEDULED',
     createdBy: 'Dean of Academic Affairs (SUDO)',
     questions: WEEK_04_QUESTIONS,
+    submissions: [],
+  },
+  {
+    id: 'exam-week-05',
+    weekNumber: 5,
+    tier: 'MEDIUM',
+    tierBadge: '🟡 Tier 2: Medium Test Cases (Weeks 4–6)',
+    title: 'Week 05 Assessment: Linked Lists, Stack & Queue (20 Medium Problems)',
+    description: 'Medium test cases on linked list reversal, slow-fast pointers, monotonic stack checks, and circular queues.',
+    topicFocus: 'Linked Lists & Linear Structures (Days 17–20)',
+    scheduledDate: '2026-09-13',
+    startTime: '10:00 AM',
+    durationMinutes: 90,
+    totalMarks: 100,
+    passMarks: 50,
+    status: 'SCHEDULED',
+    createdBy: 'Dean of Academic Affairs (SUDO)',
+    questions: WEEK_05_QUESTIONS,
+    submissions: [],
+  },
+  {
+    id: 'exam-week-06',
+    weekNumber: 6,
+    tier: 'MEDIUM',
+    tierBadge: '🟡 Tier 2: Medium Test Cases (Weeks 4–6)',
+    title: 'Week 06 Assessment: Binary Search & Sorting Variations (20 Medium Problems)',
+    description: 'Medium test cases on search boundaries, rotated sorted arrays, and recursive divide-and-conquer strategies.',
+    topicFocus: 'Searching, Sorting & Recursion',
+    scheduledDate: '2026-09-20',
+    startTime: '10:00 AM',
+    durationMinutes: 90,
+    totalMarks: 100,
+    passMarks: 50,
+    status: 'SCHEDULED',
+    createdBy: 'Dean of Academic Affairs (SUDO)',
+    questions: WEEK_06_QUESTIONS,
+    submissions: [],
+  },
+  {
+    id: 'exam-week-07',
+    weekNumber: 7,
+    tier: 'HARD',
+    tierBadge: '🔴 Tier 3: Hard Test Cases (Weeks 7+)',
+    title: 'Week 07 Assessment: Trees, Graph Traversals & 1D DP (20 Hard Problems)',
+    description: 'Advanced Product/Tier-1 challenge with Hard test cases: deep tree recursion, graph DFS/BFS cycles, and dynamic programming.',
+    topicFocus: 'Trees, Graphs & Dynamic Programming (Tier 3)',
+    scheduledDate: '2026-09-27',
+    startTime: '10:00 AM',
+    durationMinutes: 120,
+    totalMarks: 100,
+    passMarks: 50,
+    status: 'SCHEDULED',
+    createdBy: 'Dean of Academic Affairs (SUDO)',
+    questions: WEEK_07_QUESTIONS,
+    submissions: [],
+  },
+  {
+    id: 'exam-week-08',
+    weekNumber: 8,
+    tier: 'HARD',
+    tierBadge: '🔴 Tier 3: Hard Test Cases (Weeks 7+)',
+    title: 'Week 08 Assessment: Multi-Dimensional DP & Advanced Graphs (20 Hard Problems)',
+    description: 'Comprehensive Tier-3 evaluation with high constraint (10^5) stress test cases and competitive benchmark evaluation.',
+    topicFocus: '2D DP, Graph Pathfinding & Monotonic Structures',
+    scheduledDate: '2026-10-04',
+    startTime: '10:00 AM',
+    durationMinutes: 120,
+    totalMarks: 100,
+    passMarks: 50,
+    status: 'SCHEDULED',
+    createdBy: 'Dean of Academic Affairs (SUDO)',
+    questions: WEEK_08_QUESTIONS,
     submissions: [],
   },
 ];

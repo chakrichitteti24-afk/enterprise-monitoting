@@ -8,9 +8,9 @@ import {
   TrendingUp,
   BarChart3,
   Code2,
-  Activity,
   User,
   Layers,
+  Award,
 } from 'lucide-react';
 
 export const MobileNav: React.FC = () => {
@@ -29,68 +29,92 @@ export const MobileNav: React.FC = () => {
           { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
           { id: 'teams', label: 'Teams', icon: Layers },
           { id: 'students', label: 'Students', icon: GraduationCap },
+          { id: 'exams', label: 'Exams', icon: Award },
           { id: 'analytics', label: 'Analytics', icon: BarChart3 },
         ];
       case 'MENTOR':
         return [
           { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-          { id: 'my-team', label: 'My Team', icon: Users },
+          { id: 'my-team', label: 'Team', icon: Users },
           { id: 'students', label: 'Students', icon: GraduationCap },
+          { id: 'exams', label: 'Exams', icon: Award },
           { id: 'progress', label: 'Progress', icon: TrendingUp },
         ];
       case 'STUDENT':
         return [
           { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
+          { id: 'problems', label: 'Practice', icon: Code2 },
+          { id: 'exams', label: 'Exams', icon: Award },
           { id: 'my-progress', label: 'Progress', icon: TrendingUp },
-          { id: 'problems', label: 'Solve', icon: Code2 },
-          { id: 'activity', label: 'Timeline', icon: Activity },
           { id: 'profile', label: 'Profile', icon: User },
         ];
+      default:
+        return [];
     }
   };
 
   const items = getMobileNavItems();
+  if (!items.length) return null;
 
   return (
-    <div className="md:hidden fixed bottom-[max(8px,env(safe-area-inset-bottom))] left-0 right-0 z-40 px-2 sm:px-4 pointer-events-none flex justify-center">
-      <nav className="glass-dock rounded-full p-1 sm:p-1.5 flex items-center gap-0.5 sm:gap-1 shadow-2xl pointer-events-auto max-w-md w-full justify-around border border-white/80">
-        {items.map((item) => {
-          const isActive = activeTab === item.id;
-          const Icon = item.icon;
+    <div
+      className="md:hidden fixed left-0 right-0 z-40 flex justify-center pointer-events-none"
+      style={{ bottom: 0, paddingBottom: 'max(10px, env(safe-area-inset-bottom))' }}
+    >
+      <nav
+        className="glass-dock w-full mx-3 max-w-sm pointer-events-auto"
+        style={{ borderRadius: '24px', padding: '6px 4px' }}
+      >
+        <div className="flex items-stretch justify-around gap-0.5">
+          {items.map((item) => {
+            const isActive = activeTab === item.id;
+            const Icon = item.icon;
 
-          return (
-            <motion.button
-              key={item.id}
-              onClick={() => handleNavClick(item.id)}
-              whileTap={{ scale: 0.9 }}
-              className="relative flex flex-col items-center justify-center py-1 sm:py-1.5 px-1.5 sm:px-2.5 rounded-full flex-1 transition-colors select-none min-w-0"
-              aria-label={item.label}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="mobileNavActivePill"
-                  className="absolute inset-0 bg-blue-600/10 rounded-full border border-blue-500/20"
-                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                />
-              )}
-
-              <Icon
-                className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-200 z-10 shrink-0 ${
-                  isActive ? 'text-blue-600 stroke-[2.5px] scale-105' : 'text-slate-500'
-                }`}
-              />
-              <span
-                className={`text-[9px] sm:text-[10px] tracking-tight transition-colors z-10 mt-0.5 truncate max-w-full ${
-                  isActive ? 'font-bold text-blue-700' : 'font-medium text-slate-500'
-                }`}
+            return (
+              <motion.button
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                whileTap={{ scale: 0.88 }}
+                // 44px minimum touch target
+                className="relative flex flex-col items-center justify-center flex-1 select-none rounded-2xl outline-none"
+                style={{ minHeight: '52px', padding: '6px 2px' }}
+                aria-label={item.label}
               >
-                {item.label}
-              </span>
-            </motion.button>
-          );
-        })}
+                {/* Animated background pill for active state */}
+                {isActive && (
+                  <motion.div
+                    layoutId="mobileNavActivePill"
+                    className="absolute inset-1 bg-blue-600/10 rounded-xl border border-blue-500/25"
+                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                  />
+                )}
+
+                <Icon
+                  className="z-10 shrink-0 transition-all duration-200"
+                  style={{
+                    width: 20,
+                    height: 20,
+                    color: isActive ? '#2563eb' : '#64748b',
+                    strokeWidth: isActive ? 2.5 : 1.75,
+                    transform: isActive ? 'scale(1.08)' : 'scale(1)',
+                  }}
+                />
+                <span
+                  className="z-10 mt-0.5 leading-none text-center"
+                  style={{
+                    fontSize: 10,
+                    fontWeight: isActive ? 700 : 500,
+                    color: isActive ? '#1d4ed8' : '#64748b',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {item.label}
+                </span>
+              </motion.button>
+            );
+          })}
+        </div>
       </nav>
     </div>
   );
 };
-

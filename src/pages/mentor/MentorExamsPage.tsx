@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { WeeklyExam, StudentExamSubmission, Student } from '../../types';
+import { getExamTier } from '../../data/mockExams';
 import { BentoCard } from '../../components/ui/BentoCard';
 import { UserAvatar } from '../../components/ui/UserAvatar';
 import { StatusBadge } from '../../components/ui/StatusBadge';
@@ -20,6 +21,7 @@ import {
   X,
   Code2,
   Sparkles,
+  Shuffle,
 } from 'lucide-react';
 
 export const MentorExamsPage: React.FC = () => {
@@ -41,6 +43,7 @@ export const MentorExamsPage: React.FC = () => {
   const [feedbackInput, setFeedbackInput] = useState('');
 
   const selectedExam = exams.find(e => e.id === selectedExamId) || exams[0];
+  const questionCount = selectedExam?.questions?.length || 20;
 
   // Cohort statistics for selected exam
   const examSubmissions = selectedExam?.submissions || [];
@@ -101,6 +104,7 @@ export const MentorExamsPage: React.FC = () => {
         <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1">
           {exams.map(ex => {
             const isSelected = selectedExamId === ex.id;
+            const tier = getExamTier(ex.weekNumber);
             return (
               <button
                 key={ex.id}
@@ -111,7 +115,18 @@ export const MentorExamsPage: React.FC = () => {
                     : 'bg-slate-50 text-slate-700 border-slate-200/80 hover:bg-slate-100'
                 }`}
               >
-                <span>Week {ex.weekNumber}</span>
+                <span>Week {String(ex.weekNumber).padStart(2, '0')}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                    tier.tier === 'EASY'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : tier.tier === 'MEDIUM'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-rose-100 text-rose-800'
+                  }`}
+                >
+                  {tier.tier}
+                </span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                     ex.status === 'LIVE'
@@ -134,8 +149,26 @@ export const MentorExamsPage: React.FC = () => {
         <div className="space-y-4">
           <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 bg-gradient-to-r from-white via-indigo-50/20 to-white">
             <div>
-              <div className="text-xs font-mono font-bold text-indigo-600 uppercase">
-                Week {selectedExam.weekNumber} Assessment
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold text-indigo-600 uppercase">
+                  Week {String(selectedExam.weekNumber).padStart(2, '0')} Assessment ({questionCount} Problems)
+                </span>
+                {(() => {
+                  const tier = getExamTier(selectedExam.weekNumber);
+                  return (
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                        tier.tier === 'EASY'
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          : tier.tier === 'MEDIUM'
+                          ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                          : 'bg-rose-50 text-rose-800 border border-rose-200'
+                      }`}
+                    >
+                      {tier.tier} TIER
+                    </span>
+                  );
+                })()}
               </div>
               <h2 className="text-lg font-bold text-slate-900 mt-0.5">{selectedExam.title}</h2>
               <p className="text-xs text-slate-500 mt-0.5">
@@ -174,6 +207,7 @@ export const MentorExamsPage: React.FC = () => {
                   <tr className="border-b border-slate-200/90 bg-slate-100/70 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                     <th className="py-3 px-4">Student</th>
                     <th className="py-3 px-3">Roll Number</th>
+                    <th className="py-3 px-3 text-center">Randomized Paper Set</th>
                     <th className="py-3 px-3 text-center">Score</th>
                     <th className="py-3 px-3 text-center">Problems Solved</th>
                     <th className="py-3 px-3 text-center">Time Spent</th>
@@ -215,6 +249,12 @@ export const MentorExamsPage: React.FC = () => {
                           {student.rollNo}
                         </td>
 
+                        <td className="py-3 px-3 text-center font-mono font-bold text-indigo-700">
+                          <span className="bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                            {submission?.randomizedSetCode || 'SET-A'}
+                          </span>
+                        </td>
+
                         <td className="py-3 px-3 text-center font-mono">
                           {hasSubmitted ? (
                             <span className="inline-block px-2.5 py-0.5 rounded-xl font-bold text-xs bg-emerald-50 text-emerald-800 border border-emerald-200">
@@ -227,9 +267,9 @@ export const MentorExamsPage: React.FC = () => {
 
                         <td className="py-3 px-3 text-center font-mono">
                           {hasSubmitted ? (
-                            <span className="font-bold text-slate-800">{solved} / 5</span>
+                            <span className="font-bold text-slate-800">{solved} / {questionCount}</span>
                           ) : (
-                            <span className="text-slate-400">0 / 5</span>
+                            <span className="text-slate-400">0 / {questionCount}</span>
                           )}
                         </td>
 
@@ -292,7 +332,7 @@ export const MentorExamsPage: React.FC = () => {
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 p-5 sm:p-6 z-10 space-y-4 max-h-[90vh] overflow-y-auto"
+              className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 p-5 sm:p-6 z-10 space-y-4 max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-start justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-3">
@@ -304,7 +344,12 @@ export const MentorExamsPage: React.FC = () => {
                     size="md"
                   />
                   <div>
-                    <h3 className="text-base font-bold text-slate-900">{inspectSubmission.student.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-slate-900">{inspectSubmission.student.name}</h3>
+                      <span className="text-[11px] font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
+                        {inspectSubmission.submission?.randomizedSetCode || 'SET-A'}
+                      </span>
+                    </div>
                     <div className="text-xs text-slate-500 font-mono flex items-center gap-2">
                       <span className="font-bold text-blue-700">{inspectSubmission.student.rollNo}</span>
                       <span>&bull;</span>
@@ -332,25 +377,29 @@ export const MentorExamsPage: React.FC = () => {
                   </span>
                 </div>
                 <div className="text-xs text-slate-500">
-                  {selectedExam.title} &bull; {selectedExam.topicFocus}
+                  {selectedExam.title} &bull; {selectedExam.topicFocus} ({questionCount} Questions)
                 </div>
               </div>
 
               {/* Solved Questions List */}
               <div className="space-y-2">
-                <div className="text-xs font-bold text-slate-900">Exam Problems Evaluation (5 Questions):</div>
-                {selectedExam.questions?.map((q, idx) => (
-                  <div key={q.id} className="p-3 rounded-xl bg-white border border-slate-100 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-slate-400">Q{idx + 1}.</span>
-                      <span className="font-semibold text-slate-800">{q.title}</span>
-                      <span className="text-[10px] px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded font-bold">{q.difficulty}</span>
+                <div className="text-xs font-bold text-slate-900">
+                  Exam Problems Evaluation ({questionCount} Questions):
+                </div>
+                <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+                  {selectedExam.questions?.map((q, idx) => (
+                    <div key={q.id} className="p-3 rounded-xl bg-white border border-slate-100 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-slate-400">Q{idx + 1}.</span>
+                        <span className="font-semibold text-slate-800">{q.title}</span>
+                        <span className="text-[10px] px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded font-bold">{q.difficulty}</span>
+                      </div>
+                      <span className="text-emerald-700 font-bold font-mono">
+                        {inspectSubmission.submission ? `${q.marks} / ${q.marks} pts` : '0 pts'}
+                      </span>
                     </div>
-                    <span className="text-emerald-700 font-bold font-mono">
-                      {inspectSubmission.submission ? `${q.marks} / ${q.marks} pts` : '0 pts'}
-                    </span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
 
               {/* Mentor Feedback Input Form */}

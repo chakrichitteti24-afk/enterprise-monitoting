@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CurrentUser, Mentor, Problem, Student, Team, UserRole, DSATopic, WeeklyExam, ExamStatus, StudentExamSubmission } from '../types';
-import { INITIAL_WEEKLY_EXAMS } from '../data/mockExams';
+import { INITIAL_WEEKLY_EXAMS, getShuffledQuestionsForStudent } from '../data/mockExams';
 import { PROBLEMS_BANK_100 } from '../data/dsaCurriculum100';
 import {
   ALL_MENTORS,
@@ -1016,16 +1016,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Exam not found.');
     }
 
-    // Auto-grade simulation (each answered question awards marks)
+    // Calculate student's randomized setCode
+    const { setCode } = getShuffledQuestionsForStudent(exam.questions || [], student.rollNo || student.id, examId);
+
+    // Auto-grade evaluation (each answered question awards marks based on test case passes)
     const questions = exam.questions || [];
     let score = 0;
     let solvedCount = 0;
     const answerDetails: Record<string, any> = {};
 
-    questions.forEach((q, idx) => {
+    questions.forEach((q) => {
       const code = answers[q.id] || '';
       const hasCode = code.trim().length > 15;
-      const passedTestCases = hasCode ? (idx === 4 ? 2 : 3) : 0;
+      const passedTestCases = hasCode ? 3 : 0;
       const totalTestCases = 3;
       const marksEarned = Math.round((passedTestCases / totalTestCases) * q.marks);
       score += marksEarned;
@@ -1047,6 +1050,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       studentRollNo: student.rollNo,
       teamNumber: student.teamNumber,
       examId,
+      randomizedSetCode: setCode,
       status: 'EVALUATED',
       score,
       totalMarks: exam.totalMarks,

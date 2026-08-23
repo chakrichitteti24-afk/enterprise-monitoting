@@ -6,14 +6,19 @@
     --ease-squish: cubic-bezier(0.34, 1.56, 0.64, 1);
     --ease-liquid: cubic-bezier(0.2, 0.8, 0.2, 1);
     --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+    /* Touch target minimum: 44px (Apple HIG / WCAG 2.5.5) */
+    --touch-target: 44px;
   }
 
   * {
     -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
   }
 
   html {
     scroll-behavior: smooth;
+    /* Prevent horizontal overflow on all screens */
+    overflow-x: hidden;
   }
 
   body {
@@ -23,98 +28,153 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
-    min-height: 100vh;
+    min-height: 100svh; /* svh for mobile browsers with dynamic toolbars */
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
 
-  /* Custom OxygenOS / ColorOS subtle scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.35);
-    border-radius: 9999px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(100, 116, 139, 0.65);
-  }
+  /* Thin, tasteful scrollbars */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.35); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,0.65); }
 }
 
-/* Glassmorphism & Liquid Classes */
+/* ------------------------------------------------------------------ */
+/* Glassmorphism System                                                  */
+/* ------------------------------------------------------------------ */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.84);
+  background: rgba(255,255,255,0.84);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(226, 232, 240, 0.85);
-  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.02);
+  border: 1px solid rgba(226,232,240,0.85);
+  box-shadow: 0 4px 20px -2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.02);
 }
 
 .glass-dock {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255,255,255,0.92);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.12), 0 0 1px 1px rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 -4px 20px rgba(15,23,42,0.06), 0 20px 45px -10px rgba(15,23,42,0.12), 0 0 1px 1px rgba(255,255,255,0.95);
 }
 
 .glass-pill {
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255,255,255,0.78);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255,255,255,0.7);
 }
 
 .glass-card-hover {
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.3s var(--ease-smooth);
 }
-
 .glass-card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px -4px rgba(15, 23, 42, 0.08);
-  border-color: rgba(59, 130, 246, 0.35);
+  box-shadow: 0 12px 30px -4px rgba(15,23,42,0.08);
+  border-color: rgba(59,130,246,0.35);
 }
 
-/* Fluid hardware acceleration */
+/* ------------------------------------------------------------------ */
+/* GPU Acceleration                                                      */
+/* ------------------------------------------------------------------ */
 .gpu-layer {
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
 }
 
-/* Safe area padding utilities for mobile devices with notches/home bars */
-.safe-top {
-  padding-top: max(12px, env(safe-area-inset-top));
-}
-.safe-bottom {
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
-}
+/* ------------------------------------------------------------------ */
+/* Safe Area Utilities (Notch / Home Bar Support)                       */
+/* ------------------------------------------------------------------ */
+.safe-top { padding-top: max(12px, env(safe-area-inset-top)); }
+.safe-bottom { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.safe-left { padding-left: max(0px, env(safe-area-inset-left)); }
+.safe-right { padding-right: max(0px, env(safe-area-inset-right)); }
 
-/* Touch targets optimization */
-button, a, input, select {
+/* ------------------------------------------------------------------ */
+/* Touch Optimizations                                                   */
+/* ------------------------------------------------------------------ */
+button, a, [role="button"] {
   touch-action: manipulation;
+  /* Minimum 44px touch target height where needed */
+  min-height: unset;
 }
 
-/* Prevent iOS auto-zoom on input focus */
-@media (max-width: 640px) {
+/* Prevent iOS input auto-zoom (16px floor prevents it) */
+@media (max-width: 768px) {
   input, select, textarea {
     font-size: 16px !important;
   }
 }
 
-/* Print styles for Reports */
+/* ------------------------------------------------------------------ */
+/* Mobile-first Card & Container Overrides                              */
+/* ------------------------------------------------------------------ */
+
+/* Remove hover lift on touch screens (no hover needed) */
+@media (hover: none) {
+  .glass-card-hover:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: inherit;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Custom Scrollbar (used in code editor, dashboards)                   */
+/* ------------------------------------------------------------------ */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.25); border-radius: 9999px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,0.5); }
+
+/* ------------------------------------------------------------------ */
+/* Responsive Text Clamp Utilities                                       */
+/* ------------------------------------------------------------------ */
+.text-balance { text-wrap: balance; }
+.text-pretty { text-wrap: pretty; }
+
+/* ------------------------------------------------------------------ */
+/* Mobile Bottom Nav Spacing — ensures content doesn't hide behind dock */
+/* ------------------------------------------------------------------ */
+.mobile-page-bottom {
+  padding-bottom: calc(4.5rem + max(8px, env(safe-area-inset-bottom)));
+}
+
+@media (min-width: 768px) {
+  .mobile-page-bottom { padding-bottom: 2rem; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Mobile Floating Bottom Dock                                           */
+/* ------------------------------------------------------------------ */
+.mobile-dock-wrap {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  padding: 8px 12px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+}
+.mobile-dock-wrap > * {
+  pointer-events: auto;
+}
+
+/* ------------------------------------------------------------------ */
+/* Code Editor — prevent pinch-zoom inside code area                    */
+/* ------------------------------------------------------------------ */
+.code-editor-wrap {
+  touch-action: pan-x pan-y;
+}
+
+/* ------------------------------------------------------------------ */
+/* Print                                                                 */
+/* ------------------------------------------------------------------ */
 @media print {
-  body {
-    background: white !important;
-    color: black !important;
-  }
-  .no-print {
-    display: none !important;
-  }
+  body { background: white !important; color: black !important; }
+  .no-print { display: none !important; }
 }

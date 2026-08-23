@@ -120,11 +120,13 @@ export type ExamStatus = 'SCHEDULED' | 'LIVE' | 'COMPLETED';
 export interface ExamQuestion {
   id: string;
   questionNumber: number;
+  displayQuestionNumber?: number; // Shuffled 1-indexed order for active student session
   title: string;
   topic: DSATopic;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   description: string;
   marks: number;
+  originalProblemId?: string; // Reference to prob-1..100 in curriculum
   starterCode?: {
     java?: string;
     cpp?: string;
@@ -140,6 +142,7 @@ export interface StudentExamSubmission {
   studentRollNo: string;
   teamNumber: string;
   examId: string;
+  randomizedSetCode?: string; // e.g. "SET-A842"
   status: 'SUBMITTED' | 'IN_PROGRESS' | 'EVALUATED' | 'MISSED';
   score: number;
   totalMarks: number;
@@ -160,6 +163,8 @@ export interface StudentExamSubmission {
 export interface WeeklyExam {
   id: string;
   weekNumber: number; // e.g. 1, 2, 3, 4
+  tier?: 'EASY' | 'MEDIUM' | 'HARD'; // Progressive tier: Weeks 1-3 Easy, Weeks 4-6 Medium, Weeks 7+ Hard
+  tierBadge?: string; // e.g. "Tier 1: Easy Foundations"
   title: string; // e.g. "Week 01 Assessment: Basics & Number Logic"
   description: string;
   topicFocus: string; // e.g. "Basics, Loops & Number Logic"

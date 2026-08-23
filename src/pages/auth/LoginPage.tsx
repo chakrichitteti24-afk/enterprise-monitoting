@@ -119,13 +119,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-3 sm:p-6 selection:bg-blue-600 selection:text-white relative overflow-hidden">
+    <div
+      className="bg-slate-950 text-slate-100 flex flex-col justify-center items-center selection:bg-blue-600 selection:text-white relative overflow-hidden"
+      style={{
+        minHeight: '100svh',
+        padding: 'max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left))',
+      }}
+    >
       {/* Dynamic Cyber Security Ambient Mesh */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-900/25 via-slate-950/80 to-slate-950 pointer-events-none" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 bg-blue-600/10 blur-[130px] rounded-full pointer-events-none" />
 
       {/* Main Authentication Container */}
-      <div className="w-full max-w-md bg-slate-900/90 backdrop-blur-3xl rounded-[32px] shadow-2xl shadow-black/80 border border-slate-700/60 p-5 sm:p-8 space-y-5 relative z-10 animate-in fade-in zoom-in-95 duration-200">
+      <div className="w-full max-w-md bg-slate-900/90 backdrop-blur-3xl rounded-[28px] sm:rounded-[32px] shadow-2xl shadow-black/80 border border-slate-700/60 p-5 sm:p-8 space-y-5 relative z-10 animate-in fade-in zoom-in-95 duration-200">
         {/* Security Shield & Header */}
         <div className="text-center space-y-2.5">
           <div className="relative inline-block">
@@ -290,7 +296,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           <button
             type="submit"
             disabled={isSubmitting || lockoutSeconds > 0}
-            className="w-full py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 disabled:opacity-50 active:scale-[0.99] cursor-pointer"
+            className="w-full py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 disabled:opacity-50 active:scale-[0.99] cursor-pointer"
+            style={{ minHeight: 48 }}
           >
             {isSubmitting ? (
               <>

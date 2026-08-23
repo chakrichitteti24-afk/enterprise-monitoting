@@ -134,19 +134,19 @@ const MainLayout: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100/70 text-slate-900 flex flex-col antialiased selection:bg-blue-600 selection:text-white overflow-x-hidden">
-      {/* Global Header */}
+    <div className="h-[100svh] bg-gradient-to-b from-slate-50 to-slate-100/70 text-slate-900 flex flex-col antialiased selection:bg-blue-600 selection:text-white overflow-hidden">
+      {/* Global Header — sticky at top */}
       <Header
         isMobileMenuOpen={isMobileMenuOpen}
         onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       />
 
-      {/* Main Workspace Body */}
-      <div className="flex-1 flex max-w-7xl w-full mx-auto min-w-0">
+      {/* Main Workspace Body — flex row, fills remaining height */}
+      <div className="flex-1 flex max-w-7xl w-full mx-auto min-w-0 overflow-hidden">
         {/* Desktop Sidebar */}
         <Sidebar className="hidden md:flex" />
 
-        {/* Mobile Slide-out Drawer with liquid spring */}
+        {/* Mobile Slide-out Drawer */}
         <AnimatePresence>
           {isMobileMenuOpen && (
             <div className="md:hidden fixed inset-0 z-50 flex">
@@ -170,18 +170,15 @@ const MainLayout: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* Main Content Area with fluid AnimatePresence transition */}
-        <main className="flex-1 p-3 sm:p-5 md:p-8 pb-24 sm:pb-28 md:pb-12 min-w-0 overflow-y-auto">
+        {/* Main Content Area — scrollable column */}
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-3 sm:p-5 md:p-8 pb-[5.5rem] md:pb-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={`${role}-${activeTab}`}
               initial={{ opacity: 0, y: 8, scale: 0.994 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.994 }}
-              transition={{
-                duration: 0.2,
-                ease: [0.16, 1, 0.3, 1],
-              }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               className="w-full min-w-0"
             >
               {renderContent()}
