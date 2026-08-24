@@ -43,7 +43,7 @@ export const MentorDashboard: React.FC = () => {
             <Users className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
             <span>Mentor Monitoring Dashboard</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight truncate">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 tracking-tight truncate">
             {assignedTeamNumber}
           </h1>
           <p className="text-xs md:text-sm text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
@@ -53,10 +53,10 @@ export const MentorDashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
           <button
             onClick={() => setActiveTab('students')}
-            className="px-4 py-2.5 bg-slate-900 text-white rounded-2xl text-xs font-semibold hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-xs"
+            className="w-full sm:w-auto px-4 py-2.5 bg-slate-900 text-white rounded-2xl text-xs font-semibold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-xs"
           >
             <Users className="w-3.5 h-3.5" />
             <span>Manage Students ({teamStudents.length})</span>
@@ -65,7 +65,7 @@ export const MentorDashboard: React.FC = () => {
       </div>
 
       {/* Main Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-5">
         {/* 1. Team Progress Card */}
         <BentoCard
           title="Team Progress"
@@ -95,9 +95,9 @@ export const MentorDashboard: React.FC = () => {
           title="Team Analytics"
           subtitle="Aggregate Performance"
           icon={<BarChart3 className="w-4 h-4 text-indigo-600" />}
-          className="col-span-1 md:col-span-2 lg:col-span-3"
+          className="col-span-1 lg:col-span-3"
         >
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
               <div className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider truncate">Avg Progress</div>
               <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">{avgProgress}%</div>

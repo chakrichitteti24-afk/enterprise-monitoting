@@ -141,8 +141,8 @@ const MainLayout: React.FC = () => {
         onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       />
 
-      {/* Main Workspace Body — flex row, fills remaining height */}
-      <div className="flex-1 flex max-w-7xl w-full mx-auto min-w-0 overflow-hidden">
+      {/* Main Workspace Body — flex row, fills remaining height with responsive wide container on PC */}
+      <div className="flex-1 flex w-full max-w-[1720px] 2xl:max-w-[1880px] mx-auto min-w-0 overflow-hidden">
         {/* Desktop Sidebar */}
         <Sidebar className="hidden md:flex" />
 
@@ -171,7 +171,7 @@ const MainLayout: React.FC = () => {
         </AnimatePresence>
 
         {/* Main Content Area — scrollable column */}
-        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-3 sm:p-5 md:p-8 pb-[5.5rem] md:pb-8">
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-3 sm:p-5 md:p-6 lg:p-8 pb-24 md:pb-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={`${role}-${activeTab}`}

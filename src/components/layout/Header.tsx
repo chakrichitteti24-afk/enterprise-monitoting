@@ -70,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-2xl border-b border-slate-200/60 px-3 sm:px-6 md:px-8 py-2 sm:py-2.5 transition-all">
-      <div className="flex items-center justify-between gap-2 sm:gap-3 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between gap-2 sm:gap-3 max-w-[1720px] 2xl:max-w-[1880px] w-full mx-auto">
         {/* Left: Brand / Mobile Toggle */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <motion.button

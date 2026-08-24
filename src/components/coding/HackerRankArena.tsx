@@ -263,14 +263,14 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
             <div className="flex items-center gap-1 text-[11px] sm:text-xs text-slate-400 font-medium min-w-0">
               <span className="font-mono text-blue-400 font-bold shrink-0">D{problem.dayNumber}#Q{problem.dayQuestionNumber}</span>
               <ChevronRight className="w-3 h-3 text-slate-500 shrink-0 hidden sm:inline" />
-              <span className="text-slate-200 font-semibold truncate max-w-[120px] sm:max-w-[220px]">
+              <span className="text-slate-200 font-semibold truncate max-w-[80px] xs:max-w-[140px] sm:max-w-[220px]">
                 {problem.title}
               </span>
             </div>
 
             {/* Difficulty Badge */}
             <span
-              className={`px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold border shrink-0 hidden xs:inline-block ${
+              className={`px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold border shrink-0 hidden md:inline-block ${
                 problem.difficulty === 'Easy'
                   ? 'border-emerald-500/40 bg-emerald-950/60 text-emerald-300'
                   : problem.difficulty === 'Medium'
@@ -283,27 +283,27 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
           </div>
 
           {/* Right Toolbar: Language, Run, Submit, Controls */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
             {/* Language Selector Dropdown */}
             <div className="relative">
               <select
                 value={selectedLanguage}
                 onChange={e => setSelectedLanguage(e.target.value as SupportedLanguage)}
-                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-[#122235] border border-white/10 hover:border-white/20 text-white rounded-xl text-[11px] sm:text-xs font-mono font-bold focus:outline-hidden appearance-none pr-6 sm:pr-8 cursor-pointer transition-colors"
+                className="px-1.5 sm:px-3 py-1 sm:py-1.5 bg-[#122235] border border-white/10 hover:border-white/20 text-white rounded-xl text-[10px] sm:text-xs font-mono font-bold focus:outline-hidden appearance-none pr-5 sm:pr-8 cursor-pointer transition-colors"
               >
                 <option value="java">Java</option>
                 <option value="cpp">C++</option>
                 <option value="python">Python</option>
                 <option value="javascript">JS</option>
               </select>
-              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 sm:right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1 sm:right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             {/* Run Code Button */}
             <button
               onClick={handleRunCode}
               disabled={isRunning || isSubmitting}
-              className="px-2.5 sm:px-4 py-1 sm:py-1.5 bg-[#192b42] hover:bg-[#223957] disabled:opacity-50 text-white rounded-xl text-[11px] sm:text-xs font-semibold border border-white/10 transition-all flex items-center gap-1 shadow-xs"
+              className="px-2 sm:px-4 py-1 sm:py-1.5 bg-[#192b42] hover:bg-[#223957] disabled:opacity-50 text-white rounded-xl text-[10px] sm:text-xs font-semibold border border-white/10 transition-all flex items-center gap-1 shadow-xs"
             >
               <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white" />
               <span>{isRunning ? '...' : 'Run'}</span>
@@ -313,7 +313,7 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
             <button
               onClick={handleSubmitCode}
               disabled={isRunning || isSubmitting}
-              className="px-3 sm:px-5 py-1 sm:py-1.5 bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 text-white rounded-xl text-[11px] sm:text-xs font-bold shadow-[0_0_15px_rgba(16,185,129,0.35)] transition-all flex items-center gap-1"
+              className="px-2.5 sm:px-5 py-1 sm:py-1.5 bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 text-white rounded-xl text-[10px] sm:text-xs font-bold shadow-[0_0_15px_rgba(16,185,129,0.35)] transition-all flex items-center gap-1"
             >
               <CheckCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>{isSubmitting ? '...' : 'Submit'}</span>

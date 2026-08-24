@@ -181,7 +181,7 @@ export const DeanTeamsPage: React.FC = () => {
           />
         </div>
 
-        <div className="flex items-center gap-2.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+        <div className="flex items-center gap-2.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 touch-scroll-x no-scrollbar flex-wrap sm:flex-nowrap">
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500 font-semibold whitespace-nowrap">Status:</span>
             <select
@@ -214,7 +214,7 @@ export const DeanTeamsPage: React.FC = () => {
 
       {/* Grid View */}
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3.5 sm:gap-4">
           {filteredTeams.map((t) => (
             <motion.div
               key={t.id}

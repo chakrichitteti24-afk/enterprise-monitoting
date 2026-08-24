@@ -25,7 +25,7 @@ export const QuickRoleSwitcher: React.FC = () => {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-xs border border-slate-700/60 shrink-0 cursor-pointer"
+        className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-xs border border-slate-700/60 shrink-0 cursor-pointer"
         title="Click to switch role or view session scope"
       >
         {role === 'DEAN' ? (
@@ -37,10 +37,10 @@ export const QuickRoleSwitcher: React.FC = () => {
         )}
 
         <span className="hidden sm:inline text-slate-400 font-normal">Role:</span>
-        <span className="font-semibold text-white truncate max-w-[90px] sm:max-w-[150px]">
+        <span className="font-semibold text-white truncate max-w-[65px] xs:max-w-[95px] sm:max-w-[150px]">
           {role === 'DEAN' ? 'Dean' : role === 'MENTOR' ? (currentUser.teamNumber || 'Mentor') : (currentUser.studentData?.rollNo || 'Student')}
         </span>
-        <ChevronDown className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       <AnimatePresence>

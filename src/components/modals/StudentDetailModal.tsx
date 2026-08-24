@@ -84,7 +84,7 @@ export const StudentDetailModal: React.FC = () => {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.96, opacity: 0, y: 12 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-3xl bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-10 max-h-[90vh] flex flex-col gpu-layer overscroll-contain"
+            className="relative w-full max-w-3xl lg:max-w-4xl bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-10 max-h-[92vh] flex flex-col gpu-layer overscroll-contain"
           >
 
             {/* Header */}
@@ -152,7 +152,7 @@ export const StudentDetailModal: React.FC = () => {
             ) : (
               <>
                 {/* Tab Navigation with Indicator */}
-                <div className="flex items-center gap-1 sm:gap-2 px-3 sm:px-6 pt-1.5 border-b border-slate-100 text-xs font-medium bg-white overflow-x-auto no-scrollbar">
+                <div className="flex items-center gap-1 sm:gap-2 px-3 sm:px-6 pt-1.5 border-b border-slate-100 text-xs font-medium bg-white overflow-x-auto touch-scroll-x no-scrollbar">
                   {(
                     [
                       { id: 'overview', label: 'Overview' },

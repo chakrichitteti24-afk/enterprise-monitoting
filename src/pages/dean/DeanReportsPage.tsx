@@ -94,7 +94,8 @@ export const DeanReportsPage: React.FC = () => {
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
             2. Curriculum Syllabus Mastery (8 Domains)
           </h3>
-          <table className="w-full text-xs text-left border-collapse border border-slate-200">
+          <div className="overflow-x-auto touch-scroll-x">
+            <table className="w-full text-xs text-left border-collapse border border-slate-200 min-w-[500px]">
             <thead>
               <tr className="bg-slate-100 font-semibold text-slate-700">
                 <th className="p-2.5 border border-slate-200">Topic Domain</th>
@@ -129,6 +130,7 @@ export const DeanReportsPage: React.FC = () => {
               })}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Teams Performance Summary */}

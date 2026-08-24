@@ -258,7 +258,7 @@ export const DeanStudentsPage: React.FC = () => {
             />
           </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 no-scrollbar">
+          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 touch-scroll-x no-scrollbar flex-wrap sm:flex-nowrap">
             <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <select
               value={selectedTeam}

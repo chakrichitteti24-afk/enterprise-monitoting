@@ -165,6 +165,33 @@ button, a, [role="button"] {
 }
 
 /* ------------------------------------------------------------------ */
+/* No Scrollbar Utility (Horizontal scroll chips / tabs)               */
+/* ------------------------------------------------------------------ */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Fluid Horizontal Scroll Containers                                 */
+/* ------------------------------------------------------------------ */
+.touch-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* ------------------------------------------------------------------ */
+/* Sticky Table Column Mobile Shadow                                  */
+/* ------------------------------------------------------------------ */
+.sticky-col-shadow {
+  box-shadow: 4px 0 12px -2px rgba(15, 23, 42, 0.08);
+}
+
+/* ------------------------------------------------------------------ */
 /* Code Editor — prevent pinch-zoom inside code area                    */
 /* ------------------------------------------------------------------ */
 .code-editor-wrap {
@@ -178,3 +205,4 @@ button, a, [role="button"] {
   body { background: white !important; color: black !important; }
   .no-print { display: none !important; }
 }
+

@@ -84,48 +84,48 @@ export const DeanDashboard: React.FC = () => {
       </div>
 
       {/* Top Key Statistics Bento Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* 1. 100 Students */}
-        <div className="bg-white/90 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center gap-3 sm:gap-4">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 shadow-2xs">
-            <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="bg-white/90 backdrop-blur-md p-3.5 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center gap-2.5 sm:gap-4">
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 shadow-2xs">
+            <GraduationCap className="w-4 h-4 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">{totalStudents}</div>
-            <div className="text-[11px] sm:text-xs font-semibold text-slate-500 truncate mt-0.5">Total Students</div>
+            <div className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">{totalStudents}</div>
+            <div className="text-[10px] sm:text-xs font-semibold text-slate-500 truncate mt-0.5">Total Students</div>
           </div>
         </div>
 
         {/* 2. 20 Teams */}
-        <div className="bg-white/90 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center gap-3 sm:gap-4">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0 shadow-2xs">
-            <Layers className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="bg-white/90 backdrop-blur-md p-3.5 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center gap-2.5 sm:gap-4">
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0 shadow-2xs">
+            <Layers className="w-4 h-4 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">{totalTeams}</div>
-            <div className="text-[11px] sm:text-xs font-semibold text-slate-500 truncate mt-0.5">Monitored Teams</div>
+            <div className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">{totalTeams}</div>
+            <div className="text-[10px] sm:text-xs font-semibold text-slate-500 truncate mt-0.5">Monitored Teams</div>
           </div>
         </div>
 
         {/* 3. 20 Mentors */}
-        <div className="bg-white/90 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center gap-3 sm:gap-4">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0 shadow-2xs">
-            <Users className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="bg-white/90 backdrop-blur-md p-3.5 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center gap-2.5 sm:gap-4">
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0 shadow-2xs">
+            <Users className="w-4 h-4 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">{totalMentors}</div>
-            <div className="text-[11px] sm:text-xs font-semibold text-slate-500 truncate mt-0.5">Faculty Mentors</div>
+            <div className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">{totalMentors}</div>
+            <div className="text-[10px] sm:text-xs font-semibold text-slate-500 truncate mt-0.5">Faculty Mentors</div>
           </div>
         </div>
 
         {/* 4. 76% Overall Progress */}
-        <div className="bg-white/90 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center gap-3 sm:gap-4">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 shadow-2xs">
-            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="bg-white/90 backdrop-blur-md p-3.5 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center gap-2.5 sm:gap-4">
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 shadow-2xs">
+            <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xl sm:text-2xl font-extrabold text-emerald-900 tracking-tight leading-tight">{overallProgress}%</div>
-            <div className="text-[11px] sm:text-xs font-semibold text-slate-500 truncate mt-0.5">Overall Progress</div>
+            <div className="text-lg sm:text-2xl font-extrabold text-emerald-900 tracking-tight leading-tight">{overallProgress}%</div>
+            <div className="text-[10px] sm:text-xs font-semibold text-slate-500 truncate mt-0.5">Overall Progress</div>
           </div>
         </div>
       </div>

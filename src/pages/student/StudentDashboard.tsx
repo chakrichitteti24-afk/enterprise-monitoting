@@ -62,8 +62,8 @@ export const StudentDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Bento Grid — 2-col on mobile, 2 on tablet, 4 on desktop */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+      {/* Main Bento Grid — 1-col on mobile, 2 on tablet, 4 on desktop */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 md:gap-5">
         {/* 1. Profile Card */}
         <BentoCard
           title="Student Profile"
@@ -209,7 +209,7 @@ export const StudentDashboard: React.FC = () => {
           </div>
         </BentoCard>
 
-        {/* 5. Topics Card (Full width mobile, 2 cols on md+) */}
+        {/* 5. Topics Card (1 col on mobile, 2 cols on sm+) */}
         <BentoCard
           title="DSA Topics Breakdown"
           subtitle="8 Core Curriculum Domains"
@@ -222,14 +222,14 @@ export const StudentDashboard: React.FC = () => {
               Detailed View →
             </button>
           }
-          className="col-span-2 md:col-span-2 lg:col-span-2"
+          className="col-span-1 sm:col-span-2 lg:col-span-2"
         >
           <div className="pt-2">
             <TopicProgressList topicProgress={student.topicProgress} />
           </div>
         </BentoCard>
 
-        {/* 6. Activity Card (Full width mobile, 2 cols on md+) */}
+        {/* 6. Activity Card (1 col on mobile, 2 cols on sm+) */}
         <BentoCard
           title="Recent Activity"
           subtitle="Latest Solved Problems & Submissions"
@@ -242,7 +242,7 @@ export const StudentDashboard: React.FC = () => {
               Full Log →
             </button>
           }
-          className="col-span-2 md:col-span-2 lg:col-span-2"
+          className="col-span-1 sm:col-span-2 lg:col-span-2"
         >
           <div className="space-y-2.5 pt-1">
             {student.recentActivities.length === 0 ? (

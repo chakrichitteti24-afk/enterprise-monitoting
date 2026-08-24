@@ -208,11 +208,11 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
         </div>
 
         {/* The Matrix Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto touch-scroll-x custom-scrollbar">
           <table className="w-full text-left text-xs border-collapse min-w-[700px]">
             <thead>
               <tr className="border-b border-slate-200/90 bg-slate-100/70 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                <th className="py-3.5 px-4 w-48 sm:w-56 sticky left-0 bg-slate-100/95 backdrop-blur-xs z-10">
+                <th className="py-3.5 px-4 w-48 sm:w-56 sticky left-0 bg-slate-100/95 backdrop-blur-md z-20 sticky-col-shadow">
                   Student (Cohort)
                 </th>
 
@@ -287,7 +287,7 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
                     {/* Student Column (Sticky Left) */}
                     <td
                       onClick={() => onStudentClick?.(st)}
-                      className="py-3 px-4 sticky left-0 bg-white group-hover:bg-slate-50/95 transition-colors z-10 cursor-pointer border-r border-slate-100"
+                      className="py-3 px-4 sticky left-0 bg-white group-hover:bg-slate-50/95 transition-colors z-20 sticky-col-shadow cursor-pointer border-r border-slate-100"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <UserAvatar

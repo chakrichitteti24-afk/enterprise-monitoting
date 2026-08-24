@@ -186,8 +186,8 @@ export const StudentProblemsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Problem Cards Grid — 1-col on xs, 2-col on sm+ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5 md:gap-4">
+      {/* Problem Cards Grid — 1-col on mobile, 2-col on sm/lg, 3-col on 2xl+ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3 sm:gap-3.5 md:gap-4">
         {filteredProblems.map((prob) => {
           const isVerified = verifiedProblemIds.has(prob.id);
 
