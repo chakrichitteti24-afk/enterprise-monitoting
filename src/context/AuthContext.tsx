@@ -89,12 +89,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
   const [mentors] = useState<Mentor[]>(ALL_MENTORS);
   const [exams, setExams] = useState<WeeklyExam[]>(() => {
-    const saved = localStorage.getItem('gkce_weekly_exams');
-    return saved ? JSON.parse(saved) : INITIAL_WEEKLY_EXAMS;
+    localStorage.removeItem('gkce_weekly_exams'); // Purge legacy mock exams cache
+    const saved = localStorage.getItem('gkce_weekly_exams_v3');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error('Failed to parse cached weekly exams', e);
+      }
+    }
+    return INITIAL_WEEKLY_EXAMS;
   });
 
   useEffect(() => {
-    localStorage.setItem('gkce_weekly_exams', JSON.stringify(exams));
+    localStorage.setItem('gkce_weekly_exams_v3', JSON.stringify(exams));
   }, [exams]);
 
   useEffect(() => {
@@ -966,7 +975,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       totalMarks: examData.totalMarks || 100,
       passMarks: examData.passMarks || 50,
       status: examData.status || 'SCHEDULED',
-      createdBy: 'Dean of Academic Affairs (SUDO)',
+      createdBy: examData.createdBy || 'Root (Dean of Academic Affairs / Sudo Admin)',
       questions: examData.questions && examData.questions.length > 0 ? examData.questions : [],
       submissions: [],
     };

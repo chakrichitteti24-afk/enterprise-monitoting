@@ -220,14 +220,14 @@ export const StudentExamsPage: React.FC = () => {
               }`}
             >
               <div className="space-y-3">
-                {/* Header: Week badge & status */}
+                {/* Header: Root Assessment badge & status */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-800 text-xs font-mono font-extrabold border border-blue-100">
-                      WEEK {String(exam.weekNumber).padStart(2, '0')}
+                      OFFICIAL ASSESSMENT {String(exam.weekNumber || 1).padStart(2, '0')}
                     </span>
                     {(() => {
-                      const tier = getExamTier(exam.weekNumber);
+                      const tier = getExamTier(exam.weekNumber || 1);
                       return (
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
@@ -257,6 +257,11 @@ export const StudentExamsPage: React.FC = () => {
                     {isLive && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />}
                     <span>{exam.status}</span>
                   </span>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-[11px] text-blue-700 font-semibold bg-blue-50/70 px-2.5 py-1 rounded-xl border border-blue-100/80 w-fit">
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span>Curated & Authorized by: <strong className="text-slate-800">{exam.createdBy || 'Root (Dean / Sudo Admin)'}</strong></span>
                 </div>
 
                 <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">

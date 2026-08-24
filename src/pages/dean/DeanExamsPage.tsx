@@ -109,10 +109,17 @@ export const DeanExamsPage: React.FC = () => {
     });
   }, [showSelectedOnly, selectedProblemIds, topicFilter, difficultyFilter, dayFilter, searchQuery]);
 
-  // Quick preset selections matching 3-tier difficulty model
-  const handleSelectPreset = (preset: 'TIER1_EASY' | 'TIER2_MEDIUM' | 'TIER3_HARD' | 'CURATED_20' | 'CLEAR') => {
+  // Quick preset selections matching Root 20 & 3-tier difficulty model
+  const handleSelectPreset = (preset: 'ROOT_20_STANDARDIZED' | 'TIER1_EASY' | 'TIER2_MEDIUM' | 'TIER3_HARD' | 'CURATED_20' | 'CLEAR') => {
     if (preset === 'CLEAR') {
       setSelectedProblemIds([]);
+      return;
+    }
+    if (preset === 'ROOT_20_STANDARDIZED') {
+      const rootIds = ['1', '6', '7', '10', '21', '22', '26', '31', '34', '36', '40', '41', '46', '47', '52', '61', '62', '71', '81', '91'];
+      setSelectedProblemIds(rootIds);
+      setTopicFocus('Root Official 20 Standardized DSA Challenges');
+      setDurationMins(90);
       return;
     }
     if (preset === 'TIER1_EASY') {
@@ -667,6 +674,13 @@ export const DeanExamsPage: React.FC = () => {
 
                     {/* Quick Selection Tier Presets */}
                     <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => handleSelectPreset('ROOT_20_STANDARDIZED')}
+                        className="px-2.5 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-[11px] font-bold shadow-xs transition-colors"
+                      >
+                        ⚡ Root Curated 20
+                      </button>
                       <button
                         type="button"
                         onClick={() => handleSelectPreset('TIER1_EASY')}

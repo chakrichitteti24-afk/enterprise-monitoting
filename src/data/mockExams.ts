@@ -175,233 +175,61 @@ export const getShuffledQuestionsForStudent = (
 };
 
 /**
- * Week 01: Easy Tier (Days 1–4: Math & Basic Loops - 20 Easy Problems)
+ * Curated 20 Core DSA Questions given by Root (Dean / Academic Affairs):
+ * Covering Basics, Number Logic, Arrays, Strings, Two Pointers, Linked Lists, Stack, Trees & DP.
  */
-export const WEEK_01_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(0, 20).map((prob, idx) =>
-  convertProblemToExamQuestion(prob, idx + 1, 5, 1)
-);
+export const ROOT_OFFICIAL_20_QUESTIONS: ExamQuestion[] = [
+  // 1. Math & Numbers (4 Problems)
+  ...PROBLEMS_BANK_100.filter(p => ['1', '6', '7', '10'].includes(p.id)),
+  // 2. Arrays & Operations (6 Problems)
+  ...PROBLEMS_BANK_100.filter(p => ['21', '22', '26', '31', '34', '36'].includes(p.id)),
+  // 3. Two Pointers & Subarrays (2 Problems)
+  ...PROBLEMS_BANK_100.filter(p => ['40', '41'].includes(p.id)),
+  // 4. Strings & Hashing (3 Problems)
+  ...PROBLEMS_BANK_100.filter(p => ['46', '47', '52'].includes(p.id)),
+  // 5. Linked Lists (2 Problems)
+  ...PROBLEMS_BANK_100.filter(p => ['61', '62'].includes(p.id)),
+  // 6. Stack & Linear DS (1 Problem)
+  ...PROBLEMS_BANK_100.filter(p => ['71'].includes(p.id)),
+  // 7. Trees & Recursion (1 Problem)
+  ...PROBLEMS_BANK_100.filter(p => ['81'].includes(p.id)),
+  // 8. Dynamic Programming (1 Problem)
+  ...PROBLEMS_BANK_100.filter(p => ['91'].includes(p.id)),
+].slice(0, 20).map((prob, idx) => convertProblemToExamQuestion(prob, idx + 1, 5, 1));
+
+// Fallback if filter returns less than 20: fill up to 20 from bank
+if (ROOT_OFFICIAL_20_QUESTIONS.length < 20) {
+  const missing = 20 - ROOT_OFFICIAL_20_QUESTIONS.length;
+  const extra = PROBLEMS_BANK_100.slice(0, missing).map((p, idx) =>
+    convertProblemToExamQuestion(p, ROOT_OFFICIAL_20_QUESTIONS.length + idx + 1, 5, 1)
+  );
+  ROOT_OFFICIAL_20_QUESTIONS.push(...extra);
+}
 
 /**
- * Week 02: Easy Tier (Days 5–8: Array Basics & Number Logic - 20 Easy Problems) [LIVE NOW]
+ * Root Official Examination:
+ * All fake/dummy mock exam cards removed.
+ * Single active, authentic examination curated and authorized by Root with 20 questions
+ * dynamically scrambled and anti-cheat distributed across all students.
  */
-export const WEEK_02_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(20, 40).map((prob, idx) =>
-  convertProblemToExamQuestion(prob, idx + 1, 5, 2)
-);
-
-/**
- * Week 03: Easy Tier (Days 9–12: Simple Strings & Searches - 20 Easy Problems)
- */
-export const WEEK_03_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(40, 60).map((prob, idx) =>
-  convertProblemToExamQuestion(prob, idx + 1, 5, 3)
-);
-
-/**
- * Week 04: Medium Tier (Days 13–16: Two Pointers, Subarrays & Sliding Window - 20 Medium Problems)
- */
-export const WEEK_04_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(60, 80).map((prob, idx) =>
-  convertProblemToExamQuestion(prob, idx + 1, 5, 4)
-);
-
-/**
- * Week 05: Medium Tier (Days 17–20: Linked Lists, Stacks & Queues - 20 Medium Problems)
- */
-export const WEEK_05_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(70, 90).map((prob, idx) =>
-  convertProblemToExamQuestion(prob, idx + 1, 5, 5)
-);
-
-/**
- * Week 06: Medium Tier (Binary Search, Sorting Variations & Hashing - 20 Medium Problems)
- */
-export const WEEK_06_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(50, 70).map((prob, idx) =>
-  convertProblemToExamQuestion(prob, idx + 1, 5, 6)
-);
-
-/**
- * Week 07: Hard Tier (Trees, Graphs & Dynamic Programming - 20 Hard Problems)
- */
-export const WEEK_07_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(80, 100).map((prob, idx) =>
-  convertProblemToExamQuestion(prob, idx + 1, 5, 7)
-);
-
-/**
- * Week 08: Hard Tier (Multi-Dimensional DP & Advanced Graph Structures - 20 Hard Problems)
- */
-export const WEEK_08_QUESTIONS: ExamQuestion[] = PROBLEMS_BANK_100.slice(80, 100).map((prob, idx) =>
-  convertProblemToExamQuestion(prob, idx + 1, 5, 8)
-);
-
-// Generate authentic Week 1 submissions for all 46 GKCE Students
-const generateWeek1Submissions = (): StudentExamSubmission[] => {
-  return ALL_STUDENTS.map((st, idx) => {
-    const baseScore = 70 + ((idx * 7) % 31);
-    const score = Math.min(100, Math.max(50, baseScore));
-    const totalQuestions = 20;
-    const solvedCount = Math.round((score / 100) * totalQuestions);
-    const { setCode } = getShuffledQuestionsForStudent(WEEK_01_QUESTIONS, st.rollNo || st.id, 'exam-week-01');
-
-    return {
-      id: `sub-w1-${st.id}`,
-      studentId: st.id,
-      studentName: st.name,
-      studentRollNo: st.rollNo,
-      teamNumber: st.teamNumber,
-      examId: 'exam-week-01',
-      randomizedSetCode: setCode,
-      status: 'EVALUATED',
-      score: score,
-      totalMarks: 100,
-      questionsSolved: solvedCount,
-      passedCount: solvedCount,
-      totalQuestionCount: totalQuestions,
-      submittedAt: '2026-08-16T11:45:00.000Z',
-      timeSpentMinutes: 42 + (idx % 18),
-    };
-  });
-};
-
 export const INITIAL_WEEKLY_EXAMS: WeeklyExam[] = [
   {
-    id: 'exam-week-01',
+    id: 'exam-root-official-01',
     weekNumber: 1,
     tier: 'EASY',
-    tierBadge: '🟢 Tier 1: Easy Test Cases (Weeks 1–3)',
-    title: 'Week 01 Assessment: Basic Math & Number Logic (20 Easy Problems)',
-    description: 'Foundational 20-problem evaluation with Easy test cases covering parity, digits, primes, and basic loop checks.',
-    topicFocus: 'Basics, Loops & Number Logic (Days 1–4)',
-    scheduledDate: '2026-08-16',
-    startTime: '10:00 AM',
-    durationMinutes: 90,
-    totalMarks: 100,
-    passMarks: 50,
-    status: 'COMPLETED',
-    createdBy: 'Dean of Academic Affairs (SUDO)',
-    questions: WEEK_01_QUESTIONS,
-    submissions: generateWeek1Submissions(),
-  },
-  {
-    id: 'exam-week-02',
-    weekNumber: 2,
-    tier: 'EASY',
-    tierBadge: '🟢 Tier 1: Easy Test Cases (Weeks 1–3)',
-    title: 'Week 02 Assessment: Array Basics & Traversal (20 Easy Problems)',
-    description: 'Live foundational assessment with Easy test cases & dynamic anti-cheating shuffling across array traversal, min/max, and frequency counting.',
-    topicFocus: 'Array Fundamentals & Operations (Days 5–8)',
-    scheduledDate: '2026-08-23',
+    tierBadge: '🟢 Root Official Assessment (20 Standardized Questions)',
+    title: 'Root Official DSA Assessment: 20 Core Placement Challenges',
+    description: 'Official examination curated and scheduled by Root (Dean of Academic Affairs / Sudo Admin). Features 20 core DSA challenges spanning Arrays, Strings, Linked Lists, Trees, and Dynamic Programming with individual anti-cheating question randomization across all 100 students.',
+    topicFocus: 'Core DSA Foundations & Placement Vectors (20 Questions)',
+    scheduledDate: new Date().toISOString().split('T')[0],
     startTime: '10:00 AM',
     durationMinutes: 90,
     totalMarks: 100,
     passMarks: 50,
     status: 'LIVE',
-    createdBy: 'Dean of Academic Affairs (SUDO)',
-    questions: WEEK_02_QUESTIONS,
-    submissions: [],
-  },
-  {
-    id: 'exam-week-03',
-    weekNumber: 3,
-    tier: 'EASY',
-    tierBadge: '🟢 Tier 1: Easy Test Cases (Weeks 1–3)',
-    title: 'Week 03 Assessment: String Processing & Linear Searches (20 Easy Problems)',
-    description: 'Final Easy-tier assessment testing string manipulation, case conversions, and elementary search boundaries.',
-    topicFocus: 'Strings, Hashing & Binary Search (Days 9–12)',
-    scheduledDate: '2026-08-30',
-    startTime: '10:00 AM',
-    durationMinutes: 90,
-    totalMarks: 100,
-    passMarks: 50,
-    status: 'SCHEDULED',
-    createdBy: 'Dean of Academic Affairs (SUDO)',
-    questions: WEEK_03_QUESTIONS,
-    submissions: [],
-  },
-  {
-    id: 'exam-week-04',
-    weekNumber: 4,
-    tier: 'MEDIUM',
-    tierBadge: '🟡 Tier 2: Medium Test Cases (Weeks 4–6)',
-    title: 'Week 04 Assessment: Two Pointers, Subarrays & Sliding Window (20 Medium Problems)',
-    description: 'Placement-tier transition with Medium test cases: negative numbers, duplicate handling, and sliding window boundaries.',
-    topicFocus: 'Two Pointers & Subarrays (Days 13–16)',
-    scheduledDate: '2026-09-06',
-    startTime: '10:00 AM',
-    durationMinutes: 90,
-    totalMarks: 100,
-    passMarks: 50,
-    status: 'SCHEDULED',
-    createdBy: 'Dean of Academic Affairs (SUDO)',
-    questions: WEEK_04_QUESTIONS,
-    submissions: [],
-  },
-  {
-    id: 'exam-week-05',
-    weekNumber: 5,
-    tier: 'MEDIUM',
-    tierBadge: '🟡 Tier 2: Medium Test Cases (Weeks 4–6)',
-    title: 'Week 05 Assessment: Linked Lists, Stack & Queue (20 Medium Problems)',
-    description: 'Medium test cases on linked list reversal, slow-fast pointers, monotonic stack checks, and circular queues.',
-    topicFocus: 'Linked Lists & Linear Structures (Days 17–20)',
-    scheduledDate: '2026-09-13',
-    startTime: '10:00 AM',
-    durationMinutes: 90,
-    totalMarks: 100,
-    passMarks: 50,
-    status: 'SCHEDULED',
-    createdBy: 'Dean of Academic Affairs (SUDO)',
-    questions: WEEK_05_QUESTIONS,
-    submissions: [],
-  },
-  {
-    id: 'exam-week-06',
-    weekNumber: 6,
-    tier: 'MEDIUM',
-    tierBadge: '🟡 Tier 2: Medium Test Cases (Weeks 4–6)',
-    title: 'Week 06 Assessment: Binary Search & Sorting Variations (20 Medium Problems)',
-    description: 'Medium test cases on search boundaries, rotated sorted arrays, and recursive divide-and-conquer strategies.',
-    topicFocus: 'Searching, Sorting & Recursion',
-    scheduledDate: '2026-09-20',
-    startTime: '10:00 AM',
-    durationMinutes: 90,
-    totalMarks: 100,
-    passMarks: 50,
-    status: 'SCHEDULED',
-    createdBy: 'Dean of Academic Affairs (SUDO)',
-    questions: WEEK_06_QUESTIONS,
-    submissions: [],
-  },
-  {
-    id: 'exam-week-07',
-    weekNumber: 7,
-    tier: 'HARD',
-    tierBadge: '🔴 Tier 3: Hard Test Cases (Weeks 7+)',
-    title: 'Week 07 Assessment: Trees, Graph Traversals & 1D DP (20 Hard Problems)',
-    description: 'Advanced Product/Tier-1 challenge with Hard test cases: deep tree recursion, graph DFS/BFS cycles, and dynamic programming.',
-    topicFocus: 'Trees, Graphs & Dynamic Programming (Tier 3)',
-    scheduledDate: '2026-09-27',
-    startTime: '10:00 AM',
-    durationMinutes: 120,
-    totalMarks: 100,
-    passMarks: 50,
-    status: 'SCHEDULED',
-    createdBy: 'Dean of Academic Affairs (SUDO)',
-    questions: WEEK_07_QUESTIONS,
-    submissions: [],
-  },
-  {
-    id: 'exam-week-08',
-    weekNumber: 8,
-    tier: 'HARD',
-    tierBadge: '🔴 Tier 3: Hard Test Cases (Weeks 7+)',
-    title: 'Week 08 Assessment: Multi-Dimensional DP & Advanced Graphs (20 Hard Problems)',
-    description: 'Comprehensive Tier-3 evaluation with high constraint (10^5) stress test cases and competitive benchmark evaluation.',
-    topicFocus: '2D DP, Graph Pathfinding & Monotonic Structures',
-    scheduledDate: '2026-10-04',
-    startTime: '10:00 AM',
-    durationMinutes: 120,
-    totalMarks: 100,
-    passMarks: 50,
-    status: 'SCHEDULED',
-    createdBy: 'Dean of Academic Affairs (SUDO)',
-    questions: WEEK_08_QUESTIONS,
+    createdBy: 'Root (Dean of Academic Affairs / Sudo Admin)',
+    questions: ROOT_OFFICIAL_20_QUESTIONS,
     submissions: [],
   },
 ];
+

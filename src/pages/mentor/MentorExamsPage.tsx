@@ -34,7 +34,7 @@ export const MentorExamsPage: React.FC = () => {
   );
 
   const [selectedExamId, setSelectedExamId] = useState<string>(
-    exams[0]?.id || 'exam-week-01'
+    exams[0]?.id || 'exam-root-official-01'
   );
   const [inspectSubmission, setInspectSubmission] = useState<{
     student: Student;
