@@ -544,15 +544,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const matchedMentor = mentors.find(
         m =>
           m.email.toLowerCase() === normalizedEmail ||
+          m.email.toLowerCase().split('@')[0] === normalizedEmail ||
+          (normalizedEmail === 'teja@gkce.edu.in' && m.email.toLowerCase().includes('teja')) ||
+          (normalizedEmail.includes('ludv') && m.email.toLowerCase().includes('ludw')) ||
           (normalizedEmail.includes('gayat') && m.email.toLowerCase().includes('gayat')) ||
           (normalizedEmail.includes('gayth') && m.email.toLowerCase().includes('gayat'))
       );
       if (
         matchedMentor &&
-        (password === 'Mentor@GKCE2026' ||
-          password === 'mentor@gkce2026' ||
-          password === 'gkce@1234' ||
-          password === 'GKCE@1234')
+        password === 'Mentor@GKCE2026'
       ) {
         mapAndSetUser('MENTOR', { email: matchedMentor.email, team_number: matchedMentor.assignedTeamNumber });
         setIsAuthenticated(true);

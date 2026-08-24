@@ -66,7 +66,7 @@ USER_JSON = {
     },
     {
       "team_name": "Team 7",
-      "mentor": "Mrs. Ludvika",
+      "mentor": "Mrs. Ludwikha",
       "students": [
         {"name": "CH. CHAKRI", "roll_number": "24F81A0522"},
         {"name": "P.GAYANI", "roll_number": "24F81A0534"},

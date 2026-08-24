@@ -41,13 +41,13 @@ RAW_STUDENTS = [
     {"name": "KALLURU VAISHNAVI", "roll": "23F81A0581", "team": 6, "class": "III B.Tech CSE"},
     {"name": "CHINTHAGINJALA SILPA", "roll": "23F81A0576", "team": 6, "class": "III B.Tech CSE"},
 
-    # Group 7 (Team 07) - Mentor: Mrs. Ludvika
-    {"name": "CH. CHAKRI", "roll": "24F81A0522", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludvika"},
-    {"name": "P. GAYANI", "roll": "24F81A0534", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludvika"},
-    {"name": "P. AKHILA", "roll": "24F81A0504", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludvika"},
-    {"name": "C. JAHNAVI", "roll": "24F81A0549", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludvika"},
-    {"name": "S. HARSHITHA", "roll": "24F81A0544", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludvika"},
-    {"name": "S. SUDHA", "roll": "24F81A05B2", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludvika"},
+    # Group 7 (Team 07) - Mentor: Mrs. Ludwikha
+    {"name": "CH. CHAKRI", "roll": "24F81A0522", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludwikha"},
+    {"name": "P. GAYANI", "roll": "24F81A0534", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludwikha"},
+    {"name": "P. AKHILA", "roll": "24F81A0504", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludwikha"},
+    {"name": "C. JAHNAVI", "roll": "24F81A0549", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludwikha"},
+    {"name": "S. HARSHITHA", "roll": "24F81A0544", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludwikha"},
+    {"name": "S. SUDHA", "roll": "24F81A05B2", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludwikha"},
 
     # Group 8 (Team 08) - Mentor: Mr. Vishnu
     {"name": "S. KARTHIK", "roll": "24F81A0553", "team": 8, "class": "II B.Tech CSE", "mentor": "Mr. Vishnu"},
@@ -77,7 +77,7 @@ MENTORS_LIST = [
     {"id": "mentor-4", "name": "Mrs. S. Lakshmi", "email": "lakshmi.s@gkce.edu.in", "dept": "Computer Science & Engg", "phone": "+91 98480 10004", "teamId": "team-4", "teamNum": "Team 04", "exp": 9},
     {"id": "mentor-5", "name": "Mr. N. Rajesh", "email": "rajesh.n@gkce.edu.in", "dept": "Computer Science & Engg", "phone": "+91 98480 10005", "teamId": "team-5", "teamNum": "Team 05", "exp": 6},
     {"id": "mentor-6", "name": "Mrs. G. Pavani", "email": "pavani.g@gkce.edu.in", "dept": "Computer Science & Engg", "phone": "+91 98480 10006", "teamId": "team-6", "teamNum": "Team 06", "exp": 5},
-    {"id": "mentor-7", "name": "Mrs. Ludvika", "email": "ludvika@gkce.edu.in", "dept": "Computer Science & Engg", "phone": "+91 98480 10007", "teamId": "team-7", "teamNum": "Team 07", "exp": 8},
+    {"id": "mentor-7", "name": "Mrs. Ludwikha", "email": "ludwikha@gkce.edu.in", "dept": "Computer Science & Engg", "phone": "+91 98480 10007", "teamId": "team-7", "teamNum": "Team 07", "exp": 8},
     {"id": "mentor-8", "name": "Mr. Vishnu", "email": "vishnu@gkce.edu.in", "dept": "Computer Science & Engg", "phone": "+91 98480 10008", "teamId": "team-8", "teamNum": "Team 08", "exp": 7},
     {"id": "mentor-9", "name": "Mrs. Manjusha", "email": "manjusha@gkce.edu.in", "dept": "Computer Science & Engg", "phone": "+91 98480 10009", "teamId": "team-9", "teamNum": "Team 09", "exp": 10},
     {"id": "mentor-10", "name": "Mrs. Teja", "email": "teja.faculty@gkce.edu.in", "dept": "Computer Science & Engg", "phone": "+91 98480 10010", "teamId": "team-10", "teamNum": "Team 10", "exp": 6},
@@ -102,6 +102,68 @@ TEAM_NAMES = [
 
 random.seed(42)
 
+special_emails = {
+    'CH. CHAKRI': 'chakri',
+    'PITTI DEVIKA (MQ)': 'devika',
+    'BODDU ANANTHALAKSHMI': 'ananthalakshmi',
+    'GALLA KAVITHA': 'kavitha',
+    'BATTA JASWITHA': 'jaswitha',
+    'JEELAGA THANUSHA': 'thanusha',
+    'SHAIK HABEEBA': 'habeeba',
+    'GADDAM BHARGAVI': 'bhargavi',
+    'GADDAM PALLAVI': 'pallavi',
+    'KATURU SRAVANTHI': 'sravanthi',
+    'MODI KAVYA': 'kavya',
+    'VUKKADALA MANASA': 'manasa',
+    'KUTLURU DIVYA SRI': 'divyasri',
+    'KONERU VYSHNAVI': 'vyshnavi',
+    'KARUMANCHI MUNI KUMAR': 'munikumar',
+    'NELLORE MUNI SAI SUDHARSAN': 'sudharsan',
+    'PALETI SAI': 'sai',
+    'VAVILA SRIHARI': 'srihari',
+    'PAGADALA PUNEETH': 'puneeth',
+    'PILLI BHANU TEJA': 'bhanuteja',
+    'BHASKAR JAYASREE': 'jayasree',
+    'CHALLA SAILAJA': 'sailaja',
+    'BONUBOYINA SRAVANI': 'sravani',
+    'SREERAM VINEELA KEERTHI': 'vineelakeerthi',
+    'VETTI SONI': 'soni',
+    'KALLURU VAISHNAVI': 'vaishnavi',
+    'CHINTHAGINJALA SILPA': 'silpa',
+    'P. GAYANI': 'gayani',
+    'P. AKHILA': 'akhila',
+    'C. JAHNAVI': 'jahnavi',
+    'S. HARSHITHA': 'harshitha',
+    'S. SUDHA': 'sudha',
+    'S. KARTHIK': 'karthik',
+    'K. CHANDRA SEKHAR': 'chandrasekhar',
+    'G. GOWTHAM': 'gowtham',
+    'M. ESWAR': 'eswar',
+    'K. KEERTHANA': 'keerthana',
+    'D. HIMA VARSHA': 'himavarsha',
+    'B. KISHORE NAIK': 'kishore',
+    'E. ANUSHA': 'anusha',
+    'U. JHANAKI': 'jhanaki',
+    'M. VENKATESWARLU': 'venkateswarlu',
+    'P. PRASANNA KUMAR': 'prasanna',
+    'T. PRABAKAR': 'prabakar',
+    'T. TEJA': 'teja',
+    'E. PRASHANTH': 'prashanth'
+}
+
+def get_student_email(name: str, roll: str) -> str:
+    import re
+    clean = re.sub(r'\(.*?\)', '', name).strip()
+    parts = clean.replace('.', ' ').split()
+    sig_parts = [p for p in parts if len(p) > 2]
+    if name in special_emails:
+        prefix = special_emails[name]
+    elif sig_parts:
+        prefix = sig_parts[-1].lower() if len(sig_parts[0]) <= 2 else sig_parts[0].lower()
+    else:
+        prefix = parts[0].lower()
+    return f"{prefix}{roll.lower()}@gkce.edu.in"
+
 # Build students list
 all_students = []
 for idx, st_raw in enumerate(RAW_STUDENTS, 1):
@@ -111,9 +173,7 @@ for idx, st_raw in enumerate(RAW_STUDENTS, 1):
     name = st_raw["name"]
     roll = st_raw["roll"]
     
-    email = f"{roll.lower()}@gkce.edu.in"
-    if "CHAKRI" in name:
-        email = "chakri.24f81a0522@gkce.edu.in"
+    email = get_student_email(name, roll)
 
     perf_factor = random.uniform(0.70, 0.95) if "CHAKRI" in name or idx % 3 == 0 else random.uniform(0.45, 0.85)
     solved = int(34 * perf_factor)
@@ -260,9 +320,12 @@ for rank_idx, tm in enumerate(all_teams, 1):
 
 # Find Chakri for default student user
 chakri_student = next((s for s in all_students if "CHAKRI" in s["name"]), all_students[0])
-ludvika_mentor = next((m for m in MENTORS_LIST if m["name"] == "Mrs. Ludvika"), MENTORS_LIST[6])
+ludwikha_mentor = next((m for m in MENTORS_LIST if m["name"] == "Mrs. Ludwikha"), MENTORS_LIST[6])
 
 ts_content = f"""import {{ DSATopic, Mentor, Problem, Student, Team, CurrentUser }} from '../types';
+import {{ PROBLEMS_BANK_100 }} from './dsaCurriculum100';
+
+export {{ PROBLEMS_BANK_100 as PROBLEMS_BANK }} from './dsaCurriculum100';
 
 export const DSA_TOPICS: DSATopic[] = [
   'Arrays',
@@ -306,130 +369,19 @@ export const ALL_STUDENTS: Student[] = {json.dumps(all_students, indent=2)};
 
 export const ALL_TEAMS: Team[] = {json.dumps(all_teams, indent=2)};
 
-export const PROBLEMS_BANK: Problem[] = [
-  {{
-    id: 'prob-1',
-    title: 'Two Sum',
-    topic: 'Arrays',
-    difficulty: 'Easy',
-    description: 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.',
-    acceptanceRate: '54.2%',
-    solvedCount: 38,
-  }},
-  {{
-    id: 'prob-2',
-    title: 'Best Time to Buy and Sell Stock',
-    topic: 'Arrays',
-    difficulty: 'Easy',
-    description: 'Maximize profit by choosing a single day to buy one stock and choosing a different day in the future to sell that stock.',
-    acceptanceRate: '53.8%',
-    solvedCount: 35,
-  }},
-  {{
-    id: 'prob-3',
-    title: '3Sum',
-    topic: 'Arrays',
-    difficulty: 'Medium',
-    description: 'Find all unique triplets in the array which gives the sum of zero.',
-    acceptanceRate: '34.1%',
-    solvedCount: 22,
-  }},
-  {{
-    id: 'prob-4',
-    title: 'Container With Most Water',
-    topic: 'Arrays',
-    difficulty: 'Medium',
-    description: 'Find two lines that together with the x-axis form a container, such that the container contains the most water.',
-    acceptanceRate: '55.0%',
-    solvedCount: 28,
-  }},
-  {{
-    id: 'prob-5',
-    title: 'Trapping Rain Water',
-    topic: 'Arrays',
-    difficulty: 'Hard',
-    description: 'Compute how much water an elevation map can trap after raining.',
-    acceptanceRate: '60.4%',
-    solvedCount: 14,
-  }},
-  {{
-    id: 'prob-6',
-    title: 'Valid Palindrome',
-    topic: 'Strings',
-    difficulty: 'Easy',
-    description: 'Determine if a string is a palindrome, considering only alphanumeric characters and ignoring cases.',
-    acceptanceRate: '47.1%',
-    solvedCount: 36,
-  }},
-  {{
-    id: 'prob-7',
-    title: 'Longest Substring Without Repeating Characters',
-    topic: 'Strings',
-    difficulty: 'Medium',
-    description: 'Find the length of the longest substring without repeating characters.',
-    acceptanceRate: '35.0%',
-    solvedCount: 25,
-  }},
-  {{
-    id: 'prob-8',
-    title: 'Reverse Linked List',
-    topic: 'Linked Lists',
-    difficulty: 'Easy',
-    description: 'Reverse a singly linked list and return the reversed list head.',
-    acceptanceRate: '75.4%',
-    solvedCount: 40,
-  }},
-  {{
-    id: 'prob-9',
-    title: 'Valid Parentheses',
-    topic: 'Stack',
-    difficulty: 'Easy',
-    description: 'Determine if an input string with brackets (), {{}}, [] is valid.',
-    acceptanceRate: '40.8%',
-    solvedCount: 34,
-  }},
-  {{
-    id: 'prob-10',
-    title: 'Lowest Common Ancestor of a BST',
-    topic: 'Trees',
-    difficulty: 'Medium',
-    description: 'Find the lowest common ancestor (LCA) node of two given nodes in the BST.',
-    acceptanceRate: '64.5%',
-    solvedCount: 26,
-  }},
-  {{
-    id: 'prob-11',
-    title: 'Number of Islands',
-    topic: 'Graphs',
-    difficulty: 'Medium',
-    description: 'Given an m x n 2D binary grid, return the number of islands.',
-    acceptanceRate: '59.2%',
-    solvedCount: 20,
-  }},
-  {{
-    id: 'prob-12',
-    title: 'Coin Change',
-    topic: 'Dynamic Programming',
-    difficulty: 'Medium',
-    description: 'Return the fewest number of coins needed to make up a given amount.',
-    acceptanceRate: '43.9%',
-    solvedCount: 18,
-  }},
-];
-
 export const DEAN_USER: CurrentUser = {{
   id: 'dean-1',
-  name: 'Dr. R. V. Raman',
-  email: 'dean.academics@gkce.edu.in',
+  name: 'Sudo Users',
+  email: 'root@gkce.edu.in',
   role: 'DEAN',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-  title: 'Dean of Academics & Institutional Development',
+  avatar: 'https://api.dicebear.com/7.x/lorelei-neutral/svg?seed=GKCE_Dean_SUDO&backgroundColor=0f172a&radius=16',
+  title: 'Dean of Academic Affairs & Head of Technical Training',
 }};
 
 export const DEFAULT_MENTOR_USER: CurrentUser = {{
   id: 'mentor-7',
-  name: 'Mrs. Ludvika',
-  email: 'ludvika@gkce.edu.in',
+  name: 'Mrs. Ludwikha',
+  email: 'ludwikha@gkce.edu.in',
   role: 'MENTOR',
   avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
   title: 'Faculty Mentor, Dept. of CSE',

@@ -46,7 +46,7 @@ MENTORS_DATA = [
     ("Mrs. S. Lakshmi", "lakshmi.s@gkce.edu.in", "CSE (Machine Learning)", 9),
     ("Mr. N. Rajesh", "rajesh.n@gkce.edu.in", "CSE (Database Systems)", 6),
     ("Mrs. G. Pavani", "pavani.g@gkce.edu.in", "CSE (Programming Tech)", 5),
-    ("Mrs. Ludvika", "ludvika@gkce.edu.in", "CSE (DSA & Full Stack)", 8),
+    ("Mrs. Ludwikha", "ludwikha@gkce.edu.in", "CSE (DSA & Full Stack)", 8),
     ("Mr. Vishnu", "vishnu@gkce.edu.in", "CSE (Algorithms & Cloud)", 7),
     ("Mrs. Manjusha", "manjusha@gkce.edu.in", "CSE (Problem Solving)", 10),
     ("Mrs. Teja", "teja.faculty@gkce.edu.in", "CSE (Applied DSA)", 6),
@@ -162,7 +162,7 @@ REAL_GKCE_STUDENTS = [
     {"name": "KALLURU VAISHNAVI", "roll": "23F81A0581", "team": 6, "target_solved": 17, "streak": 5},
     {"name": "CHINTHAGINJALA SILPA", "roll": "23F81A0576", "team": 6, "target_solved": 16, "streak": 4},
 
-    # Team 07 (6 Students) - Mentor: Mrs. Ludvika
+    # Team 07 (6 Students) - Mentor: Mrs. Ludwikha
     {"name": "CH. CHAKRI", "roll": "24F81A0522", "team": 7, "target_solved": 28, "streak": 14},
     {"name": "P. GAYANI", "roll": "24F81A0534", "team": 7, "target_solved": 18, "streak": 5},
     {"name": "P. AKHILA", "roll": "24F81A0504", "team": 7, "target_solved": 22, "streak": 8},
@@ -377,7 +377,7 @@ def seed(db_session: Session = None):
         print(f"DSA Problems:     {db.query(DSAProblem).count()} Problems")
         print(f"Submissions:      {db.query(Submission).count()} Recorded Submissions")
         print(f"Dean:             root@gkce.edu.in | {DEAN_PASSWORD}")
-        print(f"Mrs. Ludvika:     ludvika@gkce.edu.in | {MENTOR_PASSWORD}")
+        print(f"Mrs. Ludwikha:    ludwikha@gkce.edu.in | {MENTOR_PASSWORD}")
         print(f"CH. Chakri:       chakri24f81a0522@gkce.edu.in | {STUDENT_PASSWORD}")
         print("==========================================================")
 

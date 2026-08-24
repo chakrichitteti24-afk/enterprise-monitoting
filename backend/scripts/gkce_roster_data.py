@@ -40,13 +40,13 @@ STUDENTS_RAW = [
     {"name": "KALLURU VAISHNAVI", "roll": "23F81A0581", "team": 6, "class": "III B.Tech CSE"},
     {"name": "CHINTHAGINJALA SILPA", "roll": "23F81A0576", "team": 6, "class": "III B.Tech CSE"},
 
-    # Group 7 (Team 07) - Mentor: Mrs. Ludvika
-    {"name": "CH. CHAKRI", "roll": "24F81A0522", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludvika"},
-    {"name": "P. GAYANI", "roll": "24F81A0534", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludvika"},
-    {"name": "P. AKHILA", "roll": "24F81A0504", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludvika"},
-    {"name": "C. JAHNAVI", "roll": "24F81A0549", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludvika"},
-    {"name": "S. HARSHITHA", "roll": "24F81A0544", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludvika"},
-    {"name": "S. SUDHA", "roll": "24F81A05B2", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludvika"},
+    # Group 7 (Team 07) - Mentor: Mrs. Ludwikha
+    {"name": "CH. CHAKRI", "roll": "24F81A0522", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludwikha"},
+    {"name": "P. GAYANI", "roll": "24F81A0534", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludwikha"},
+    {"name": "P. AKHILA", "roll": "24F81A0504", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludwikha"},
+    {"name": "C. JAHNAVI", "roll": "24F81A0549", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludwikha"},
+    {"name": "S. HARSHITHA", "roll": "24F81A0544", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludwikha"},
+    {"name": "S. SUDHA", "roll": "24F81A05B2", "team": 7, "class": "II B.Tech CSE", "mentor": "Mrs. Ludwikha"},
 
     # Group 8 (Team 08) - Mentor: Mr. Vishnu
     {"name": "S. KARTHIK", "roll": "24F81A0553", "team": 8, "class": "II B.Tech CSE", "mentor": "Mr. Vishnu"},
@@ -76,7 +76,7 @@ MENTORS_META = [
     {"id": 4, "name": "Mrs. S. Lakshmi", "email": "lakshmi.s@gkce.edu.in", "team_id": 4, "team_number": "Team 04", "dept": "CSE", "exp": 9},
     {"id": 5, "name": "Mr. N. Rajesh", "email": "rajesh.n@gkce.edu.in", "team_id": 5, "team_number": "Team 05", "dept": "CSE", "exp": 6},
     {"id": 6, "name": "Mrs. G. Pavani", "email": "pavani.g@gkce.edu.in", "team_id": 6, "team_number": "Team 06", "dept": "CSE", "exp": 5},
-    {"id": 7, "name": "Mrs. Ludvika", "email": "ludvika@gkce.edu.in", "team_id": 7, "team_number": "Team 07", "dept": "CSE", "exp": 8},
+    {"id": 7, "name": "Mrs. Ludwikha", "email": "ludwikha@gkce.edu.in", "team_id": 7, "team_number": "Team 07", "dept": "CSE", "exp": 8},
     {"id": 8, "name": "Mr. Vishnu", "email": "vishnu@gkce.edu.in", "team_id": 8, "team_number": "Team 08", "dept": "CSE", "exp": 7},
     {"id": 9, "name": "Mrs. Manjusha", "email": "manjusha@gkce.edu.in", "team_id": 9, "team_number": "Team 09", "dept": "CSE", "exp": 10},
     {"id": 10, "name": "Mrs. Teja", "email": "teja.faculty@gkce.edu.in", "team_id": 10, "team_number": "Team 10", "dept": "CSE", "exp": 6},

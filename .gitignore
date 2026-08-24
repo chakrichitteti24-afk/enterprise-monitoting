@@ -35,6 +35,12 @@ backend/gkce_dev.db
 .env.local
 .env.*.local
 
+# Credentials & Secrets
+CREDENTIALS.md
+README_CREDENTIALS.md
+*credentials*.md
+*CREDENTIALS*.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
