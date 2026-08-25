@@ -33,40 +33,26 @@ from app.models.progress import StudentProgress
 from app.models.activity import ActivityLog
 from app.models.note import MentorNote
 
-# Demo credentials for institutional access
+# Institutional demo credentials
 DEAN_PASSWORD = "gkce@1234"
 MENTOR_PASSWORD = "Mentor@GKCE2026"
 STUDENT_PASSWORD = "gkce@1234"
 
-# 20 Mentors metadata
+# 8 Mentors metadata according to accurate schema
 MENTORS_DATA = [
-    ("Dr. K. Suresh Kumar", "suresh.kumar@gkce.edu.in", "CSE (Algorithms)", 12),
-    ("Mrs. P. Radhika", "radhika.p@gkce.edu.in", "CSE (Data Structures)", 8),
-    ("Mr. M. Ramesh", "ramesh.m@gkce.edu.in", "CSE (Software Engg)", 7),
-    ("Mrs. S. Lakshmi", "lakshmi.s@gkce.edu.in", "CSE (Machine Learning)", 9),
-    ("Mr. N. Rajesh", "rajesh.n@gkce.edu.in", "CSE (Database Systems)", 6),
-    ("Mrs. G. Pavani", "pavani.g@gkce.edu.in", "CSE (Programming Tech)", 5),
-    ("Mrs. Ludwikha", "ludwikha@gkce.edu.in", "CSE (DSA & Full Stack)", 8),
-    ("Mr. Vishnu", "vishnu@gkce.edu.in", "CSE (Algorithms & Cloud)", 7),
-    ("Mrs. Manjusha", "manjusha@gkce.edu.in", "CSE (Problem Solving)", 10),
-    ("Mrs. Teja", "teja.faculty@gkce.edu.in", "CSE (Applied DSA)", 6),
-    ("Dr. M. Srinivasa Rao", "mentor.11@gkce.edu.in", "CSE (Algorithms)", 14),
-    ("Prof. Sunita Deshmukh", "mentor.12@gkce.edu.in", "CSE (Data Structures)", 12),
-    ("Dr. Ananya Ray", "mentor.13@gkce.edu.in", "CSE (AI & Systems)", 10),
-    ("Prof. K. Venkatesh", "mentor.14@gkce.edu.in", "CSE (Systems & Cloud)", 15),
-    ("Dr. P. Rajesh Kumar", "mentor.15@gkce.edu.in", "CSE (Competitive Coding)", 11),
-    ("Prof. B. Deepa", "mentor.16@gkce.edu.in", "CSE (Data Mining)", 9),
-    ("Dr. S. Mohan Das", "mentor.17@gkce.edu.in", "CSE (Graph Theory)", 16),
-    ("Prof. Kavita Reddy", "mentor.18@gkce.edu.in", "CSE (Full Stack)", 8),
-    ("Dr. C. Balasubramanian", "mentor.19@gkce.edu.in", "CSE (Software Engg)", 13),
-    ("Prof. Meera Nair", "mentor.20@gkce.edu.in", "CSE (Theoretical CS)", 10),
+    ("K.S.GAYATHRI", "ksgayathri@gkce.edu.in", "Computer Science & Engg", 8),
+    ("SK SHABANA", "skshabana@gkce.edu.in", "Computer Science & Engg", 8),
+    ("V.RAMYA", "vramya@gkce.edu.in", "Computer Science & Engg", 7),
+    ("SAMYUKTHA", "samyuktha@gkce.edu.in", "Computer Science & Engg", 8),
+    ("K.SUDHAKAR", "ksudhakar@gkce.edu.in", "Computer Science & Engg", 9),
+    ("K.KEERTHANA", "kkeerthana@gkce.edu.in", "Computer Science & Engg", 6),
+    ("A.LUDWIKA", "ludwikha@gkce.edu.in", "Computer Science & Engg", 8),
+    ("C.MANJUSHA", "manjusha@gkce.edu.in", "Computer Science & Engg", 10),
 ]
 
 TEAM_NAMES = [
-    "Algorithm Aces", "Binary Bandits", "Dynamic Dynamos", "Graph Gurus", "Stack Smashers",
-    "Queue Queens", "Tree Titans", "Recursion Rangers", "Bitwise Battlers", "Heap Heroes",
-    "Matrix Masters", "Hash Hackers", "Pointer Prodigies", "Greedy Giants", "Backtrack Busters",
-    "Trie Troopers", "Search Specialists", "Sorting Stars", "Divide Conquerors", "Logic Lords"
+    "Algorithm Aces", "Binary Bandits", "Dynamic Dynamos", "Graph Gurus",
+    "Stack Smashers", "Queue Queens", "Tree Titans", "Recursion Rangers"
 ]
 
 # 34 Standardized DSA Problems
@@ -122,73 +108,62 @@ DSA_PROBLEMS_SEED = [
     ("Maximum Subarray", "Find the contiguous subarray with the largest sum and return its sum (Kadane's Algorithm).", ProblemDifficulty.EASY, DSATopic.DYNAMIC_PROGRAMMING, "https://leetcode.com/problems/maximum-subarray", "50.9%"),
 ]
 
-# Real GKCE Students Roster
+# Real GKCE Students Roster (39 Students across 8 Teams)
 REAL_GKCE_STUDENTS = [
-    # Team 01 (5 Students)
-    {"name": "BODDU ANANTHALAKSHMI", "roll": "23F81A0502", "team": 1, "target_solved": 23, "streak": 7},
-    {"name": "PITTI DEVIKA (MQ)", "roll": "23F81A0507", "team": 1, "target_solved": 15, "streak": 3},
-    {"name": "GALLA KAVITHA", "roll": "23F81A0513", "team": 1, "target_solved": 28, "streak": 12},
-    {"name": "BATTA JASWITHA", "roll": "23F81A0511", "team": 1, "target_solved": 16, "streak": 4},
-    {"name": "JEELAGA THANUSHA", "roll": "23F81A0538", "team": 1, "target_solved": 16, "streak": 5},
+    # Team 1 (Mentor: K.S.GAYATHRI)
+    {"name": "ANANTHALAKSHMI.BODDU", "roll": "23F81A0502", "team": 1},
+    {"name": "DEVIKA.PITTI", "roll": "23F81A0507", "team": 1},
+    {"name": "KAVITHA.GALLA", "roll": "23F81A0513", "team": 1},
+    {"name": "JASWITHA.BATTA", "roll": "23F81A0511", "team": 1},
+    {"name": "THANUSHA.JEELAGA", "roll": "23F81A0538", "team": 1},
 
-    # Team 02 (4 Students)
-    {"name": "SHAIK HABEEBA", "roll": "23F81A0510", "team": 2, "target_solved": 32, "streak": 14},
-    {"name": "GADDAM BHARGAVI", "roll": "23F81A0504", "team": 2, "target_solved": 18, "streak": 6},
-    {"name": "GADDAM PALLAVI", "roll": "23F81A0525", "team": 2, "target_solved": 24, "streak": 9},
-    {"name": "KATURU SRAVANTHI", "roll": "23F81A0534", "team": 2, "target_solved": 29, "streak": 11},
+    # Team 2 (Mentor: SK SHABANA)
+    {"name": "HABEEBA.SHAIK", "roll": "23F81A0510", "team": 2},
+    {"name": "BHARGAVI.GADDAM", "roll": "23F81A0504", "team": 2},
+    {"name": "PALLAVI.GADDAM", "roll": "23F81A0525", "team": 2},
+    {"name": "SRAVANTHI.KATURU", "roll": "23F81A0534", "team": 2},
 
-    # Team 03 (4 Students)
-    {"name": "MODI KAVYA", "roll": "23F81A0514", "team": 3, "target_solved": 27, "streak": 10},
-    {"name": "VUKKADALA MANASA", "roll": "24F85A0508", "team": 3, "target_solved": 23, "streak": 7},
-    {"name": "KUTLURU DIVYA SRI", "roll": "23F81A0509", "team": 3, "target_solved": 29, "streak": 13},
-    {"name": "KONERU VYSHNAVI", "roll": "23F81A0542", "team": 3, "target_solved": 15, "streak": 3},
+    # Team 3 (Mentor: V.RAMYA)
+    {"name": "KAVYA.MODI", "roll": "23F81A0514", "team": 3},
+    {"name": "MANASA VUKKADALA", "roll": "24F85A0508", "team": 3},
+    {"name": "DIVYA SRI.KUTLURU", "roll": "23F81A0509", "team": 3},
+    {"name": "VYSHNAVI.KONERU", "roll": "23F81A0542", "team": 3},
 
-    # Team 04 (5 Students)
-    {"name": "KARUMANCHI MUNI KUMAR", "roll": "23F81A0520", "team": 4, "target_solved": 20, "streak": 6},
-    {"name": "NELLORE MUNI SAI SUDHARSAN", "roll": "23F81A0521", "team": 4, "target_solved": 25, "streak": 8},
-    {"name": "PALETI SAI", "roll": "23F81A0529", "team": 4, "target_solved": 24, "streak": 7},
-    {"name": "VAVILA SRIHARI", "roll": "23F81A0535", "team": 4, "target_solved": 28, "streak": 11},
-    {"name": "PAGADALA PUNEETH", "roll": "23F81A0527", "team": 4, "target_solved": 28, "streak": 12},
+    # Team 4 (Mentor: SAMYUKTHA)
+    {"name": "MUNI KUMAR.KARUMANCHI", "roll": "23F81A0520", "team": 4},
+    {"name": "MUNI SAI SUDHARSAN.NELLORE", "roll": "23F81A0521", "team": 4},
+    {"name": "SAI.PALETI", "roll": "23F81A0529", "team": 4},
+    {"name": "SRIHARI.VAVILA", "roll": "23F81A0535", "team": 4},
+    {"name": "PUNEETH.PAGADALA", "roll": "23F81A0527", "team": 4},
 
-    # Team 05 (5 Students)
-    {"name": "PILLI BHANU TEJA", "roll": "23F81A0545", "team": 5, "target_solved": 26, "streak": 9},
-    {"name": "BHASKAR JAYASREE", "roll": "23F81A0562", "team": 5, "target_solved": 25, "streak": 8},
-    {"name": "CHALLA SAILAJA", "roll": "23F81A0572", "team": 5, "target_solved": 29, "streak": 14},
-    {"name": "BONUBOYINA SRAVANI", "roll": "23F81A0578", "team": 5, "target_solved": 17, "streak": 4},
-    {"name": "SREERAM VINEELA KEERTHI", "roll": "24F85A0517", "team": 5, "target_solved": 28, "streak": 10},
+    # Team 5 (Mentor: K.SUDHAKAR)
+    {"name": "BHANU TEJA.PILLI", "roll": "23F81A0545", "team": 5},
+    {"name": "JAYASREE.BHASKAR", "roll": "23F81A0562", "team": 5},
+    {"name": "SAILAJA.CHALLA", "roll": "23F81A0572", "team": 5},
+    {"name": "SRAVANI.BONUBOYINA", "roll": "23F81A0578", "team": 5},
+    {"name": "VINEELA KEERTHI SREERAM", "roll": "24F85A0517", "team": 5},
 
-    # Team 06 (3 Students)
-    {"name": "VETTI SONI", "roll": "23F81A0577", "team": 6, "target_solved": 23, "streak": 7},
-    {"name": "KALLURU VAISHNAVI", "roll": "23F81A0581", "team": 6, "target_solved": 17, "streak": 5},
-    {"name": "CHINTHAGINJALA SILPA", "roll": "23F81A0576", "team": 6, "target_solved": 16, "streak": 4},
+    # Team 6 (Mentor: K.KEERTHANA)
+    {"name": "DIVYA KUMAWAT.PANNALAL", "roll": "23F81A0552", "team": 6},
+    {"name": "SONI.VETTI", "roll": "23F81A0577", "team": 6},
+    {"name": "VAISHNAVI.KALLURU", "roll": "23F81A0581", "team": 6},
+    {"name": "SILPA.CHINTHAGINJALA", "roll": "23F81A0576", "team": 6},
 
-    # Team 07 (6 Students) - Mentor: Mrs. Ludwikha
-    {"name": "CH. CHAKRI", "roll": "24F81A0522", "team": 7, "target_solved": 28, "streak": 14},
-    {"name": "P. GAYANI", "roll": "24F81A0534", "team": 7, "target_solved": 18, "streak": 5},
-    {"name": "P. AKHILA", "roll": "24F81A0504", "team": 7, "target_solved": 22, "streak": 8},
-    {"name": "C. JAHNAVI", "roll": "24F81A0549", "team": 7, "target_solved": 30, "streak": 13},
-    {"name": "S. HARSHITHA", "roll": "24F81A0544", "team": 7, "target_solved": 27, "streak": 10},
-    {"name": "S. SUDHA", "roll": "24F81A05B2", "team": 7, "target_solved": 24, "streak": 7},
+    # Team 7 (Mentor: A.LUDWIKA)
+    {"name": "CH. CHAKRI", "roll": "24F81A0522", "team": 7},
+    {"name": "P.GAYANI", "roll": "24F81A0534", "team": 7},
+    {"name": "P.AKHILA", "roll": "24F81A0504", "team": 7},
+    {"name": "C.JAHNAVI", "roll": "24F81A0549", "team": 7},
+    {"name": "S. HARSHITHA", "roll": "24F81A0544", "team": 7},
+    {"name": "S.KARTHIK", "roll": "24F81A0553", "team": 7},
 
-    # Team 08 (3 Students) - Mentor: Mr. Vishnu
-    {"name": "S. KARTHIK", "roll": "24F81A0553", "team": 8, "target_solved": 23, "streak": 7},
-    {"name": "K. CHANDRA SEKHAR", "roll": "24F81A0530", "team": 8, "target_solved": 16, "streak": 4},
-    {"name": "G. GOWTHAM", "roll": "24F81A0537", "team": 8, "target_solved": 15, "streak": 3},
-
-    # Team 09 (6 Students) - Mentor: Mrs. Manjusha
-    {"name": "M. ESWAR", "roll": "24F81A0532", "team": 9, "target_solved": 31, "streak": 15},
-    {"name": "K. KEERTHANA", "roll": "24F81A0554", "team": 9, "target_solved": 18, "streak": 5},
-    {"name": "D. HIMA VARSHA", "roll": "24F81A0548", "team": 9, "target_solved": 19, "streak": 6},
-    {"name": "B. KISHORE NAIK", "roll": "24F81A0557", "team": 9, "target_solved": 26, "streak": 9},
-    {"name": "E. ANUSHA", "roll": "24F81A0508", "team": 9, "target_solved": 16, "streak": 4},
-    {"name": "U. JHANAKI", "roll": "24F81A0550", "team": 9, "target_solved": 24, "streak": 8},
-
-    # Team 10 (5 Students) - Mentor: Mrs. Teja
-    {"name": "M. VENKATESWARLU", "roll": "24F81A05C7", "team": 10, "target_solved": 29, "streak": 11},
-    {"name": "P. PRASANNA KUMAR", "roll": "24F81A0591", "team": 10, "target_solved": 17, "streak": 4},
-    {"name": "T. PRABAKAR", "roll": "24F81A0590", "team": 10, "target_solved": 21, "streak": 6},
-    {"name": "T. TEJA", "roll": "24F81A05C0", "team": 10, "target_solved": 29, "streak": 12},
-    {"name": "E. PRASHANTH", "roll": "24F81A0592", "team": 10, "target_solved": 15, "streak": 3},
+    # Team 8 (Mentor: C.MANJUSHA)
+    {"name": "M.ESWAR", "roll": "24F81A0532", "team": 8},
+    {"name": "K.KEERTHANA", "roll": "24F81A0554", "team": 8},
+    {"name": "D. HIMA VARSHA", "roll": "24F81A0548", "team": 8},
+    {"name": "B.KISHORE NAIK", "roll": "24F81A0557", "team": 8},
+    {"name": "E. ANUSHA", "roll": "24F81A0508", "team": 8},
+    {"name": "U. JHANAKI", "roll": "24F81A0550", "team": 8},
 ]
 
 
@@ -205,13 +180,13 @@ def seed(db_session: Session = None):
 
     try:
         # Precompute bcrypt password hashes
-        print("[1/6] Precomputing security hashes...")
+        print("[1/5] Precomputing security hashes...")
         dean_pwd_hash = get_password_hash(DEAN_PASSWORD)
         mentor_pwd_hash = get_password_hash(MENTOR_PASSWORD)
         student_pwd_hash = get_password_hash(STUDENT_PASSWORD)
 
         # 1. Dean User
-        print("[2/6] Creating Dean Administrator...")
+        print("[2/5] Creating Dean Administrator...")
         dean_user = User(
             name="Sudo Users",
             email="root@gkce.edu.in",
@@ -223,15 +198,15 @@ def seed(db_session: Session = None):
         db.add(dean_user)
         db.flush()
 
-        # 2. Teams and Mentors (20 Teams)
-        print("[3/6] Creating 20 Mentored Teams...")
+        # 2. Teams and Mentors (8 Teams)
+        print(f"[3/5] Creating {len(MENTORS_DATA)} Mentored Teams...")
         team_objs = []
         mentor_users = []
         mentor_profiles = []
 
-        for i in range(20):
+        for i in range(len(MENTORS_DATA)):
             t_num_str = f"Team {i+1:02d}"
-            t_name = TEAM_NAMES[i]
+            t_name = TEAM_NAMES[i] if i < len(TEAM_NAMES) else f"Team {i+1:02d}"
             m_name, m_email, m_dept, m_exp = MENTORS_DATA[i]
 
             team = Team(team_number=t_num_str, name=t_name)
@@ -254,7 +229,7 @@ def seed(db_session: Session = None):
             m_profile = Mentor(
                 user_id=m_user.id,
                 department=m_dept,
-                phone=f"+91 98480 {10000 + i}",
+                phone=f"+91 98480 {10000 + i + 1}",
                 experience_years=m_exp,
                 assigned_team_id=team.id,
             )
@@ -264,7 +239,7 @@ def seed(db_session: Session = None):
         db.flush()
 
         # 3. DSA Problems (34 Problems)
-        print("[4/6] Seeding DSA Problems Bank (34 Challenges)...")
+        print("[4/5] Seeding DSA Problems Bank (34 Challenges)...")
         problem_objs = []
         for title, desc, diff, topic, url, acc in DSA_PROBLEMS_SEED:
             prob = DSAProblem(
@@ -280,35 +255,20 @@ def seed(db_session: Session = None):
             problem_objs.append(prob)
         db.flush()
 
-        # Order problems: easy, medium, hard
-        ordered_probs = (
-            [p for p in problem_objs if p.difficulty == ProblemDifficulty.EASY] +
-            [p for p in problem_objs if p.difficulty == ProblemDifficulty.MEDIUM] +
-            [p for p in problem_objs if p.difficulty == ProblemDifficulty.HARD]
-        )
-
         # 4. Students at Clean 0% Baseline (No Fake Submissions)
-        print(f"[5/6] Ingesting {len(REAL_GKCE_STUDENTS)} Authentic GKCE Students at clean 0% baseline...")
+        print(f"[5/5] Ingesting {len(REAL_GKCE_STUDENTS)} Authentic GKCE Students at clean 0% baseline (no fake progress)...")
         student_users = []
         student_profiles = []
 
         def make_clean_student_email(roll: str, name: str) -> str:
-            clean = re.sub(r'\(.*?\)', '', name).strip()
-            words = [re.sub(r'[^a-zA-Z0-9]', '', w) for w in clean.split() if w]
-            sig = [w for w in words if len(w) > 2]
-            name_map = {
-                'KUTLURU DIVYA SRI': 'divyasri',
-                'B. KISHORE NAIK': 'kishore',
-                'P. PRASANNA KUMAR': 'prasanna',
-                'D. HIMA VARSHA': 'himavarsha',
-            }
-            if name in name_map:
-                target = name_map[name]
-            elif sig:
-                target = sig[-1].lower() if len(sig) > 1 and len(sig[0]) > 2 and len(sig[-1]) > 2 else (sig[-1].lower() if len(sig) > 1 else sig[0].lower())
+            clean = name.replace('.', ' ').strip()
+            parts = clean.split()
+            first_part = parts[0].lower()
+            if len(first_part) <= 2 and len(parts) > 1:
+                prefix = parts[1].lower()
             else:
-                target = words[0].lower()
-            return f"{target}{roll.lower()}@gkce.edu.in"
+                prefix = first_part
+            return f"{prefix}{roll.lower()}@gkce.edu.in"
 
         for idx, s_info in enumerate(REAL_GKCE_STUDENTS, 1):
             team_id = s_info["team"]
@@ -336,8 +296,8 @@ def seed(db_session: Session = None):
                 team_id=team_obj.id,
                 status=StudentStatus.ACTIVE,
                 dsa_level=DSALevel.BEGINNER,
-                leetcode_username=f"{name.lower().replace(' ', '_')[:12]}_{roll_no[-4:]}",
-                github_username=f"{name.lower().replace(' ', '')[:10]}_{roll_no[-4:]}",
+                leetcode_username=f"{name.lower().replace('.', '_').replace(' ', '_')[:12]}_{roll_no[-4:]}",
+                github_username=f"{name.lower().replace('.', '').replace(' ', '')[:10]}_{roll_no[-4:]}",
             )
             db.add(s_profile)
             db.flush()
@@ -370,14 +330,14 @@ def seed(db_session: Session = None):
         db.commit()
 
         print("\n==========================================================")
-        print("   ✅ SEEDING COMPLETE WITH ACCURATE DATA!                ")
+        print("   ✅ SEEDING COMPLETE WITH ACCURATE DATA (NO FAKE PROGRESS)!")
         print("==========================================================")
-        print(f"Total Users:      {db.query(User).count()} (1 Dean, 20 Mentors, {len(REAL_GKCE_STUDENTS)} Students)")
+        print(f"Total Users:      {db.query(User).count()} (1 Dean, {len(MENTORS_DATA)} Mentors, {len(REAL_GKCE_STUDENTS)} Students)")
         print(f"Teams:            {db.query(Team).count()} Teams")
         print(f"DSA Problems:     {db.query(DSAProblem).count()} Problems")
-        print(f"Submissions:      {db.query(Submission).count()} Recorded Submissions")
+        print(f"Submissions:      {db.query(Submission).count()} Submissions (Clean baseline)")
         print(f"Dean:             root@gkce.edu.in | {DEAN_PASSWORD}")
-        print(f"Mrs. Ludwikha:    ludwikha@gkce.edu.in | {MENTOR_PASSWORD}")
+        print(f"A. Ludwika:       ludwikha@gkce.edu.in | {MENTOR_PASSWORD}")
         print(f"CH. Chakri:       chakri24f81a0522@gkce.edu.in | {STUDENT_PASSWORD}")
         print("==========================================================")
 

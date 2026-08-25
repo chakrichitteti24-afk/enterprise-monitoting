@@ -207,6 +207,12 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
           </div>
         </div>
 
+        {/* Mobile Swipe Indicator Banner */}
+        <div className="sm:hidden px-4 py-1.5 bg-indigo-50/70 border-b border-indigo-100/60 flex items-center justify-between text-[11px] text-indigo-700 font-semibold">
+          <span>👈 Swipe table to view & tick Q1 – Q5 👉</span>
+          <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-indigo-200">5 Daily Problems</span>
+        </div>
+
         {/* The Matrix Table */}
         <div className="overflow-x-auto touch-scroll-x custom-scrollbar">
           <table className="w-full text-left text-xs border-collapse min-w-[700px]">

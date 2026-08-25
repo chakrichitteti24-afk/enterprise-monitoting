@@ -13,6 +13,7 @@ import {
   TrendingUp,
   BarChart3,
   ChevronRight,
+  UserPlus,
 } from 'lucide-react';
 import { Student } from '../../types';
 
@@ -22,7 +23,7 @@ export const MentorDashboard: React.FC = () => {
   const assignedTeamNumber = currentUser.teamNumber || 'Team 07';
   const assignedTeamId = currentUser.teamId || 'team-7';
 
-  // Strictly retrieve ONLY the 5 assigned students
+  // Strictly retrieve ONLY the assigned students
   const teamStudents = students.filter((s) => s.teamId === assignedTeamId || s.teamNumber === assignedTeamNumber);
   const team = teams.find((t) => t.id === assignedTeamId || t.teamNumber === assignedTeamNumber);
 
@@ -53,13 +54,20 @@ export const MentorDashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap">
+          <button
+            onClick={() => setActiveTab('students')}
+            className="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs active:scale-98"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Enroll Student</span>
+          </button>
           <button
             onClick={() => setActiveTab('students')}
             className="w-full sm:w-auto px-4 py-2.5 bg-slate-900 text-white rounded-2xl text-xs font-semibold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-xs"
           >
             <Users className="w-3.5 h-3.5" />
-            <span>Manage Students ({teamStudents.length})</span>
+            <span>Manage ({teamStudents.length})</span>
           </button>
         </div>
       </div>

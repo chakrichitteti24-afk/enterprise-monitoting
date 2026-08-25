@@ -80,11 +80,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [students, setStudents] = useState<Student[]>(() => {
-    const saved = localStorage.getItem('gkce_students');
+    localStorage.removeItem('gkce_students');
+    localStorage.removeItem('gkce_teams');
+    localStorage.removeItem('gkce_students_v4');
+    localStorage.removeItem('gkce_teams_v4');
+    const saved = localStorage.getItem('gkce_students_v5');
     return saved ? JSON.parse(saved) : ALL_STUDENTS;
   });
   const [teams, setTeams] = useState<Team[]>(() => {
-    const saved = localStorage.getItem('gkce_teams');
+    const saved = localStorage.getItem('gkce_teams_v5');
     return saved ? JSON.parse(saved) : ALL_TEAMS;
   });
   const [mentors] = useState<Mentor[]>(ALL_MENTORS);
@@ -107,11 +111,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [exams]);
 
   useEffect(() => {
-    localStorage.setItem('gkce_students', JSON.stringify(students));
+    localStorage.setItem('gkce_students_v5', JSON.stringify(students));
   }, [students]);
 
   useEffect(() => {
-    localStorage.setItem('gkce_teams', JSON.stringify(teams));
+    localStorage.setItem('gkce_teams_v5', JSON.stringify(teams));
   }, [teams]);
 
   const addTeam = async (teamData: Partial<Team>) => {

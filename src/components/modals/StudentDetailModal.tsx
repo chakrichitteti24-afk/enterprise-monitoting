@@ -86,9 +86,13 @@ export const StudentDetailModal: React.FC = () => {
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="relative w-full max-w-3xl lg:max-w-4xl bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-10 max-h-[92vh] flex flex-col gpu-layer overscroll-contain"
           >
+            {/* Mobile Sheet Pull Indicator */}
+            <div className="sm:hidden flex justify-center pt-2.5 pb-0.5 bg-slate-50/80">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
 
             {/* Header */}
-            <div className="px-4 sm:px-6 py-3.5 sm:py-5 border-b border-slate-100 flex items-start justify-between bg-slate-50/80 gap-3">
+            <div className="px-4 sm:px-6 py-3 sm:py-5 border-b border-slate-100 flex items-start justify-between bg-slate-50/80 gap-3">
               <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
                 <UserAvatar
                   src={selectedStudent.avatar}
