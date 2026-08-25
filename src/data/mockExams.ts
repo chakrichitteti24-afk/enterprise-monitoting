@@ -207,29 +207,42 @@ if (ROOT_OFFICIAL_20_QUESTIONS.length < 20) {
 }
 
 /**
- * Root Official Examination:
- * All fake/dummy mock exam cards removed.
- * Single active, authentic examination curated and authorized by Root with 20 questions
- * dynamically scrambled and anti-cheat distributed across all students.
+ * Root Official Examinations — initially EMPTY.
+ * NO exams are pre-scheduled or hardcoded as LIVE.
+ * The Dean (Root) must explicitly create and publish exams from the Dean Exams panel.
+ * Students see "No exams scheduled yet" until the Dean schedules one.
  */
-export const INITIAL_WEEKLY_EXAMS: WeeklyExam[] = [
-  {
-    id: 'exam-root-official-01',
-    weekNumber: 1,
-    tier: 'EASY',
-    tierBadge: '🟢 Root Official Assessment (20 Standardized Questions)',
-    title: 'Root Official DSA Assessment: 20 Core Placement Challenges',
-    description: 'Official examination curated and scheduled by Root (Dean of Academic Affairs / Sudo Admin). Features 20 core DSA challenges spanning Arrays, Strings, Linked Lists, Trees, and Dynamic Programming with individual anti-cheating question randomization across all 100 students.',
-    topicFocus: 'Core DSA Foundations & Placement Vectors (20 Questions)',
-    scheduledDate: new Date().toISOString().split('T')[0],
-    startTime: '10:00 AM',
-    durationMinutes: 90,
+export const INITIAL_WEEKLY_EXAMS: WeeklyExam[] = [];
+
+/**
+ * Utility: Build an official exam for Dean to publish.
+ * Use this template when the Dean creates a new exam from the UI.
+ */
+export const buildOfficialExam = (
+  weekNumber: number,
+  title: string,
+  scheduledDate: string,
+  startTime: string = '10:00 AM',
+  durationMinutes: number = 90
+): WeeklyExam => {
+  const tier = getExamTier(weekNumber);
+  return {
+    id: `exam-root-w${weekNumber}-${Date.now()}`,
+    weekNumber,
+    tier: tier.tier,
+    tierBadge: tier.tierBadge,
+    title,
+    description: `Official examination for Week ${weekNumber} curated and scheduled by Root (Dean of Academic Affairs). Features 20 core DSA challenges with individual anti-cheating question randomization across all enrolled students.`,
+    topicFocus: `Core DSA Foundations — Week ${weekNumber} (20 Questions)`,
+    scheduledDate,
+    startTime,
+    durationMinutes,
     totalMarks: 100,
     passMarks: 50,
-    status: 'LIVE',
+    status: 'SCHEDULED' as const,
     createdBy: 'Root (Dean of Academic Affairs / Sudo Admin)',
     questions: ROOT_OFFICIAL_20_QUESTIONS,
     submissions: [],
-  },
-];
+  };
+};
 

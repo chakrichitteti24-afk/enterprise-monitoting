@@ -93,21 +93,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
   const [mentors] = useState<Mentor[]>(ALL_MENTORS);
   const [exams, setExams] = useState<WeeklyExam[]>(() => {
-    localStorage.removeItem('gkce_weekly_exams'); // Purge legacy mock exams cache
-    const saved = localStorage.getItem('gkce_weekly_exams_v3');
+    // Purge all legacy exam caches (old hardcoded LIVE exam)
+    localStorage.removeItem('gkce_weekly_exams');
+    localStorage.removeItem('gkce_weekly_exams_v3');
+    const saved = localStorage.getItem('gkce_weekly_exams_v4');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         console.error('Failed to parse cached weekly exams', e);
       }
     }
-    return INITIAL_WEEKLY_EXAMS;
+    return INITIAL_WEEKLY_EXAMS; // [] — no exams until Dean creates one
   });
 
   useEffect(() => {
-    localStorage.setItem('gkce_weekly_exams_v3', JSON.stringify(exams));
+    localStorage.setItem('gkce_weekly_exams_v4', JSON.stringify(exams));
   }, [exams]);
 
   useEffect(() => {

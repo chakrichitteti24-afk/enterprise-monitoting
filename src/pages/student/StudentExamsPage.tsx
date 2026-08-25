@@ -197,144 +197,157 @@ export const StudentExamsPage: React.FC = () => {
       </AnimatePresence>
 
       {/* Weekly Exams Cards List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-        {exams.map(exam => {
-          const isLive = exam.status === 'LIVE';
-          const isScheduled = exam.status === 'SCHEDULED';
-          const isCompleted = exam.status === 'COMPLETED';
-          const totalQ = exam.questions?.length || 20;
+      {exams.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 sm:py-24 text-center bg-white/85 backdrop-blur-xl rounded-3xl border border-slate-200/80 shadow-xs">
+          <div className="w-16 h-16 rounded-3xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
+            <Calendar className="w-8 h-8 text-slate-300" />
+          </div>
+          <h3 className="text-base font-bold text-slate-700 mb-1">No Exams Scheduled Yet</h3>
+          <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
+            No weekly assessments have been published by the Dean yet.
+            You will be notified here when an exam is scheduled.
+          </p>
+          <div className="mt-4 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-[11px] font-semibold">
+            📋 Awaiting Dean (Root) to schedule first assessment
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+          {exams.map(exam => {
+            const isLive = exam.status === 'LIVE';
+            const isCompleted = exam.status === 'COMPLETED';
+            const totalQ = exam.questions?.length || 20;
+            const studentSubmission = (exam.submissions || []).find(
+              s => s.studentId === student?.id || s.studentRollNo === student?.rollNo
+            );
 
-          // Check if student submitted this exam
-          const studentSubmission = (exam.submissions || []).find(
-            s => s.studentId === student?.id || s.studentRollNo === student?.rollNo
-          );
+            return (
+              <motion.div
+                key={exam.id}
+                whileHover={{ y: -2 }}
+                className={`bg-white rounded-3xl border p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-4 ${
+                  isLive && !studentSubmission
+                    ? 'border-emerald-300 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200/80'
+                }`}
+              >
+                <div className="space-y-3">
+                  {/* Header: Root Assessment badge & status */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-800 text-xs font-mono font-extrabold border border-blue-100">
+                        OFFICIAL ASSESSMENT {String(exam.weekNumber || 1).padStart(2, '0')}
+                      </span>
+                      {(() => {
+                        const tier = getExamTier(exam.weekNumber || 1);
+                        return (
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                              tier.tier === 'EASY'
+                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                : tier.tier === 'MEDIUM'
+                                ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                                : 'bg-rose-50 text-rose-800 border border-rose-200'
+                            }`}
+                          >
+                            {tier.tier} TIER
+                          </span>
+                        );
+                      })()}
+                      <span className="text-xs font-semibold text-slate-500">{exam.topicFocus}</span>
+                    </div>
 
-          return (
-            <motion.div
-              key={exam.id}
-              whileHover={{ y: -2 }}
-              className={`bg-white rounded-3xl border p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-4 ${
-                isLive && !studentSubmission
-                  ? 'border-emerald-300 ring-2 ring-emerald-500/20'
-                  : 'border-slate-200/80'
-              }`}
-            >
-              <div className="space-y-3">
-                {/* Header: Root Assessment badge & status */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-800 text-xs font-mono font-extrabold border border-blue-100">
-                      OFFICIAL ASSESSMENT {String(exam.weekNumber || 1).padStart(2, '0')}
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 ${
+                        isLive
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          : isCompleted
+                          ? 'bg-slate-100 text-slate-700 border border-slate-200'
+                          : 'bg-amber-50 text-amber-800 border border-amber-200'
+                      }`}
+                    >
+                      {isLive && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />}
+                      <span>{exam.status}</span>
                     </span>
-                    {(() => {
-                      const tier = getExamTier(exam.weekNumber || 1);
-                      return (
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                            tier.tier === 'EASY'
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                              : tier.tier === 'MEDIUM'
-                              ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                              : 'bg-rose-50 text-rose-800 border border-rose-200'
-                          }`}
-                        >
-                          {tier.tier} TIER
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-[11px] text-blue-700 font-semibold bg-blue-50/70 px-2.5 py-1 rounded-xl border border-blue-100/80 w-fit">
+                    <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <span>Curated & Authorized by: <strong className="text-slate-800">{exam.createdBy || 'Root (Dean / Sudo Admin)'}</strong></span>
+                  </div>
+
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+                    {exam.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                    {exam.description}
+                  </p>
+
+                  {/* Exam Details Pill List */}
+                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-xs">
+                    <div className="p-2 bg-slate-50 rounded-xl">
+                      <div className="text-[10px] text-slate-400 uppercase font-bold">Date</div>
+                      <div className="font-semibold text-slate-800 truncate">{exam.scheduledDate}</div>
+                    </div>
+                    <div className="p-2 bg-slate-50 rounded-xl">
+                      <div className="text-[10px] text-slate-400 uppercase font-bold">Duration</div>
+                      <div className="font-semibold text-slate-800">{exam.durationMinutes} Mins</div>
+                    </div>
+                    <div className="p-2 bg-slate-50 rounded-xl">
+                      <div className="text-[10px] text-slate-400 uppercase font-bold">Questions</div>
+                      <div className="font-bold text-blue-700">{totalQ} Problems</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Area */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                  {studentSubmission ? (
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500">Your Score:</span>
+                        <span className="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 font-extrabold text-xs border border-emerald-200 font-mono">
+                          {studentSubmission.score} / {studentSubmission.totalMarks}
                         </span>
-                      );
-                    })()}
-                    <span className="text-xs font-semibold text-slate-500">{exam.topicFocus}</span>
-                  </div>
-
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 ${
-                      isLive
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : isCompleted
-                        ? 'bg-slate-100 text-slate-700 border border-slate-200'
-                        : 'bg-amber-50 text-amber-800 border border-amber-200'
-                    }`}
-                  >
-                    {isLive && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />}
-                    <span>{exam.status}</span>
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5 text-[11px] text-blue-700 font-semibold bg-blue-50/70 px-2.5 py-1 rounded-xl border border-blue-100/80 w-fit">
-                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span>Curated & Authorized by: <strong className="text-slate-800">{exam.createdBy || 'Root (Dean / Sudo Admin)'}</strong></span>
-                </div>
-
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
-                  {exam.title}
-                </h3>
-                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                  {exam.description}
-                </p>
-
-                {/* Exam Details Pill List */}
-                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-xs">
-                  <div className="p-2 bg-slate-50 rounded-xl">
-                    <div className="text-[10px] text-slate-400 uppercase font-bold">Date</div>
-                    <div className="font-semibold text-slate-800 truncate">{exam.scheduledDate}</div>
-                  </div>
-                  <div className="p-2 bg-slate-50 rounded-xl">
-                    <div className="text-[10px] text-slate-400 uppercase font-bold">Duration</div>
-                    <div className="font-semibold text-slate-800">{exam.durationMinutes} Mins</div>
-                  </div>
-                  <div className="p-2 bg-slate-50 rounded-xl">
-                    <div className="text-[10px] text-slate-400 uppercase font-bold">Questions</div>
-                    <div className="font-bold text-blue-700">{totalQ} Problems</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Area */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                {studentSubmission ? (
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">Your Score:</span>
-                      <span className="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 font-extrabold text-xs border border-emerald-200 font-mono">
-                        {studentSubmission.score} / {studentSubmission.totalMarks}
-                      </span>
-                      <span className="text-[11px] text-slate-400 font-mono">
-                        ({studentSubmission.questionsSolved} / {totalQ} Solved)
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          ({studentSubmission.questionsSolved} / {totalQ} Solved)
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setViewScorecardSubmission({ exam, submission: studentSubmission })}
+                        className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors"
+                      >
+                        View Scorecard
+                      </button>
+                    </div>
+                  ) : isLive ? (
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 animate-pulse">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Exam Live ({totalQ} Problems)</span>
+                      </div>
+                      <button
+                        onClick={() => handleStartExam(exam)}
+                        className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-500/25 flex items-center gap-1.5 transition-all"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-white" />
+                        <span>Start Exam (Shuffled Paper)</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between w-full text-xs text-slate-500">
+                      <span>Scheduled for {exam.scheduledDate} at {exam.startTime}</span>
+                      <span className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-600 font-semibold text-[11px]">
+                        Locked
                       </span>
                     </div>
-                    <button
-                      onClick={() => setViewScorecardSubmission({ exam, submission: studentSubmission })}
-                      className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors"
-                    >
-                      View Scorecard
-                    </button>
-                  </div>
-                ) : isLive ? (
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 animate-pulse">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Exam Live ({totalQ} Problems)</span>
-                    </div>
-                    <button
-                      onClick={() => handleStartExam(exam)}
-                      className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-500/25 flex items-center gap-1.5 transition-all"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-white" />
-                      <span>Start Exam (Shuffled Paper)</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between w-full text-xs text-slate-500">
-                    <span>Scheduled for {exam.scheduledDate} at {exam.startTime}</span>
-                    <span className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-600 font-semibold text-[11px]">
-                      Locked
-                    </span>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
 
       {/* ------------------------------------------------------------- */}
       {/* Live Timed Exam Arena Modal with Randomized Shuffled Sequence  */}
