@@ -39,15 +39,15 @@ export const DeanAnalyticsPage: React.FC = () => {
   const inactiveCount = students.filter((s) => s.status === 'Inactive').length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white/85 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-blue-700 mb-1">
             <BarChart3 className="w-4 h-4" />
             <span>Institution-Wide Macro Analytics</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">DSA Learning Analytics</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">DSA Learning Analytics</h1>
           <p className="text-xs md:text-sm text-slate-500 mt-1">
             Verified performance insights, topic progress analytics, and cohort velocity across {students.length} students.
           </p>
@@ -55,7 +55,7 @@ export const DeanAnalyticsPage: React.FC = () => {
       </div>
 
       {/* Top 3 KPI Bento Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
         <BentoCard title="Cohort Completion Rate" subtitle={`${students.length} Student Average`} className="col-span-1">
           <div className="flex flex-col items-center justify-center py-3 text-center">
             <ProgressRing percentage={avgProgress} size={130} strokeWidth={10} color="#1d4ed8" />

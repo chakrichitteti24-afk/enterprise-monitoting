@@ -196,12 +196,13 @@ button, [role="button"], .select-none {
 }
 
 /* ------------------------------------------------------------------ */
-/* Fluid Horizontal Scroll Containers                                 */
+/* Fluid Horizontal Scroll Containers (extra alias)                   */
 /* ------------------------------------------------------------------ */
-.touch-scroll-x {
+.overflow-x-scroll-touch {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
+  touch-action: pan-x;
 }
 
 /* ------------------------------------------------------------------ */

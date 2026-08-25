@@ -127,15 +127,15 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Right: Quick Switcher & User Profile */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-          {/* Quick Role Switcher */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Quick Role Switcher / Strict RBAC Badge */}
           <QuickRoleSwitcher />
 
           {/* Search Trigger for Mobile/Tablet */}
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => setIsSearchOpen(true)}
-            className="md:hidden p-2 rounded-2xl bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 transition-colors shrink-0"
+            className="md:hidden h-9 w-9 flex items-center justify-center rounded-2xl bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 transition-colors shrink-0"
             aria-label="Open search"
           >
             <Search className="w-4 h-4" />
@@ -149,7 +149,7 @@ export const Header: React.FC<HeaderProps> = ({
                 setShowNotifications(!showNotifications);
                 setShowProfileMenu(false);
               }}
-              className="relative p-2 rounded-2xl bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 transition-colors shrink-0"
+              className="relative h-9 w-9 flex items-center justify-center rounded-2xl bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 transition-colors shrink-0"
               aria-label="Notifications"
             >
               <Bell className="w-4 h-4" />
@@ -168,7 +168,7 @@ export const Header: React.FC<HeaderProps> = ({
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ type: 'spring', stiffness: 450, damping: 30 }}
-                    className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1.5rem)] bg-white rounded-3xl shadow-2xl border border-slate-200 p-3.5 z-50 overscroll-contain"
+                    className="fixed left-3 right-3 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 bg-white rounded-3xl shadow-2xl border border-slate-200 p-3.5 z-50 overscroll-contain"
                   >
                     <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                       <span className="font-bold text-xs text-slate-900">Notifications</span>
@@ -210,7 +210,7 @@ export const Header: React.FC<HeaderProps> = ({
                 setShowProfileMenu(!showProfileMenu);
                 setShowNotifications(false);
               }}
-              className="flex items-center gap-2 p-1 sm:px-2 py-1 rounded-2xl bg-slate-100/80 hover:bg-slate-200/80 transition-colors border border-slate-200/50 shrink-0"
+              className="h-9 flex items-center gap-2 p-1 sm:px-2 rounded-2xl bg-slate-100/80 hover:bg-slate-200/80 transition-colors border border-slate-200/50 shrink-0"
               aria-label="User profile menu"
             >
               <UserAvatar
@@ -242,7 +242,7 @@ export const Header: React.FC<HeaderProps> = ({
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ type: 'spring', stiffness: 450, damping: 30 }}
-                    className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white rounded-3xl shadow-2xl border border-slate-200 p-2 z-50 overscroll-contain"
+                    className="fixed left-3 right-3 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:w-64 bg-white rounded-3xl shadow-2xl border border-slate-200 p-2 z-50 overscroll-contain"
                   >
                     <div className="px-3 py-2.5 border-b border-slate-100">
                       <div className="flex items-center justify-between gap-2">

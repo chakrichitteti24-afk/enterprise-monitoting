@@ -107,6 +107,15 @@ export const StudentDetailModal: React.FC = () => {
                       {selectedStudent.name}
                     </h2>
                     <StatusBadge status={selectedStudent.status} size="sm" />
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+                      role === 'DEAN'
+                        ? 'bg-blue-100 text-blue-800 border-blue-300'
+                        : role === 'MENTOR'
+                        ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                        : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    }`}>
+                      {role === 'DEAN' ? '👑 Dean Oversight' : role === 'MENTOR' ? '🧑‍🏫 Mentor Scoped' : '🎓 Personal Portfolio'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-500 mt-1 flex-wrap font-medium">
                     <span className="font-mono bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-800 font-bold">

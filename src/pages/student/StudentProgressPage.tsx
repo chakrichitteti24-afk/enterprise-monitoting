@@ -19,14 +19,14 @@ export const StudentProgressPage: React.FC = () => {
     student.difficultyStats.hard.total;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+      <div className="bg-white/85 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs">
         <div className="flex items-center gap-2 text-xs font-semibold text-blue-700 mb-1">
           <TrendingUp className="w-4 h-4" />
           <span>Curriculum Mastery Analytics</span>
         </div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">My DSA Progress & Roadmap</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">My DSA Progress & Roadmap</h1>
         <p className="text-xs md:text-sm text-slate-500 mt-1">
           Track individual mastery across all 8 modules prescribed by GKCE Department of Computer Science.
         </p>

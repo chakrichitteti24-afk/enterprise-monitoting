@@ -42,20 +42,25 @@ export const DeanDashboard: React.FC = () => {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      {/* Header Banner */}
+      {/* Header Banner with RBAC Tier 1 Badge */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/85 backdrop-blur-xl p-5 md:p-6 rounded-3xl border border-slate-200/80 shadow-xs">
         <div className="min-w-0">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold mb-2 border border-blue-100">
-            <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <span>Dean & Department Oversight</span>
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 text-xs font-bold border border-blue-200">
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span>Tier 1 &bull; Dean & Institutional Superuser</span>
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-black border border-amber-300 uppercase tracking-wider">
+              SUDO ROOT
+            </span>
           </div>
           <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight truncate">
-            GKCE DSA Student Monitoring Platform
+            GKCE DSA Institutional Monitoring Platform
           </h1>
           <p className="text-xs md:text-sm text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
-            <span>{totalStudents} engineering students across {totalTeams} mentored teams</span>
+            <span>{totalStudents} Enrolled Students across {totalTeams} Mentored Teams</span>
             <span>•</span>
-            <span>Academic Term 2025-26</span>
+            <span>Academic Term 2025–26</span>
           </p>
         </div>
 

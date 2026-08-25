@@ -85,16 +85,48 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '', onItemClick })
   return (
     <aside className={`w-64 glass-panel border-r border-slate-200/60 flex flex-col justify-between p-4 shrink-0 select-none ${className}`}>
       <div className="space-y-6">
-        {/* Role Identity Tag */}
-        <div className="px-3.5 py-3 rounded-2xl bg-white/70 border border-white/80 shadow-2xs">
-          <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
-            Active Workspace
-          </div>
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-xs font-bold text-slate-900 truncate pr-2">
-              {role === 'DEAN' ? 'Dean Overview' : role === 'MENTOR' ? `Mentor • ${currentUser.teamNumber || 'Team 07'}` : `Student • ${currentUser.studentData?.rollNo || '22CSE101'}`}
+        {/* Role Identity Tag & RBAC Tier Badge */}
+        <div className={`p-3.5 rounded-2xl border shadow-2xs transition-all ${
+          role === 'DEAN'
+            ? 'bg-blue-50/70 border-blue-200/80 text-blue-950'
+            : role === 'MENTOR'
+            ? 'bg-indigo-50/70 border-indigo-200/80 text-indigo-950'
+            : 'bg-emerald-50/70 border-emerald-200/80 text-emerald-950'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold tracking-wider opacity-70">
+              {role === 'DEAN' ? 'Tier 1 • Superuser' : role === 'MENTOR' ? 'Tier 2 • Mentor' : 'Tier 3 • Student'}
             </span>
-            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${role === 'DEAN' ? 'bg-blue-600 shadow-xs shadow-blue-500/50' : role === 'MENTOR' ? 'bg-indigo-600 shadow-xs shadow-indigo-500/50' : 'bg-emerald-500 shadow-xs shadow-emerald-500/50'}`} />
+            <span className={`px-1.5 py-0.2 text-[9px] font-black rounded-md uppercase border ${
+              role === 'DEAN'
+                ? 'bg-amber-100 text-amber-800 border-amber-300'
+                : role === 'MENTOR'
+                ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+            }`}>
+              {role === 'DEAN' ? 'SUDO' : role === 'MENTOR' ? 'COHORT' : 'STUDENT'}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-xs font-extrabold truncate pr-2">
+              {role === 'DEAN'
+                ? 'Institutional Dean'
+                : role === 'MENTOR'
+                ? `${currentUser.teamNumber || 'Team 07'}`
+                : `${currentUser.studentData?.rollNo || '24F81A0522'}`}
+            </span>
+            <span className={`w-2 h-2 rounded-full shrink-0 animate-pulse ${
+              role === 'DEAN' ? 'bg-blue-600' : role === 'MENTOR' ? 'bg-indigo-600' : 'bg-emerald-500'
+            }`} />
+          </div>
+          
+          <div className="text-[10px] opacity-75 truncate mt-0.5 font-medium">
+            {role === 'DEAN'
+              ? 'Scope: All 8 Institutional Teams'
+              : role === 'MENTOR'
+              ? `Mentor: ${currentUser.name}`
+              : `Student: ${currentUser.name}`}
           </div>
         </div>
 

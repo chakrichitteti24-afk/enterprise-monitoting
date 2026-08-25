@@ -19,15 +19,15 @@ export const DeanSettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white/85 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-blue-700 mb-1">
             <Settings className="w-4 h-4" />
             <span>Platform & Curriculum Configuration</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">System Settings</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">System Settings</h1>
           <p className="text-xs md:text-sm text-slate-500 mt-1">
             Manage institutional grading criteria, DSA curriculum milestones, and notification rules.
           </p>
@@ -44,7 +44,7 @@ export const DeanSettingsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
         {/* Academic Term Configuration */}
         <BentoCard
           title="Academic Term & Cohort Rules"

@@ -34,9 +34,23 @@ import { DeanExamsPage } from './pages/dean/DeanExamsPage';
 // Auth Page
 import { LoginPage } from './pages/auth/LoginPage';
 
+// Skeleton fallback for page transitions
+const PageSkeleton: React.FC = () => (
+  <div className="space-y-4 sm:space-y-5 animate-pulse">
+    <div className="bg-white/85 rounded-3xl border border-slate-200/80 p-5 sm:p-6 h-28 sm:h-32" />
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      {[1,2,3,4].map(i => (
+        <div key={i} className="bg-white/85 rounded-3xl border border-slate-200/80 h-24" />
+      ))}
+    </div>
+    <div className="bg-white/85 rounded-3xl border border-slate-200/80 h-48" />
+  </div>
+);
+
 const MainLayout: React.FC = () => {
   const { role, activeTab, setActiveTab, isAuthenticated, isLoadingAuth } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [pageKey, setPageKey] = useState(0);
 
   // Automatically sanitize activeTab when role changes to prevent stuck tabs
   React.useEffect(() => {
@@ -51,7 +65,9 @@ const MainLayout: React.FC = () => {
     } else if (role === 'STUDENT' && !validStudentTabs.includes(activeTab)) {
       setActiveTab('dashboard');
     }
-  }, [role, activeTab, setActiveTab]);
+    // Force re-mount on role change to clear any stale state
+    setPageKey(prev => prev + 1);
+  }, [role]);
 
   if (isLoadingAuth) {
     return (
@@ -174,14 +190,16 @@ const MainLayout: React.FC = () => {
         <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-3 sm:p-5 md:p-6 lg:p-8 pb-32 sm:pb-36 md:pb-8 touch-pan-y overscroll-contain">
           <AnimatePresence mode="wait">
             <motion.div
-              key={`${role}-${activeTab}`}
-              initial={{ opacity: 0, y: 8, scale: 0.994 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -6, scale: 0.994 }}
-              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              key={`${role}-${activeTab}-${pageKey}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
               className="w-full min-w-0"
             >
-              {renderContent()}
+              <React.Suspense fallback={<PageSkeleton />}>
+                {renderContent()}
+              </React.Suspense>
             </motion.div>
           </AnimatePresence>
         </main>

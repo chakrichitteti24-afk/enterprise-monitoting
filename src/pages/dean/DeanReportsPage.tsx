@@ -16,15 +16,15 @@ export const DeanReportsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* Header (Hidden on print) */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
+      <div className="bg-white/85 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-blue-700 mb-1">
             <FileText className="w-4 h-4" />
             <span>Academic Performance Audit</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Institutional Reports</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Institutional Reports</h1>
           <p className="text-xs md:text-sm text-slate-500 mt-1">
             Generate formal executive accreditation digests, PDF print documents, and audit logs.
           </p>
