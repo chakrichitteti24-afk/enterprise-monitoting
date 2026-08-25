@@ -94,7 +94,7 @@ USER_JSON = {
         {"name": "D. HIMA VARSHA", "roll_number": "24F81A0548"},
         {"name": "B.KISHORE NAIK", "roll_number": "24F81A0557"},
         {"name": "E. ANUSHA", "roll_number": "24F81A0508"},
-        {"name": "U. JHANAKI", "roll_number": "24F81A0550"}
+        {"name": "U. JANAKI", "roll_number": "24F81A0550"}
       ]
     },
     {

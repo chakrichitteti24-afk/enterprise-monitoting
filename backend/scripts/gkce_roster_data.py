@@ -59,7 +59,7 @@ STUDENTS_RAW = [
     {"name": "D. HIMA VARSHA", "roll": "24F81A0548", "team": 9, "class": "III B.Tech CSE A", "mentor": "Mrs. Manjusha"},
     {"name": "B. KISHORE NAIK", "roll": "24F81A0557", "team": 9, "class": "III B.Tech CSE A", "mentor": "Mrs. Manjusha"},
     {"name": "E. ANUSHA", "roll": "24F81A0508", "team": 9, "class": "III B.Tech CSE A", "mentor": "Mrs. Manjusha"},
-    {"name": "U. JHANAKI", "roll": "24F81A0550", "team": 9, "class": "III B.Tech CSE A", "mentor": "Mrs. Manjusha"},
+    {"name": "U. JANAKI", "roll": "24F81A0550", "team": 9, "class": "III B.Tech CSE A", "mentor": "Mrs. Manjusha"},
 
     # Group 10 (Team 10) - Mentor: Mrs. Teja
     {"name": "M. VENKATESWARLU", "roll": "24F81A05C7", "team": 10, "class": "II B.Tech CSE", "mentor": "Mrs. Teja"},

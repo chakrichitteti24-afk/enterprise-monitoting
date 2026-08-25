@@ -163,7 +163,7 @@ REAL_GKCE_STUDENTS = [
     {"name": "D. HIMA VARSHA", "roll": "24F81A0548", "team": 8},
     {"name": "B.KISHORE NAIK", "roll": "24F81A0557", "team": 8},
     {"name": "E. ANUSHA", "roll": "24F81A0508", "team": 8},
-    {"name": "U. JHANAKI", "roll": "24F81A0550", "team": 8},
+    {"name": "U. JANAKI", "roll": "24F81A0550", "team": 8},
 ]
 
 

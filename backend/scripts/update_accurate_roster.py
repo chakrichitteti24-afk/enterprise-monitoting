@@ -86,7 +86,7 @@ TEAMS_INPUT = [
       { "roll_no": "24F81A0548", "student_name": "D. HIMA VARSHA" },
       { "roll_no": "24F81A0557", "student_name": "B.KISHORE NAIK" },
       { "roll_no": "24F81A0508", "student_name": "E. ANUSHA" },
-      { "roll_no": "24F81A0550", "student_name": "U. JHANAKI" }
+      { "roll_no": "24F81A0550", "student_name": "U. JANAKI" }
     ]
   }
 ]

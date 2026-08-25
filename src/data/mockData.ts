@@ -3200,7 +3200,7 @@ export const ALL_STUDENTS: Student[] = [
   {
     "id": "student-39",
     "rollNo": "24F81A0550",
-    "name": "U. JHANAKI",
+    "name": "U. JANAKI",
     "email": "janaki24f81a0550@gkce.edu.in",
     "avatar": "https://images.unsplash.com/photo-1535713875899?w=150&auto=format&fit=crop&q=80",
     "teamId": "team-8",
@@ -3275,8 +3275,8 @@ export const ALL_STUDENTS: Student[] = [
     "submissionsHistory": [],
     "mentorFeedbackNotes": [],
     "verifiedProblemIds": [],
-    "leetcodeUsername": "u__jhanaki_0550",
-    "githubUsername": "ujhanaki_0550"
+    "leetcodeUsername": "u__janaki_0550",
+    "githubUsername": "ujanaki_0550"
   }
 ];
 
