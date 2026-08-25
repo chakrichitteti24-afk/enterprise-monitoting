@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { BentoCard } from '../../components/ui/BentoCard';
-import { Settings, Save, Bell, Shield, BookOpen, Clock, Check } from 'lucide-react';
+import { Settings, Save, Bell, Shield, BookOpen, Clock, Check, Building2, ExternalLink } from 'lucide-react';
 import { DSA_TOPICS } from '../../data/mockData';
+import { COMPANY_CONFIG } from '../../config';
 
 export const DeanSettingsPage: React.FC = () => {
   const { students, teams } = useAuth();
@@ -152,6 +153,42 @@ export const DeanSettingsPage: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </BentoCard>
+        </div>
+
+        {/* Platform Engineering & Vendor Details */}
+        <div className="col-span-1 md:col-span-2">
+          <BentoCard
+            title="Platform Engineering & Technology Partner"
+            subtitle="Institutional System Infrastructure"
+            icon={<Building2 className="w-4 h-4 text-emerald-600" />}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-900 text-sm">{COMPANY_CONFIG.name}</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Official Engineering Partner
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  {COMPANY_CONFIG.tagline}
+                </p>
+                <div className="text-[11px] text-slate-400 font-mono pt-0.5">
+                  Production URL: <span className="text-blue-700 font-semibold">{COMPANY_CONFIG.displayUrl}</span>
+                </div>
+              </div>
+
+              <a
+                href={COMPANY_CONFIG.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-2xs hover:shadow-xs group shrink-0"
+              >
+                <span>Visit {COMPANY_CONFIG.name}</span>
+                <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
+              </a>
             </div>
           </BentoCard>
         </div>

@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api"
     ENVIRONMENT: str = "development"
+    COMPANY_NAME: str = "CipherFlux Labs"
+    COMPANY_URL: str = "https://cipherflux-labs.vercel.app"
 
     # Database
     DATABASE_URL: str = os.environ.get("POSTGRES_URL") or os.environ.get("DATABASE_URL") or f"sqlite:///{DEFAULT_DB_PATH}"

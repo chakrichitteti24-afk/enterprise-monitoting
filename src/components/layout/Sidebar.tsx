@@ -14,7 +14,9 @@ import {
   User,
   Layers,
   Award,
+  ExternalLink,
 } from 'lucide-react';
+import { COMPANY_CONFIG } from '../../config';
 
 interface SidebarProps {
   className?: string;
@@ -166,6 +168,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '', onItemClick })
               Live Sync
             </span>
           </div>
+        </div>
+
+        {/* Company Attribution */}
+        <div className="text-center pt-1">
+          <a
+            href={COMPANY_CONFIG.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-slate-400 hover:text-blue-600 transition-colors inline-flex items-center gap-1 font-medium group"
+          >
+            <span>Engineered by</span>
+            <span className="font-semibold text-slate-600 group-hover:text-blue-600 transition-colors">
+              {COMPANY_CONFIG.name}
+            </span>
+            <ExternalLink className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100 transition-opacity" />
+          </a>
         </div>
       </div>
     </aside>

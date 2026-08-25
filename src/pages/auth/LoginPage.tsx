@@ -16,6 +16,7 @@ import {
   Fingerprint,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { COMPANY_CONFIG } from '../../config';
 
 interface LoginPageProps {
   onLoginSuccess: () => void;
@@ -325,8 +326,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         </div>
 
         {/* Footer */}
-        <div className="text-center text-[10px] text-slate-500">
-          Gokula Krishna College of Engineering • Affiliated to JNTUA
+        <div className="text-center text-[10px] text-slate-500 space-y-1">
+          <div>Gokula Krishna College of Engineering • Affiliated to JNTUA</div>
+          <div className="text-slate-400">
+            Platform engineered by{' '}
+            <a
+              href={COMPANY_CONFIG.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 font-semibold underline underline-offset-2 transition-colors"
+            >
+              {COMPANY_CONFIG.name}
+            </a>
+          </div>
         </div>
       </div>
     </div>

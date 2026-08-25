@@ -111,5 +111,13 @@ docker-compose up -d --build
 
 ---
 
+## 🏢 Platform Engineering & Technology Partner
+
+- **Engineered by:** **[CipherFlux Labs](https://cipherflux-labs.vercel.app)**
+- **Website / Portfolio:** [cipherflux-labs.vercel.app](https://cipherflux-labs.vercel.app)
+
+---
+
 ## 📄 License
 Academic and institutional evaluation license for Gokula Krishna College of Engineering (GKCE).
+Developed and maintained in collaboration with [CipherFlux Labs](https://cipherflux-labs.vercel.app).
