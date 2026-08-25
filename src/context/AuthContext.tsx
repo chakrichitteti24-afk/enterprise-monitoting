@@ -69,12 +69,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper to synchronously restore user and auth state on initial mount
+const getInitialAuthState = (): { user: CurrentUser; isAuth: boolean } => {
+  try {
+    const rawProfile = localStorage.getItem('gkce_user_profile_v1');
+    const token = getStoredToken();
+    if (rawProfile) {
+      const parsed = JSON.parse(rawProfile);
+      if (parsed && parsed.email && parsed.role) {
+        return { user: parsed, isAuth: true };
+      }
+    }
+    if (token) {
+      return { user: DEAN_USER, isAuth: true };
+    }
+  } catch {}
+  return { user: DEAN_USER, isAuth: false };
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<CurrentUser>(DEAN_USER);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return Boolean(getStoredToken());
-  });
-  const [isLoadingAuth, setIsLoadingAuth] = useState<boolean>(true);
+  const initialAuth = getInitialAuthState();
+  const [currentUser, setCurrentUser] = useState<CurrentUser>(initialAuth.user);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(initialAuth.isAuth);
+  const [isLoadingAuth, setIsLoadingAuth] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -421,32 +438,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Restore session from token on mount
+  // Persist user profile to localStorage whenever it changes
+  useEffect(() => {
+    if (isAuthenticated && currentUser?.email) {
+      try {
+        localStorage.setItem('gkce_user_profile_v1', JSON.stringify({
+          id: currentUser.id,
+          name: currentUser.name,
+          email: currentUser.email,
+          role: currentUser.role,
+          avatar: currentUser.avatar,
+          title: currentUser.title,
+          teamId: currentUser.teamId,
+          teamNumber: currentUser.teamNumber,
+          roll_number: currentUser.studentData?.rollNo,
+          rollNo: currentUser.studentData?.rollNo,
+        }));
+      } catch {}
+    }
+  }, [isAuthenticated, currentUser]);
+
+  // Restore session from token and local cache on mount
   useEffect(() => {
     const restoreSession = async () => {
       const token = getStoredToken();
-      if (!token) {
+      const cachedProfileRaw = localStorage.getItem('gkce_user_profile_v1');
+
+      if (!token && !cachedProfileRaw) {
         setIsAuthenticated(false);
         setIsLoadingAuth(false);
         return;
       }
 
-      try {
-        const me = await getMeApi();
-        if (me && me.role) {
-          mapAndSetUser(me.role, me);
-          setIsAuthenticated(true);
-        } else {
-          clearStoredToken();
-          setIsAuthenticated(false);
-        }
-      } catch (err) {
-        console.warn('Could not restore auth token, requiring login', err);
-        clearStoredToken();
-        setIsAuthenticated(false);
-      } finally {
-        setIsLoadingAuth(false);
+      // If we have a cached profile, restore user state immediately
+      let restoredFromCache = false;
+      if (cachedProfileRaw) {
+        try {
+          const cached = JSON.parse(cachedProfileRaw);
+          if (cached?.role && cached?.email) {
+            mapAndSetUser(cached.role, {
+              ...cached,
+              roll_number: cached.roll_number || cached.rollNo,
+            });
+            setIsAuthenticated(true);
+            restoredFromCache = true;
+          }
+        } catch {}
       }
+
+      // Try background re-validation with backend if we have a token
+      if (token && !token.startsWith('gkce_local_token_')) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+          const me = await getMeApi(controller.signal);
+          clearTimeout(timeoutId);
+
+          if (me && me.role) {
+            mapAndSetUser(me.role, me);
+            setIsAuthenticated(true);
+          }
+        } catch (err: any) {
+          if (restoredFromCache) {
+            console.info('[Auth] Backend unreachable, continuing with active local session.');
+          } else if (err?.message?.includes('401')) {
+            clearStoredToken();
+            try {
+              localStorage.removeItem('gkce_user_profile_v1');
+            } catch {}
+            setIsAuthenticated(false);
+          }
+        }
+      }
+
+      setIsLoadingAuth(false);
     };
 
     restoreSession();
@@ -457,42 +523,73 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSelectedTeam(null);
     setActiveTab('dashboard');
 
+    let newUser: CurrentUser;
+
     if (role === 'DEAN') {
-      setCurrentUser(DEAN_USER);
+      newUser = DEAN_USER;
     } else if (role === 'MENTOR') {
-      const teamNum = userPayload?.team_number || 'Team 07';
+      const teamNum = userPayload?.team_number || userPayload?.assignedTeamNumber || 'Team 07';
       const foundMentor = mentors.find(
-        m => m.assignedTeamNumber === teamNum || m.email === userPayload?.email
+        m =>
+          m.assignedTeamNumber === teamNum ||
+          m.email?.toLowerCase() === userPayload?.email?.toLowerCase() ||
+          m.id === userPayload?.id
       ) || DEFAULT_MENTOR_USER.mentorData!;
 
-      setCurrentUser({
+      newUser = {
         id: foundMentor.id,
         name: userPayload?.name || foundMentor.name,
         email: userPayload?.email || foundMentor.email,
         role: 'MENTOR',
         title: 'Faculty Mentor, GKCE',
-        avatar: userPayload?.avatar_url || foundMentor.avatar,
+        avatar: userPayload?.avatar_url || userPayload?.avatar || foundMentor.avatar,
         mentorData: foundMentor,
         teamId: foundMentor.assignedTeamId,
         teamNumber: foundMentor.assignedTeamNumber,
-      });
-    } else if (role === 'STUDENT') {
-      const rollNo = userPayload?.roll_number || '22CSE031';
+      };
+    } else {
+      const rollNo = userPayload?.roll_number || userPayload?.rollNo || '24F81A0501';
       const foundStudent = students.find(
-        s => s.rollNo === rollNo || s.email === userPayload?.email
+        s =>
+          s.rollNo?.toLowerCase() === rollNo?.toLowerCase() ||
+          s.email?.toLowerCase() === userPayload?.email?.toLowerCase() ||
+          s.id === userPayload?.id
       ) || DEFAULT_STUDENT_USER.studentData!;
 
-      setCurrentUser({
+      newUser = {
         id: foundStudent.id,
         name: userPayload?.name || foundStudent.name,
         email: userPayload?.email || foundStudent.email,
         role: 'STUDENT',
         title: 'B.Tech Student, GKCE',
-        avatar: userPayload?.avatar_url || foundStudent.avatar,
+        avatar: userPayload?.avatar_url || userPayload?.avatar || foundStudent.avatar,
         studentData: foundStudent,
         teamId: foundStudent.teamId,
         teamNumber: foundStudent.teamNumber,
-      });
+      };
+    }
+
+    setCurrentUser(newUser);
+
+    // Save profile to localStorage
+    try {
+      localStorage.setItem('gkce_user_profile_v1', JSON.stringify({
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        avatar: newUser.avatar,
+        title: newUser.title,
+        teamId: newUser.teamId,
+        teamNumber: newUser.teamNumber,
+        roll_number: newUser.studentData?.rollNo,
+        rollNo: newUser.studentData?.rollNo,
+      }));
+    } catch {}
+
+    // Ensure stored token exists so browser reloads stay authenticated
+    if (!getStoredToken()) {
+      setStoredToken(`gkce_local_token_${role.toLowerCase()}_${Date.now()}`);
     }
   };
 
@@ -604,6 +701,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     clearStoredToken();
+    try {
+      localStorage.removeItem('gkce_user_profile_v1');
+    } catch {}
     setIsAuthenticated(false);
     setSelectedStudent(null);
     setSelectedTeam(null);

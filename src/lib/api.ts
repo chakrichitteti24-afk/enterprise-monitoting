@@ -66,7 +66,8 @@ export async function apiRequest<T>(
     headers,
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && endpoint !== '/auth/login') {
+    // Only clear stored token on protected endpoint auth failure
     clearStoredToken();
   }
 
@@ -95,8 +96,8 @@ export async function loginApi(email: string, password: string): Promise<LoginRe
   return data;
 }
 
-export async function getMeApi(): Promise<LoginResponse['user']> {
-  return apiRequest<LoginResponse['user']>('/auth/me');
+export async function getMeApi(signal?: AbortSignal): Promise<LoginResponse['user']> {
+  return apiRequest<LoginResponse['user']>('/auth/me', { signal });
 }
 
 // -------------------------------------------------------------
