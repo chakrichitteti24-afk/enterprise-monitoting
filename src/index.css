@@ -93,31 +93,51 @@
 .safe-right { padding-right: max(0px, env(safe-area-inset-right)); }
 
 /* ------------------------------------------------------------------ */
-/* Touch Optimizations                                                   */
+/* Touch Optimizations & Touch Bug Fixes                              */
 /* ------------------------------------------------------------------ */
-button, a, [role="button"] {
+button, a, select, input, textarea, [role="button"], [tabindex="0"] {
   touch-action: manipulation;
-  /* Minimum 44px touch target height where needed */
-  min-height: unset;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Prevent iOS input auto-zoom (16px floor prevents it) */
+/* Prevent accidental text selection during fast taps */
+button, [role="button"], .select-none {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Fluid Touch Momentum Scrolling */
+.touch-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+}
+
+.touch-scroll-y {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
+}
+
+/* Prevent iOS input auto-zoom on focus (16px floor) */
 @media (max-width: 768px) {
   input, select, textarea {
     font-size: 16px !important;
+    line-height: 1.35 !important;
   }
 }
 
-/* ------------------------------------------------------------------ */
-/* Mobile-first Card & Container Overrides                              */
-/* ------------------------------------------------------------------ */
-
-/* Remove hover lift on touch screens (no hover needed) */
-@media (hover: none) {
+/* Remove hover stickiness on touch screens */
+@media (hover: none) and (pointer: coarse) {
   .glass-card-hover:hover {
     transform: none;
     box-shadow: none;
     border-color: inherit;
+  }
+  button:hover {
+    filter: none;
   }
 }
 

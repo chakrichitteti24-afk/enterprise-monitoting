@@ -170,8 +170,8 @@ const MainLayout: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* Main Content Area — scrollable column */}
-        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-3 sm:p-5 md:p-6 lg:p-8 pb-24 md:pb-8">
+        {/* Main Content Area — scrollable column with ample mobile bottom spacing */}
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-3 sm:p-5 md:p-6 lg:p-8 pb-32 sm:pb-36 md:pb-8 touch-pan-y overscroll-contain">
           <AnimatePresence mode="wait">
             <motion.div
               key={`${role}-${activeTab}`}

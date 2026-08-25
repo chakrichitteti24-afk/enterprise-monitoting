@@ -325,12 +325,12 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
                       return (
                         <td key={problem.id} className="py-3 px-3 text-center">
                           <motion.button
-                            whileHover={canVerify ? { scale: 1.1 } : {}}
-                            whileTap={canVerify ? { scale: 0.9 } : {}}
+                            whileHover={canVerify ? { scale: 1.08 } : {}}
+                            whileTap={canVerify ? { scale: 0.92 } : {}}
                             animate={isAnimating ? { scale: [1, 1.25, 1] } : {}}
                             onClick={() => handleCellToggle(st, problem)}
                             disabled={!canVerify}
-                            className={`w-10 h-10 rounded-2xl mx-auto flex items-center justify-center transition-all cursor-pointer ${
+                            className={`w-11 h-11 sm:w-10 sm:h-10 rounded-2xl mx-auto flex items-center justify-center transition-all cursor-pointer touch-manipulation select-none active:opacity-85 ${
                               isVerified
                                 ? 'bg-emerald-500 text-white shadow-xs shadow-emerald-500/30'
                                 : 'bg-slate-100 hover:bg-slate-200 text-slate-400 border border-slate-200/80'
@@ -338,13 +338,14 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
                             title={
                               isVerified
                                 ? `Verified: ${problem.title} for ${st.name}`
-                                : `Click to verify ${problem.title}`
+                                : `Click to verify: ${problem.title} for ${st.name}`
                             }
+                            aria-label={`Verify ${problem.title} for ${st.name}`}
                           >
                             {isVerified ? (
-                              <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
+                              <CheckCircle2 className="w-5 h-5 sm:w-4 sm:h-4 text-white shrink-0" />
                             ) : (
-                              <Circle className="w-4 h-4 text-slate-300 stroke-[1.5]" />
+                              <Circle className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-slate-400/80 shrink-0" />
                             )}
                           </motion.button>
                         </td>
