@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { QuickRoleSwitcher } from '../ui/QuickRoleSwitcher';
 import { UserAvatar } from '../ui/UserAvatar';
+import { AppLogo } from '../ui/AppLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -90,13 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
             }}
             className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group shrink-0"
           >
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 tracking-tighter shrink-0"
-            >
-              GK
-            </motion.div>
+            <AppLogo size="md" showGlow animated />
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-slate-900 tracking-tight text-sm sm:text-base group-hover:text-blue-700 transition-colors">

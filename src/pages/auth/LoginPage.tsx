@@ -16,6 +16,7 @@ import {
   Fingerprint,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AppLogo } from '../../components/ui/AppLogo';
 import { COMPANY_CONFIG } from '../../config';
 
 interface LoginPageProps {
@@ -136,10 +137,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         {/* Security Shield & Header */}
         <div className="text-center space-y-2.5">
           <div className="relative inline-block">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700 text-white flex items-center justify-center font-black text-xl shadow-xl shadow-blue-600/30 mx-auto tracking-tight border border-blue-400/40">
-              GK
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center text-white" title="Encrypted Connection">
+            <AppLogo size="xl" showGlow animated />
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center text-white shadow-xs" title="Encrypted TLS 1.3 Connection">
               <Lock className="w-2.5 h-2.5" />
             </div>
           </div>
