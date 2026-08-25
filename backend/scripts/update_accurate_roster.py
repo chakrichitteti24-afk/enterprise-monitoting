@@ -108,6 +108,8 @@ MENTOR_EMAILS = {
 }
 
 def clean_student_name_for_email(name: str) -> str:
+    if "JHANAKI" in name.upper() or "JANAKI" in name.upper():
+        return "janaki"
     clean = name.replace('.', ' ').strip()
     parts = clean.split()
     first_part = parts[0].lower()

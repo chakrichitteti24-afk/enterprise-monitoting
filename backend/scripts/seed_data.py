@@ -261,13 +261,16 @@ def seed(db_session: Session = None):
         student_profiles = []
 
         def make_clean_student_email(roll: str, name: str) -> str:
-            clean = name.replace('.', ' ').strip()
-            parts = clean.split()
-            first_part = parts[0].lower()
-            if len(first_part) <= 2 and len(parts) > 1:
-                prefix = parts[1].lower()
+            if "JHANAKI" in name.upper() or "JANAKI" in name.upper():
+                prefix = "janaki"
             else:
-                prefix = first_part
+                clean = name.replace('.', ' ').strip()
+                parts = clean.split()
+                first_part = parts[0].lower()
+                if len(first_part) <= 2 and len(parts) > 1:
+                    prefix = parts[1].lower()
+                else:
+                    prefix = first_part
             return f"{prefix}{roll.lower()}@gkce.edu.in"
 
         for idx, s_info in enumerate(REAL_GKCE_STUDENTS, 1):

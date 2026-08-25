@@ -3201,7 +3201,7 @@ export const ALL_STUDENTS: Student[] = [
     "id": "student-39",
     "rollNo": "24F81A0550",
     "name": "U. JHANAKI",
-    "email": "jhanaki24f81a0550@gkce.edu.in",
+    "email": "janaki24f81a0550@gkce.edu.in",
     "avatar": "https://images.unsplash.com/photo-1535713875899?w=150&auto=format&fit=crop&q=80",
     "teamId": "team-8",
     "teamNumber": "Team 08",
