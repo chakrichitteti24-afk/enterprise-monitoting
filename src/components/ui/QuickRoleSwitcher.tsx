@@ -33,21 +33,21 @@ export const QuickRoleSwitcher: React.FC = () => {
         {role === 'DEAN' ? (
           <div className="flex items-center gap-1">
             <Shield className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-            <span className="hidden xs:inline-block px-1 py-0.2 rounded bg-blue-500/25 text-blue-300 text-[9px] font-extrabold uppercase tracking-wider border border-blue-400/30">
+            <span className="hidden sm:inline-block px-1 py-0.5 rounded bg-blue-500/25 text-blue-300 text-[9px] font-extrabold uppercase tracking-wider border border-blue-400/30">
               ROOT
             </span>
           </div>
         ) : role === 'MENTOR' ? (
           <div className="flex items-center gap-1">
             <UserCheck className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-            <span className="hidden xs:inline-block px-1 py-0.2 rounded bg-indigo-500/25 text-indigo-300 text-[9px] font-extrabold uppercase tracking-wider border border-indigo-400/30">
+            <span className="hidden sm:inline-block px-1 py-0.5 rounded bg-indigo-500/25 text-indigo-300 text-[9px] font-extrabold uppercase tracking-wider border border-indigo-400/30">
               COHORT
             </span>
           </div>
         ) : (
           <div className="flex items-center gap-1">
             <GraduationCap className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span className="hidden xs:inline-block px-1 py-0.2 rounded bg-emerald-500/25 text-emerald-300 text-[9px] font-extrabold uppercase tracking-wider border border-emerald-400/30">
+            <span className="hidden sm:inline-block px-1 py-0.5 rounded bg-emerald-500/25 text-emerald-300 text-[9px] font-extrabold uppercase tracking-wider border border-emerald-400/30">
               STUDENT
             </span>
           </div>

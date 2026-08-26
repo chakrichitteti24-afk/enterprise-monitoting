@@ -264,7 +264,7 @@ export const DeanExamsPage: React.FC = () => {
           </div>
           <h4 className="text-sm font-bold text-slate-900">Foundational Logic & Basic Math</h4>
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            Elementary positive inputs, small arrays ($N \le 100$), basic loop checks, and straightforward single-pass algorithms.
+            Elementary positive inputs, small arrays (N ≤ 100), basic loop checks, and straightforward single-pass algorithms.
           </p>
         </div>
 
@@ -290,7 +290,7 @@ export const DeanExamsPage: React.FC = () => {
           </div>
           <h4 className="text-sm font-bold text-slate-900">Trees, Graphs & 2D DP</h4>
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            Tier-1 product benchmark cases: deep tree recursions, cyclic graphs, 2D DP matrices, and $10^5$ constraint stress vectors.
+            Tier-1 product benchmark cases: deep tree recursions, cyclic graphs, 2D DP matrices, and 10⁵ constraint stress vectors.
           </p>
         </div>
       </div>

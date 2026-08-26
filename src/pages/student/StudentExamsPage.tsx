@@ -368,7 +368,7 @@ export const StudentExamsPage: React.FC = () => {
               className="relative w-full max-w-6xl bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 z-10 flex flex-col max-h-[96vh] overflow-hidden text-white"
             >
               {/* Top Arena Header */}
-              <div className="p-4 sm:p-5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-950/80">
+              <div className="p-4 sm:p-5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 sm:gap-3 bg-slate-950/80">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center font-bold text-xs font-mono shrink-0">
                     W{String(activeLiveExam.weekNumber).padStart(2, '0')}
@@ -390,20 +390,20 @@ export const StudentExamsPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 shrink-0">
                   {/* Timer Pill */}
-                  <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-300 font-mono font-bold text-xs sm:text-sm">
-                    <Clock className="w-4 h-4 animate-pulse" />
+                  <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-300 font-mono font-bold text-xs sm:text-sm shrink-0">
+                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" />
                     <span>{formatTimer(timeLeftSeconds)}</span>
                   </div>
 
                   <button
                     onClick={() => setShowSubmitConfirmModal(true)}
                     disabled={isSubmitting}
-                    className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-500/30 flex items-center gap-1.5 transition-all"
+                    className="px-3 sm:px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-500/30 flex items-center gap-1 sm:gap-1.5 transition-all shrink-0"
                   >
-                    <CheckCheck className="w-4 h-4" />
-                    <span>Finish & Submit</span>
+                    <CheckCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span>Submit</span>
                   </button>
                 </div>
               </div>

@@ -240,7 +240,7 @@ export const StudentProfilePage: React.FC = () => {
               {/* Preset Avatars */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-2">Choose Avatar Preset</label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2">
                   {AVATAR_PRESETS.map((preset, idx) => (
                     <button
                       key={idx}
@@ -252,7 +252,7 @@ export const StudentProfilePage: React.FC = () => {
                           : 'border-transparent hover:border-slate-300'
                       }`}
                     >
-                      <img src={preset} alt={`Preset ${idx + 1}`} className="w-full h-11 sm:h-12 rounded-xl object-cover" />
+                      <img src={preset} alt={`Preset ${idx + 1}`} className="w-full h-16 sm:h-12 rounded-xl object-cover" />
                       {previewUrl === preset && (
                         <div className="absolute inset-0 bg-blue-600/20 flex items-center justify-center">
                           <Check className="w-4 h-4 text-white drop-shadow-md" />

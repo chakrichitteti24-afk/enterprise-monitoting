@@ -160,21 +160,21 @@ export const DeanAnalyticsPage: React.FC = () => {
       >
         <div className="space-y-2.5 pt-2">
           {teams.map((tm) => (
-            <div key={tm.id} className="flex items-center gap-3 text-xs">
-              <span className="w-16 font-bold text-slate-900 font-mono shrink-0">
+            <div key={tm.id} className="flex items-center gap-2 sm:gap-3 text-xs">
+              <span className="w-14 sm:w-16 font-bold text-slate-900 font-mono shrink-0 truncate">
                 {tm.teamNumber}
               </span>
-              <span className="w-32 text-slate-500 truncate hidden sm:block shrink-0">
+              <span className="w-24 sm:w-32 text-slate-500 truncate shrink-0 hidden sm:block">
                 {tm.mentorName}
               </span>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <ProgressBar
                   percentage={tm.avgProgress}
                   height="xs"
                   color={tm.avgProgress >= 85 ? 'emerald' : tm.avgProgress >= 70 ? 'indigo' : 'amber'}
                 />
               </div>
-              <span className="w-12 text-right font-bold text-slate-900 shrink-0 font-mono">
+              <span className="w-10 sm:w-12 text-right font-bold text-slate-900 shrink-0 font-mono">
                 {tm.avgProgress}%
               </span>
             </div>
