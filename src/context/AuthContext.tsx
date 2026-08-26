@@ -500,14 +500,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setIsAuthenticated(true);
           }
         } catch (err: any) {
-          if (restoredFromCache) {
-            console.info('[Auth] Backend unreachable, continuing with active local session.');
-          } else if (err?.message?.includes('401')) {
+          const is401 = err?.message?.includes('401') || err?.message?.toLowerCase().includes('unauthorized') || err?.message?.toLowerCase().includes('invalid');
+          if (is401) {
             clearStoredToken();
-            try {
-              localStorage.removeItem('gkce_user_profile_v1');
-            } catch {}
-            setIsAuthenticated(false);
+            if (!restoredFromCache) {
+              try {
+                localStorage.removeItem('gkce_user_profile_v1');
+              } catch {}
+              setIsAuthenticated(false);
+            }
+          } else if (restoredFromCache) {
+            console.info('[Auth] Backend sync deferred, continuing with active local session.');
           }
         }
       }
