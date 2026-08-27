@@ -80,12 +80,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setErrorMessage(null);
 
     const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
     if (!trimmedEmail) {
       setErrorMessage('Please enter your institutional email address or roll number.');
       return;
     }
 
-    if (!password) {
+    if (!trimmedPassword) {
       setErrorMessage('Please enter your password to proceed.');
       return;
     }
@@ -93,31 +95,35 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setIsSubmitting(true);
 
     try {
-      await loginWithCredentials(trimmedEmail, password);
+      await loginWithCredentials(trimmedEmail, trimmedPassword);
       setFailedAttempts(0);
       onLoginSuccess();
     } catch (err: any) {
       const nextFail = failedAttempts + 1;
       setFailedAttempts(nextFail);
 
-      if (nextFail >= 4) {
-        setLockoutSeconds(30);
-        setErrorMessage('Excessive invalid attempts. Security lockdown active for 30 seconds.');
+      if (nextFail >= 6) {
+        setLockoutSeconds(15);
+        setErrorMessage('Security cooldown active for 15 seconds. Please use the quick-fill pills below.');
       } else {
         const msg = err?.message || '';
         if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-          setErrorMessage('Unable to reach GKCE authentication server. Please check connection.');
+          setErrorMessage('Unable to reach GKCE authentication server. Please check connection or use standard demo credentials.');
         } else {
           setErrorMessage(
-            `Authentication failed. Please verify institutional credentials. (${4 - nextFail} attempt${
-              4 - nextFail === 1 ? '' : 's'
-            } remaining before cooldown)`
+            msg || 'Authentication failed. Please verify roll number/email and password (e.g. gkce@1234 or Mentor@GKCE2026).'
           );
         }
       }
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleQuickFill = (fillEmail: string, fillPass: string) => {
+    setEmail(fillEmail);
+    setPassword(fillPass);
+    setErrorMessage(null);
   };
 
   return (
@@ -318,8 +324,50 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </button>
         </form>
 
+        {/* Quick Credentials / Fast Demo Fillers */}
+        <div className="p-3 bg-slate-950/70 rounded-2xl border border-slate-800 space-y-2">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+              Fast Role Sign-In (Click to Fill):
+            </span>
+            <span className="text-emerald-400 text-[10px] font-mono">1-Tap Fill</span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5 text-xs">
+            <button
+              type="button"
+              onClick={() => handleQuickFill('root@gkce.edu.in', 'gkce@1234')}
+              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-left transition-all hover:border-blue-500 group"
+            >
+              <div className="text-[11px] font-bold text-white group-hover:text-blue-400">👑 Dean / Root</div>
+              <div className="text-[9px] text-slate-400 font-mono truncate">root@gkce...</div>
+              <div className="text-[9px] text-slate-500 font-mono">gkce@1234</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickFill('dr.krishna@gkce.edu.in', 'Mentor@GKCE2026')}
+              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-left transition-all hover:border-indigo-500 group"
+            >
+              <div className="text-[11px] font-bold text-white group-hover:text-indigo-400">👨‍🏫 Mentor</div>
+              <div className="text-[9px] text-slate-400 font-mono truncate">dr.krishna...</div>
+              <div className="text-[9px] text-slate-500 font-mono">Mentor@...</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickFill('24f81a0501@gkce.edu.in', 'gkce@1234')}
+              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-left transition-all hover:border-emerald-500 group"
+            >
+              <div className="text-[11px] font-bold text-white group-hover:text-emerald-400">🎓 Student</div>
+              <div className="text-[9px] text-slate-400 font-mono truncate">24f81a0501</div>
+              <div className="text-[9px] text-slate-500 font-mono">gkce@1234</div>
+            </button>
+          </div>
+        </div>
+
         {/* Security Compliance Seal */}
-        <div className="pt-2 border-t border-slate-800/80 flex items-center justify-center gap-2 text-[10px] text-slate-400">
+        <div className="pt-1 border-t border-slate-800/80 flex items-center justify-center gap-2 text-[10px] text-slate-400">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
           <span>Strict 3-Tier RBAC • ISO/IEC 27001 Security Standard</span>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { BentoCard } from '../../components/ui/BentoCard';
-import { Settings, Save, Bell, Shield, BookOpen, Clock, Check, Building2, ExternalLink } from 'lucide-react';
+import { Settings, Save, Shield, BookOpen, Clock, Check, Building2, ExternalLink } from 'lucide-react';
 import { DSA_TOPICS } from '../../data/mockData';
 import { COMPANY_CONFIG } from '../../config';
 

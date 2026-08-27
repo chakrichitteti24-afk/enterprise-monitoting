@@ -76,17 +76,23 @@ export const MentorProgressPage: React.FC = () => {
           subtitle="Live completion percentage per topic across 100 curriculum problems"
           icon={<BookOpen className="w-4 h-4 text-blue-600" />}
         >
-          <div className="overflow-x-auto pt-2">
-            <table className="w-full text-left text-xs border-collapse">
+          {/* Mobile Swipe Indicator */}
+          <div className="sm:hidden px-3 py-1.5 bg-blue-50/70 rounded-xl border border-blue-100/60 flex items-center justify-between text-[11px] text-blue-700 font-semibold mb-2">
+            <span>👈 Swipe horizontally to view all 8 topics 👉</span>
+            <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-blue-200">8 Topics</span>
+          </div>
+
+          <div className="overflow-x-auto pt-1 touch-scroll-x custom-scrollbar">
+            <table className="w-full text-left text-xs border-collapse min-w-[680px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  <th className="py-3 px-4">Student</th>
+                  <th className="py-3 px-3 sm:px-4 sticky left-0 bg-slate-50 z-10 sticky-col-shadow w-36 sm:w-48">Student</th>
                   {DSA_TOPICS.map((topic) => (
-                    <th key={topic} className="py-3 px-3 text-center min-w-[90px]">
+                    <th key={topic} className="py-3 px-2 sm:px-3 text-center min-w-[75px] sm:min-w-[90px]">
                       {topic}
                     </th>
                   ))}
-                  <th className="py-3 px-4 text-right">Overall</th>
+                  <th className="py-3 px-3 sm:px-4 text-right">Overall</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -94,10 +100,10 @@ export const MentorProgressPage: React.FC = () => {
                   <tr
                     key={st.id}
                     onClick={() => setSelectedStudent(st)}
-                    className="hover:bg-slate-50 transition-colors cursor-pointer"
+                    className="hover:bg-slate-50 transition-colors cursor-pointer group"
                   >
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2.5">
+                    <td className="py-2.5 px-2 sm:py-3 sm:px-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 sticky-col-shadow border-r border-slate-100 w-36 sm:w-48">
+                      <div className="flex items-center gap-2 min-w-0">
                         <UserAvatar
                           src={st.avatar}
                           name={st.name}
@@ -105,8 +111,8 @@ export const MentorProgressPage: React.FC = () => {
                           role="STUDENT"
                           size="xs"
                         />
-                        <div>
-                          <div className="font-bold text-slate-900 truncate max-w-[130px]">{st.name}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-bold text-slate-900 truncate max-w-[85px] sm:max-w-[130px]">{st.name}</div>
                           <div className="text-[10px] text-slate-400 font-mono">{st.rollNo}</div>
                         </div>
                       </div>
@@ -115,7 +121,7 @@ export const MentorProgressPage: React.FC = () => {
                     {DSA_TOPICS.map((topic) => {
                       const perc = st.topicProgress[topic]?.percentage || 0;
                       return (
-                        <td key={topic} className="py-3 px-3 text-center">
+                        <td key={topic} className="py-3 px-2 sm:px-3 text-center">
                           <span
                             className={`inline-block px-2 py-0.5 rounded-md font-mono text-[11px] font-semibold ${
                               perc >= 80
@@ -133,7 +139,7 @@ export const MentorProgressPage: React.FC = () => {
                       );
                     })}
 
-                    <td className="py-3 px-4 text-right font-bold text-slate-900">
+                    <td className="py-3 px-3 sm:px-4 text-right font-bold text-slate-900">
                       <span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md font-mono">
                         {st.progress}%
                       </span>

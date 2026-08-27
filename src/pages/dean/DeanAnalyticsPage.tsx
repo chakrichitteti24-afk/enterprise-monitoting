@@ -4,10 +4,10 @@ import { BentoCard } from '../../components/ui/BentoCard';
 import { ProgressRing } from '../../components/ui/ProgressRing';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { DSA_TOPICS } from '../../data/mockData';
-import { BarChart3, TrendingUp, Users, Target, Award, PieChart, Activity } from 'lucide-react';
+import { BarChart3, TrendingUp, Target } from 'lucide-react';
 
 export const DeanAnalyticsPage: React.FC = () => {
-  const { students, teams, mentors } = useAuth();
+  const { students, teams } = useAuth();
 
   const totalProblemsSolved = students.reduce((acc, s) => acc + s.solved, 0);
   const avgProgress = Math.round(students.reduce((acc, s) => acc + s.progress, 0) / Math.max(1, students.length));

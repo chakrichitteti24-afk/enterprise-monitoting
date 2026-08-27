@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect } from 'react';
+import React, { useRef, useMemo } from 'react';
 
 interface CodeEditorWithSyntaxProps {
   value: string;

@@ -1,27 +1,17 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { WeeklyExam, StudentExamSubmission, Student } from '../../types';
+import { StudentExamSubmission, Student } from '../../types';
 import { getExamTier } from '../../data/mockExams';
-import { BentoCard } from '../../components/ui/BentoCard';
 import { UserAvatar } from '../../components/ui/UserAvatar';
-import { StatusBadge } from '../../components/ui/StatusBadge';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Award,
-  Calendar,
   Clock,
   CheckCircle2,
-  AlertCircle,
   Users,
-  Eye,
-  TrendingUp,
-  FileText,
   ChevronRight,
   ShieldCheck,
   X,
-  Code2,
-  Sparkles,
-  Shuffle,
 } from 'lucide-react';
 
 export const MentorExamsPage: React.FC = () => {
@@ -176,11 +166,17 @@ export const MentorExamsPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex items-center gap-4 shrink-0 flex-wrap">
               <div className="text-right">
                 <div className="text-[10px] uppercase font-bold text-slate-400">Cohort Average</div>
                 <div className="text-lg font-extrabold text-indigo-700 font-mono">
                   {teamAvgScore > 0 ? `${teamAvgScore} / 100` : 'Pending'}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Cohort Highest</div>
+                <div className="text-lg font-extrabold text-emerald-700 font-mono">
+                  {teamHighestScore > 0 ? `${teamHighestScore} / 100` : '--'}
                 </div>
               </div>
               <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">

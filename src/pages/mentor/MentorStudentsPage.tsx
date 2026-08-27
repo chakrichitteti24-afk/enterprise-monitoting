@@ -12,9 +12,7 @@ import {
   Trash2,
   X,
   ShieldAlert,
-  Plus,
   CheckCircle2,
-  Sparkles,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Student, DSALevel, StudentStatus } from '../../types';

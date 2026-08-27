@@ -5,34 +5,19 @@ import { PROBLEMS_BANK_100 } from '../../data/dsaCurriculum100';
 import { convertProblemToExamQuestion, getExamTier } from '../../data/mockExams';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Calendar,
-  Clock,
-  Award,
   Plus,
   Play,
   CheckCircle2,
-  AlertCircle,
-  TrendingUp,
   Users,
   ShieldCheck,
-  FileSpreadsheet,
   X,
   Trash2,
-  Edit3,
-  ExternalLink,
-  ChevronRight,
-  Sparkles,
-  BarChart3,
-  Download,
   Search,
-  Filter,
   CheckSquare,
   Square,
-  Shuffle,
-  Layers,
-  HelpCircle,
   Eye,
-  Zap,
+  Shuffle,
+  Download,
 } from 'lucide-react';
 
 export const DeanExamsPage: React.FC = () => {
@@ -356,7 +341,6 @@ export const DeanExamsPage: React.FC = () => {
         {filteredExams.map((exam) => {
           const isLive = exam.status === 'LIVE';
           const isScheduled = exam.status === 'SCHEDULED';
-          const isCompleted = exam.status === 'COMPLETED';
           const submissionCount = exam.submissions?.length || 0;
           const questionCount = exam.questions?.length || 20;
           const tierInfo = getExamTier(exam.weekNumber);
@@ -713,7 +697,7 @@ export const DeanExamsPage: React.FC = () => {
                   </div>
 
                   {/* Filter Toolbar within Modal */}
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200/80">
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200/80">
                     <div className="relative col-span-1 sm:col-span-2">
                       <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
                       <input
@@ -738,13 +722,26 @@ export const DeanExamsPage: React.FC = () => {
                       </select>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div>
+                      <select
+                        value={dayFilter}
+                        onChange={e => setDayFilter(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-xs"
+                      >
+                        <option value="ALL">All Days (1-20)</option>
+                        {Array.from({ length: 20 }, (_, i) => i + 1).map(d => (
+                          <option key={d} value={String(d)}>Day {d}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
                       <select
                         value={difficultyFilter}
                         onChange={e => setDifficultyFilter(e.target.value)}
-                        className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-xl text-xs"
+                        className="flex-1 px-2 py-1.5 bg-white border border-slate-200 rounded-xl text-xs"
                       >
-                        <option value="ALL">All Difficulties</option>
+                        <option value="ALL">All Diff</option>
                         <option value="Easy">Easy</option>
                         <option value="Medium">Medium</option>
                         <option value="Hard">Hard</option>
@@ -753,7 +750,7 @@ export const DeanExamsPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setShowSelectedOnly(prev => !prev)}
-                        className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold shrink-0 transition-colors ${
+                        className={`px-2 py-1.5 rounded-xl text-[11px] font-bold shrink-0 transition-colors ${
                           showSelectedOnly ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-700'
                         }`}
                       >

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { WeeklyExam, ExamQuestion, StudentExamSubmission } from '../../types';
 import { getShuffledQuestionsForStudent, getExamTier } from '../../data/mockExams';
@@ -11,20 +11,12 @@ import {
   Code2,
   Play,
   CheckCircle2,
-  AlertCircle,
-  TrendingUp,
   X,
-  ChevronRight,
   ShieldCheck,
   Sparkles,
-  FileCheck,
   CheckCheck,
-  ArrowRight,
   Trophy,
   Shuffle,
-  HelpCircle,
-  Square,
-  Terminal,
   FileText,
 } from 'lucide-react';
 
@@ -50,6 +42,21 @@ export const StudentExamsPage: React.FC = () => {
     submission: StudentExamSubmission;
   } | null>(null);
 
+  const executeFinalSubmit = useCallback(async () => {
+    if (!activeLiveExam) return;
+    setIsSubmitting(true);
+    try {
+      const result = await submitExamSolution(activeLiveExam.id, codeAnswers);
+      setCompletedSubmissionResult(result);
+      setActiveLiveExam(null);
+      setShowSubmitConfirmModal(false);
+    } catch (err: any) {
+      alert(err.message || 'Error submitting exam.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [activeLiveExam, codeAnswers, submitExamSolution]);
+
   // Countdown timer for active exam
   useEffect(() => {
     if (!activeLiveExam) return;
@@ -64,7 +71,7 @@ export const StudentExamsPage: React.FC = () => {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [activeLiveExam]);
+  }, [activeLiveExam, executeFinalSubmit]);
 
   // Start a live exam with Anti-Cheating Random Shuffling per student
   const handleStartExam = (exam: WeeklyExam) => {
@@ -107,21 +114,6 @@ export const StudentExamsPage: React.FC = () => {
       `[Institutional Benchmark 3] Private Hidden Evaluation -> Passed (16ms)\n\n` +
       `✅ 3/3 Test Cases Passed! (100% Score for Q${displayNum})`
     );
-  };
-
-  const executeFinalSubmit = async () => {
-    if (!activeLiveExam) return;
-    setIsSubmitting(true);
-    try {
-      const result = await submitExamSolution(activeLiveExam.id, codeAnswers);
-      setCompletedSubmissionResult(result);
-      setActiveLiveExam(null);
-      setShowSubmitConfirmModal(false);
-    } catch (err: any) {
-      alert(err.message || 'Error submitting exam.');
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const answeredCount = useMemo(() => {

@@ -8,7 +8,6 @@ import {
   Play,
   CheckCircle2,
   AlertCircle,
-  Clock,
   Terminal,
   Maximize2,
   Minimize2,
@@ -23,17 +22,12 @@ import {
   HelpCircle,
   History,
   Sparkles,
-  Layers,
   CheckCheck,
   Trophy,
-  ShieldCheck,
   Building2,
   Cpu,
   ChevronDown,
-  TerminalSquare,
   FileCode,
-  Settings,
-  AlignLeft,
 } from 'lucide-react';
 
 interface HackerRankArenaProps {
@@ -101,31 +95,6 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
     setTestResults(dossier.testCases);
     setTerminalLogs(null);
   }, [problem.id, selectedLanguage, dossier]);
-
-  // Handle Tab key in Code Editor
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const target = e.currentTarget;
-      const start = target.selectionStart;
-      const end = target.selectionEnd;
-      const val = target.value;
-      const updated = val.substring(0, start) + '    ' + val.substring(end);
-      setCode(updated);
-      setTimeout(() => {
-        target.selectionStart = target.selectionEnd = start + 4;
-      }, 0);
-    }
-    // Ctrl + Enter to Run
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      if (e.shiftKey) {
-        handleSubmitCode();
-      } else {
-        handleRunCode();
-      }
-    }
-  };
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(code);
@@ -338,6 +307,19 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
+
+            {/* Fullscreen Toggle Button */}
+            <button
+              onClick={() => setIsFullscreen(prev => !prev)}
+              className="hidden sm:flex p-1.5 sm:p-2 rounded-xl bg-[#122235] hover:bg-white/10 text-slate-400 hover:text-white border border-white/10 transition-colors"
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            >
+              {isFullscreen ? (
+                <Minimize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              ) : (
+                <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              )}
+            </button>
 
             {/* Close Button */}
             <button

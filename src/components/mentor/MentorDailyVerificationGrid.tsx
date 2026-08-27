@@ -150,7 +150,7 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
             <span className="text-[11px] text-indigo-600 font-mono">100 Total Problems</span>
           </div>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 pt-1 no-scrollbar -mx-1 px-1">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 pt-1 no-scrollbar -mx-1 px-1 touch-scroll-x">
             {DAILY_TOPIC_THEMES.map((theme) => {
               const isSelected = selectedDay === theme.day;
               // Check completion for this day
@@ -197,7 +197,7 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
             </span>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-500">
+          <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
             <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
               <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Verified by Mentor
             </span>
@@ -209,25 +209,25 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
 
         {/* Mobile Swipe Indicator Banner */}
         <div className="sm:hidden px-4 py-1.5 bg-indigo-50/70 border-b border-indigo-100/60 flex items-center justify-between text-[11px] text-indigo-700 font-semibold">
-          <span>👈 Swipe table to view & tick Q1 – Q5 👉</span>
+          <span>👈 Swipe table horizontally to tick Q1 – Q5 👉</span>
           <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-indigo-200">5 Daily Problems</span>
         </div>
 
         {/* The Matrix Table */}
         <div className="overflow-x-auto touch-scroll-x custom-scrollbar">
-          <table className="w-full text-left text-xs border-collapse min-w-[700px]">
+          <table className="w-full text-left text-xs border-collapse min-w-[660px]">
             <thead>
               <tr className="border-b border-slate-200/90 bg-slate-100/70 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                <th className="py-3.5 px-4 w-48 sm:w-56 sticky left-0 bg-slate-100/95 backdrop-blur-md z-20 sticky-col-shadow">
-                  Student (Cohort)
+                <th className="py-3 px-2 sm:py-3.5 sm:px-4 w-36 sm:w-48 md:w-56 sticky left-0 bg-slate-100/95 backdrop-blur-md z-20 sticky-col-shadow">
+                  Student
                 </th>
 
                 {dayProblems.map((problem, idx) => (
-                  <th key={problem.id} className="py-3 px-3 text-center min-w-[130px]">
+                  <th key={problem.id} className="py-2.5 px-2 sm:py-3 sm:px-3 text-center min-w-[105px] sm:min-w-[130px]">
                     <div className="flex flex-col items-center gap-1">
                       <div className="flex items-center gap-1 font-bold text-slate-900">
                         <span>Q{idx + 1}.</span>
-                        <span className="truncate max-w-[110px]" title={problem.title}>
+                        <span className="truncate max-w-[95px] sm:max-w-[110px]" title={problem.title}>
                           {problem.title}
                         </span>
                       </div>
@@ -293,24 +293,24 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
                     {/* Student Column (Sticky Left) */}
                     <td
                       onClick={() => onStudentClick?.(st)}
-                      className="py-3 px-4 sticky left-0 bg-white group-hover:bg-slate-50/95 transition-colors z-20 sticky-col-shadow cursor-pointer border-r border-slate-100"
+                      className="py-2.5 px-2 sm:py-3 sm:px-4 w-36 sm:w-48 md:w-56 sticky left-0 bg-white group-hover:bg-slate-50/95 transition-colors z-20 sticky-col-shadow cursor-pointer border-r border-slate-100"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                         <UserAvatar
                           src={st.avatar}
                           name={st.name}
                           id={st.rollNo}
                           role="STUDENT"
-                          size="sm"
+                          size="xs"
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="font-bold text-slate-900 text-xs truncate max-w-[130px] sm:max-w-[160px]">
+                          <div className="font-bold text-slate-900 text-xs truncate max-w-[85px] sm:max-w-[130px] md:max-w-[160px]">
                             {st.name}
                           </div>
-                          <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
+                          <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
                             <span className="font-bold text-blue-700">{st.rollNo}</span>
-                            <span>&bull;</span>
-                            <span>{st.progress}% Total</span>
+                            <span className="hidden sm:inline">&bull;</span>
+                            <span className="hidden sm:inline">{st.progress}%</span>
                           </div>
                         </div>
                       </div>
@@ -323,14 +323,14 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
                       const isAnimating = justToggledId === key;
 
                       return (
-                        <td key={problem.id} className="py-3 px-3 text-center">
+                        <td key={problem.id} className="py-2.5 px-2 sm:py-3 sm:px-3 text-center">
                           <motion.button
                             whileHover={canVerify ? { scale: 1.08 } : {}}
                             whileTap={canVerify ? { scale: 0.92 } : {}}
                             animate={isAnimating ? { scale: [1, 1.25, 1] } : {}}
                             onClick={() => handleCellToggle(st, problem)}
                             disabled={!canVerify}
-                            className={`w-11 h-11 sm:w-10 sm:h-10 rounded-2xl mx-auto flex items-center justify-center transition-all cursor-pointer touch-manipulation select-none active:opacity-85 ${
+                            className={`w-10 h-10 sm:w-10 sm:h-10 rounded-2xl mx-auto flex items-center justify-center transition-all cursor-pointer touch-manipulation select-none active:opacity-85 ${
                               isVerified
                                 ? 'bg-emerald-500 text-white shadow-xs shadow-emerald-500/30'
                                 : 'bg-slate-100 hover:bg-slate-200 text-slate-400 border border-slate-200/80'
@@ -343,9 +343,9 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
                             aria-label={`Verify ${problem.title} for ${st.name}`}
                           >
                             {isVerified ? (
-                              <CheckCircle2 className="w-5 h-5 sm:w-4 sm:h-4 text-white shrink-0" />
+                              <CheckCircle2 className="w-4 h-4 sm:w-4 sm:h-4 text-white shrink-0" />
                             ) : (
-                              <Circle className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-slate-400/80 shrink-0" />
+                              <Circle className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 text-slate-400/80 shrink-0" />
                             )}
                           </motion.button>
                         </td>

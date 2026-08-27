@@ -10,14 +10,8 @@ import {
   Play,
   X,
   CheckCircle2,
-  Circle,
-  ShieldCheck,
   Calendar,
-  ExternalLink,
   Terminal,
-  Sparkles,
-  ArrowRight,
-  Filter,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
