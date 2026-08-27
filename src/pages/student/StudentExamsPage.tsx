@@ -57,6 +57,17 @@ export const StudentExamsPage: React.FC = () => {
     }
   }, [activeLiveExam, codeAnswers, submitExamSolution]);
 
+  // Lock body scroll while live exam or scorecard is open
+  useEffect(() => {
+    if (activeLiveExam || viewScorecardSubmission || completedSubmissionResult) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [activeLiveExam, viewScorecardSubmission, completedSubmissionResult]);
+
   // Countdown timer for active exam
   useEffect(() => {
     if (!activeLiveExam) return;

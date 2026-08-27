@@ -53,6 +53,17 @@ export const MentorExamsPage: React.FC = () => {
     ? Math.max(...evaluatedSubs.map(ts => ts.submission?.score || 0))
     : 0;
 
+  // Lock background body scroll while modal is open
+  React.useEffect(() => {
+    if (inspectSubmission) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [inspectSubmission]);
+
   const handleAddFeedback = (e: React.FormEvent) => {
     e.preventDefault();
     if (!feedbackInput.trim() || !inspectSubmission) return;

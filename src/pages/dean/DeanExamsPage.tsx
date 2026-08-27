@@ -57,6 +57,17 @@ export const DeanExamsPage: React.FC = () => {
   const [dayFilter, setDayFilter] = useState<string>('ALL');
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
 
+  // Lock body scroll while modals are open
+  React.useEffect(() => {
+    if (isCreateModalOpen || selectedExamForResults || inspectQuestionsExam || deleteConfirmId) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isCreateModalOpen, selectedExamForResults, inspectQuestionsExam, deleteConfirmId]);
+
   const currentTierInfo = useMemo(() => getExamTier(weekNum), [weekNum]);
 
   const filteredExams = exams.filter(ex => {

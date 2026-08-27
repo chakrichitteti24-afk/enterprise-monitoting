@@ -41,6 +41,17 @@ export const DeanStudentsPage: React.FC = () => {
   const [deleteConfirmStudent, setDeleteConfirmStudent] = useState<Student | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Lock body scroll while modals are open
+  React.useEffect(() => {
+    if (isEnrollOpen || editingStudent || deleteConfirmStudent) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isEnrollOpen, editingStudent, deleteConfirmStudent]);
+
   const openEnrollModal = () => {
     const nextRollNum = 100 + students.length + 1;
     setRollInput(`24F81A05${nextRollNum < 1000 ? nextRollNum : Math.floor(100 + Math.random() * 899)}`);
