@@ -627,110 +627,88 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (backendErr: any) {
       const normalizedEmail = email.toLowerCase().trim();
       const rawPassword = password.trim();
-      const lowerPassword = rawPassword.toLowerCase();
 
-      // Check if password matches any standard institutional passwords
-      const isInstitutionalPassword =
-        lowerPassword === 'gkce@1234' ||
-        lowerPassword === 'gkce1234' ||
-        lowerPassword === 'mentor@gkce2026' ||
-        lowerPassword === 'mentor#gkce2026' ||
-        lowerPassword === 'mentor2026' ||
-        lowerPassword === 'student@gkce2026' ||
-        lowerPassword === 'student#gkce2026' ||
-        lowerPassword === 'student2026' ||
-        lowerPassword === 'dean@gkce2026' ||
-        lowerPassword === 'dean#gkce2026' ||
-        lowerPassword === 'chakri@2026' ||
-        lowerPassword === 'root@gkce2026' ||
-        lowerPassword === 'admin@gkce2026' ||
-        lowerPassword === '123456' ||
-        lowerPassword === 'admin' ||
-        lowerPassword === 'root' ||
-        lowerPassword === 'dean' ||
-        lowerPassword === 'mentor' ||
-        lowerPassword === 'student';
+      // Strict standard institutional password checks
+      const isDeanPasswordValid =
+        rawPassword === 'gkce@1234' ||
+        rawPassword === 'GKCE@1234' ||
+        rawPassword === 'Dean@GKCE2026' ||
+        rawPassword === 'Dean#GKCE2026';
 
-      // ── Dean fallback (accepts multiple friendly email/password aliases) ──
+      const isMentorPasswordValid =
+        rawPassword === 'Mentor@GKCE2026' ||
+        rawPassword === 'mentor@gkce2026' ||
+        rawPassword === 'Mentor#GKCE2026' ||
+        rawPassword === 'gkce@1234' ||
+        rawPassword === 'GKCE@1234';
+
+      const isStudentPasswordValid =
+        rawPassword === 'gkce@1234' ||
+        rawPassword === 'GKCE@1234' ||
+        rawPassword === 'Student@GKCE2026' ||
+        rawPassword === 'student@gkce2026' ||
+        rawPassword.toLowerCase() === normalizedEmail ||
+        rawPassword.toLowerCase() === normalizedEmail.replace('@gkce.edu.in', '');
+
+      // ── Dean fallback (strict institutional Dean/Root accounts) ──
       const isDeanIdentifier =
         normalizedEmail === 'root@gkce.edu.in' ||
         normalizedEmail === 'dean.academics@gkce.edu.in' ||
         normalizedEmail === 'dean@gkce.edu.in' ||
-        normalizedEmail === 'admin@gkce.edu.in' ||
         normalizedEmail === 'root' ||
-        normalizedEmail === 'dean' ||
-        normalizedEmail === 'admin' ||
-        normalizedEmail === 'gkce';
+        normalizedEmail === 'dean';
 
-      if (isDeanIdentifier && (isInstitutionalPassword || lowerPassword.includes('gkce') || lowerPassword.includes('dean') || lowerPassword.includes('root'))) {
+      if (isDeanIdentifier && isDeanPasswordValid) {
         mapAndSetUser('DEAN');
         setIsAuthenticated(true);
-        // Always use canonical backend Dean credentials — not the user's typed alias
         silentBackendLogin(BACKEND_DEAN_EMAIL, BACKEND_DEAN_PASSWORD);
         return;
       }
 
-      // ── Mentor fallback ───────────────────────────────────────────────────
-      const matchedMentor =
-        mentors.find(
-          m =>
-            m.email.toLowerCase() === normalizedEmail ||
-            m.email.toLowerCase().split('@')[0] === normalizedEmail ||
-            normalizedEmail.includes(m.email.toLowerCase().split('@')[0]) ||
-            m.name.toLowerCase().includes(normalizedEmail) ||
-            normalizedEmail.includes(m.name.toLowerCase().split(' ')[0]) ||
-            (normalizedEmail === 'teja@gkce.edu.in' && m.email.toLowerCase().includes('teja')) ||
-            (normalizedEmail.includes('ludv') && m.email.toLowerCase().includes('ludw')) ||
-            (normalizedEmail.includes('gayat') && m.email.toLowerCase().includes('gayat')) ||
-            (normalizedEmail.includes('gayth') && m.email.toLowerCase().includes('gayat')) ||
-            (normalizedEmail.includes('krishna') && m.email.toLowerCase().includes('krishna')) ||
-            (normalizedEmail.includes('ramya') && m.email.toLowerCase().includes('ramya')) ||
-            (normalizedEmail.includes('shabana') && m.email.toLowerCase().includes('shabana')) ||
-            (normalizedEmail.includes('sudhakar') && m.email.toLowerCase().includes('sudhakar')) ||
-            (normalizedEmail.includes('keerthana') && m.email.toLowerCase().includes('keerthana')) ||
-            (normalizedEmail.includes('manjusha') && m.email.toLowerCase().includes('manjusha'))
-        ) || (normalizedEmail === 'mentor' || normalizedEmail === 'mentor@gkce.edu.in' ? mentors[0] : null);
+      // ── Mentor fallback (strict assigned faculty accounts) ────────────────
+      const matchedMentor = mentors.find(
+        m =>
+          m.email.toLowerCase() === normalizedEmail ||
+          m.email.toLowerCase().split('@')[0] === normalizedEmail ||
+          (normalizedEmail === 'teja@gkce.edu.in' && m.email.toLowerCase().includes('teja')) ||
+          (normalizedEmail.includes('ludw') && m.email.toLowerCase().includes('ludw')) ||
+          (normalizedEmail.includes('gayat') && m.email.toLowerCase().includes('gayat')) ||
+          (normalizedEmail.includes('krishna') && m.email.toLowerCase().includes('krishna')) ||
+          (normalizedEmail.includes('ramya') && m.email.toLowerCase().includes('ramya')) ||
+          (normalizedEmail.includes('shabana') && m.email.toLowerCase().includes('shabana')) ||
+          (normalizedEmail.includes('sudhakar') && m.email.toLowerCase().includes('sudhakar')) ||
+          (normalizedEmail.includes('keerthana') && m.email.toLowerCase().includes('keerthana')) ||
+          (normalizedEmail.includes('manjusha') && m.email.toLowerCase().includes('manjusha'))
+      );
 
-      if (matchedMentor && (isInstitutionalPassword || lowerPassword.includes('mentor') || lowerPassword.includes('gkce'))) {
+      if (matchedMentor && isMentorPasswordValid) {
         mapAndSetUser('MENTOR', { email: matchedMentor.email, team_number: matchedMentor.assignedTeamNumber });
         setIsAuthenticated(true);
-        // Mentor canonical email + canonical password
         silentBackendLogin(matchedMentor.email, BACKEND_MENTOR_PASSWORD);
         return;
       }
 
-      // ── Student fallback ──────────────────────────────────────────────────
+      // ── Student fallback (strict enrolled student accounts) ───────────────
       const cleanStudentInput = normalizedEmail.replace(/[^a-z0-9]/g, '');
-      const matchedStudent =
-        students.find(
-          s =>
-            s.email.toLowerCase() === normalizedEmail ||
-            s.rollNo.toLowerCase() === normalizedEmail ||
-            normalizedEmail.includes(s.rollNo.toLowerCase()) ||
-            s.rollNo.toLowerCase().includes(cleanStudentInput) ||
-            cleanStudentInput.includes(s.rollNo.toLowerCase().replace(/[^a-z0-9]/g, '')) ||
-            (cleanStudentInput.length >= 4 && s.rollNo.toLowerCase().includes(cleanStudentInput)) ||
-            (normalizedEmail.length >= 3 && s.name.toLowerCase().includes(normalizedEmail))
-        ) || (normalizedEmail === 'student' || normalizedEmail === 'student@gkce.edu.in' ? students[0] : null);
-
-      const isStudentPasswordValid =
-        isInstitutionalPassword ||
-        (matchedStudent && lowerPassword === matchedStudent.rollNo.toLowerCase()) ||
-        lowerPassword.includes('gkce') ||
-        lowerPassword.includes('student');
+      const matchedStudent = students.find(
+        s =>
+          s.email.toLowerCase() === normalizedEmail ||
+          s.rollNo.toLowerCase() === normalizedEmail ||
+          normalizedEmail.includes(s.rollNo.toLowerCase()) ||
+          s.rollNo.toLowerCase().includes(cleanStudentInput) ||
+          cleanStudentInput.includes(s.rollNo.toLowerCase().replace(/[^a-z0-9]/g, ''))
+      );
 
       if (matchedStudent && isStudentPasswordValid) {
         mapAndSetUser('STUDENT', { email: matchedStudent.email, roll_number: matchedStudent.rollNo });
         setIsAuthenticated(true);
-        // Student canonical email + canonical password
         silentBackendLogin(matchedStudent.email, BACKEND_STUDENT_PASSWORD);
         return;
       }
 
-      // Credentials don't match any known user — surface user-friendly error
+      // Strict failure error
       throw new Error(
-        backendErr?.message ||
-        'Authentication failed. Please verify your institutional roll number/email and password (e.g. gkce@1234 or Mentor@GKCE2026).'
+        'Invalid institutional credentials. Please check your email or roll number and password.'
       );
     }
   };
