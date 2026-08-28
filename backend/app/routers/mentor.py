@@ -160,13 +160,36 @@ class BatchVerifySchema(BaseModel):
 
 @router.get("/verifications", summary="Get all verified problem completions")
 def get_all_verifications(db: Session = Depends(get_db)):
+    from app.models.student import Student
+    students = db.query(Student).all()
+    id_to_roll = {}
+    for s in students:
+        id_to_roll[str(s.id)] = s.roll_number
+        id_to_roll[f"student-{s.id}"] = s.roll_number
+        id_to_roll[s.roll_number] = s.roll_number
+
     records = db.query(StudentVerifiedProblem).all()
     res: Dict[str, List[str]] = {}
     for r in records:
-        if r.student_identifier not in res:
-            res[r.student_identifier] = []
-        res[r.student_identifier].append(r.problem_id)
-    return res
+        canonical_id = id_to_roll.get(r.student_identifier, r.student_identifier)
+        if canonical_id not in res:
+            res[canonical_id] = []
+        if r.problem_id not in res[canonical_id]:
+            res[canonical_id].append(r.problem_id)
+            
+    # Include the reverse mapping for frontend compatibility 
+    # (some frontend clients might strictly look for student.id)
+    final_res: Dict[str, List[str]] = {}
+    for canonical_id, problems in res.items():
+        final_res[canonical_id] = problems
+        # Also copy to the student-<id> format if we know it
+        for s in students:
+            if s.roll_number == canonical_id:
+                final_res[f"student-{s.id}"] = problems
+                final_res[str(s.id)] = problems
+                break
+                
+    return final_res
 
 
 def _sync_student_progress_db(db: Session, student_id_or_roll: str):
@@ -178,14 +201,33 @@ def _sync_student_progress_db(db: Session, student_id_or_roll: str):
     student = None
     if clean_id.isdigit():
         student = db.query(Student).filter(Student.id == int(clean_id)).first()
+    
+    if not student and clean_id.startswith("student-"):
+        try:
+            sid = int(clean_id.split("-")[1])
+            student = db.query(Student).filter(Student.id == sid).first()
+        except ValueError:
+            pass
+
     if not student:
         student = db.query(Student).filter(Student.roll_number == clean_id).first()
 
     if not student:
         return
 
+    # Check all possible identifier formats to ensure we don't miss any verifications
+    possible_identifiers = [
+        student.roll_number,
+        f"student-{student.id}",
+        str(student.id),
+        clean_id
+    ]
+    
+    # Deduplicate the list
+    possible_identifiers = list(set(possible_identifiers))
+    
     verified_count = db.query(StudentVerifiedProblem).filter(
-        StudentVerifiedProblem.student_identifier == student.roll_number
+        StudentVerifiedProblem.student_identifier.in_(possible_identifiers)
     ).count()
 
     total_curriculum = 34.0
