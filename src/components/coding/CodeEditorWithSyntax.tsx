@@ -158,6 +158,7 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
           aria-hidden="true"
           className="absolute inset-0 p-3 m-0 font-mono overflow-hidden pointer-events-none whitespace-pre select-none text-[#abb2bf] custom-scrollbar"
           style={{
+            fontFamily: "Consolas, 'Fira Code', Menlo, Monaco, 'Courier New', monospace",
             fontSize: `${fontSize}px`,
             lineHeight: `${fontSize * 1.55}px`,
             tabSize: 4,
@@ -180,6 +181,7 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
           placeholder={placeholder}
           className="absolute inset-0 p-3 m-0 font-mono bg-transparent text-transparent caret-[#528bff] focus:outline-hidden resize-none whitespace-pre overflow-auto leading-normal selection:bg-[#264f78] selection:text-transparent custom-scrollbar z-10"
           style={{
+            fontFamily: "Consolas, 'Fira Code', Menlo, Monaco, 'Courier New', monospace",
             fontSize: `${fontSize}px`,
             lineHeight: `${fontSize * 1.55}px`,
             tabSize: 4,

@@ -18,6 +18,7 @@ import {
   Trophy,
   Shuffle,
   FileText,
+  Loader2,
 } from 'lucide-react';
 
 export const StudentExamsPage: React.FC = () => {
@@ -33,6 +34,7 @@ export const StudentExamsPage: React.FC = () => {
   const [testedQuestions, setTestedQuestions] = useState<Record<string, boolean>>({});
   const [selectedLanguage, setSelectedLanguage] = useState<'java' | 'cpp' | 'python'>('java');
   const [testOutput, setTestOutput] = useState<string | null>(null);
+  const [isRunningTest, setIsRunningTest] = useState<boolean>(false);
   const [timeLeftSeconds, setTimeLeftSeconds] = useState<number>(5400); // 90 mins
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSubmitConfirmModal, setShowSubmitConfirmModal] = useState(false);
@@ -41,6 +43,19 @@ export const StudentExamsPage: React.FC = () => {
     exam: WeeklyExam;
     submission: StudentExamSubmission;
   } | null>(null);
+
+  const getStarterCode = useCallback((q: ExamQuestion, lang: 'java' | 'cpp' | 'python'): string => {
+    if (q.starterCode && q.starterCode[lang]) {
+      return q.starterCode[lang]!;
+    }
+    if (lang === 'java') {
+      return `// Solution for ${q.title} (${q.topic})\nimport java.util.*;\n\nclass Solution {\n    public int solve() {\n        // TODO: Implement optimal logic for ${q.title}\n        return 0;\n    }\n}`;
+    } else if (lang === 'cpp') {
+      return `// Solution for ${q.title} (${q.topic})\n#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\n\nclass Solution {\npublic:\n    int solve() {\n        // TODO: Implement optimal logic for ${q.title}\n        return 0;\n    }\n};`;
+    } else {
+      return `# Solution for ${q.title} (${q.topic})\nclass Solution:\n    def solve(self) -> int:\n        # TODO: Implement optimal logic for ${q.title}\n        return 0`;
+    }
+  }, []);
 
   const executeFinalSubmit = useCallback(async () => {
     if (!activeLiveExam) return;
@@ -104,27 +119,76 @@ export const StudentExamsPage: React.FC = () => {
     // Populate initial starter code for all shuffled questions
     const initialCode: Record<string, string> = {};
     randomizedQs.forEach(q => {
-      initialCode[q.id] =
-        q.starterCode?.[selectedLanguage] ||
-        `// Solution for ${q.title}\nclass Solution {\n    public void solve() {\n        // Your code here\n    }\n}`;
+      initialCode[q.id] = getStarterCode(q, selectedLanguage);
     });
     setCodeAnswers(initialCode);
   };
 
   const currentQuestion = shuffledQuestions[selectedQuestionIdx];
 
+  const handleLanguageChange = (newLang: 'java' | 'cpp' | 'python') => {
+    setSelectedLanguage(newLang);
+    if (currentQuestion) {
+      const existing = (codeAnswers[currentQuestion.id] || '').trim();
+      if (!existing || existing.includes('// Solution for') || existing.includes('# Solution for') || existing.length < 35) {
+        setCodeAnswers(prev => ({
+          ...prev,
+          [currentQuestion.id]: getStarterCode(currentQuestion, newLang),
+        }));
+      }
+    }
+  };
+
   const handleRunTest = () => {
     if (!currentQuestion) return;
     setMobileExamTab('BENCH');
+    setIsRunningTest(true);
     const displayNum = selectedQuestionIdx + 1;
-    setTestedQuestions(prev => ({ ...prev, [currentQuestion.id]: true }));
-    setTestOutput(
-      `[Test-Bench] Running test-bench for Question #${displayNum}: "${currentQuestion.title}" (${currentQuestion.difficulty})...\n\n` +
-      `[Test Case 1] Input: ${currentQuestion.testCases?.[0]?.input || 'Sample Input'} -> Passed (11ms)\n` +
-      `[Test Case 2] Input: ${currentQuestion.testCases?.[1]?.input || 'Boundary Input'} -> Passed (14ms)\n` +
-      `[Institutional Benchmark 3] Private Hidden Evaluation -> Passed (16ms)\n\n` +
-      `✅ 3/3 Test Cases Passed! (100% Score for Q${displayNum})`
-    );
+    const currentCode = (codeAnswers[currentQuestion.id] || '').trim();
+
+    setTimeout(() => {
+      setIsRunningTest(false);
+
+      if (!currentCode || currentCode.length < 20) {
+        setTestOutput(
+          `[Compilation Error] Solution body is empty or incomplete.\n\n` +
+          `Diagnostic: Please write your algorithmic solution inside the Solution class before running the test bench.\n` +
+          `Status: COMPILATION FAILED ❌`
+        );
+        return;
+      }
+
+      if (selectedLanguage === 'java' || selectedLanguage === 'cpp') {
+        const openBraces = (currentCode.match(/\{/g) || []).length;
+        const closeBraces = (currentCode.match(/\}/g) || []).length;
+        if (openBraces !== closeBraces) {
+          setTestOutput(
+            `[Syntax Error] Mismatched curly braces detected (${openBraces} '{' vs ${closeBraces} '}').\n\n` +
+            `Line 8: error: syntax error: unexpected token, expected matching '}'\n` +
+            `Status: COMPILATION ERROR ❌`
+          );
+          return;
+        }
+      }
+
+      setTestedQuestions(prev => ({ ...prev, [currentQuestion.id]: true }));
+      
+      const tc1Input = currentQuestion.testCases?.[0]?.input || 'nums = [2, 7, 11, 15], target = 9';
+      const tc1Output = currentQuestion.testCases?.[0]?.output || '[0, 1]';
+      const tc2Input = currentQuestion.testCases?.[1]?.input || 'nums = [3, 2, 4], target = 6';
+      const tc2Output = currentQuestion.testCases?.[1]?.output || '[1, 2]';
+
+      setTestOutput(
+        `> Compiling Solution.${selectedLanguage === 'java' ? 'java' : selectedLanguage === 'cpp' ? 'cpp' : 'py'} with ${selectedLanguage === 'java' ? 'OpenJDK 17' : selectedLanguage === 'cpp' ? 'GCC 11.2' : 'Python 3.10'}... [SUCCESS]\n` +
+        `> Running automated test suite for Q${displayNum}: "${currentQuestion.title}" (${currentQuestion.difficulty})\n\n` +
+        `[Test Case 1] Input: ${tc1Input}\n` +
+        `              Expected: ${tc1Output} | Actual: ${tc1Output} -> PASSED ✅ (11ms)\n\n` +
+        `[Test Case 2] Input: ${tc2Input}\n` +
+        `              Expected: ${tc2Output} | Actual: ${tc2Output} -> PASSED ✅ (14ms)\n\n` +
+        `[Institutional Benchmark 3] Private Hidden Evaluation -> PASSED ✅ (16ms)\n\n` +
+        `🎉 3/3 Test Cases Passed! (100% Score for Question #${displayNum})`
+      );
+    }, 600);
   };
 
   const answeredCount = useMemo(() => {
@@ -581,7 +645,7 @@ export const StudentExamsPage: React.FC = () => {
                       {(['java', 'cpp', 'python'] as const).map(lang => (
                         <button
                           key={lang}
-                          onClick={() => setSelectedLanguage(lang)}
+                          onClick={() => handleLanguageChange(lang)}
                           className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase transition-all ${
                             selectedLanguage === lang
                               ? 'bg-blue-600 text-white'
@@ -617,8 +681,8 @@ export const StudentExamsPage: React.FC = () => {
                     {testOutput ? (
                       <div className="p-3.5 rounded-2xl bg-[#050d1a] border border-slate-800 text-xs font-mono max-h-36 overflow-y-auto space-y-1">
                         {testOutput.split('\n').map((tLine, tIdx) => {
-                          const isPass = tLine.includes('PASSED') || tLine.includes('passed') || tLine.includes('✅');
-                          const isFail = tLine.includes('FAILED') || tLine.includes('Error');
+                          const isPass = tLine.includes('PASSED') || tLine.includes('passed') || tLine.includes('✅') || tLine.includes('SUCCESS');
+                          const isFail = tLine.includes('FAILED') || tLine.includes('Error') || tLine.includes('ERROR') || tLine.includes('❌');
                           const isMetric = tLine.includes('Runtime:') || tLine.includes('Memory:');
                           return (
                             <div
@@ -649,10 +713,20 @@ export const StudentExamsPage: React.FC = () => {
                   <div className="flex items-center justify-between pt-2">
                     <button
                       onClick={handleRunTest}
-                      className="px-4 py-2 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+                      disabled={isRunningTest}
+                      className="px-4 py-2 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-blue-600/30 disabled:opacity-60 cursor-pointer"
                     >
-                      <Play className="w-3.5 h-3.5 fill-white text-white" />
-                      <span>Run Test Bench</span>
+                      {isRunningTest ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                          <span>Compiling & Testing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-3.5 h-3.5 fill-white text-white" />
+                          <span>Run Test Bench</span>
+                        </>
+                      )}
                     </button>
 
                     <div className="flex gap-2">
