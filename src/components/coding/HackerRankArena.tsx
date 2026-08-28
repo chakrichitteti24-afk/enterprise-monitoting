@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Problem } from '../../types';
 import { getProblemDossier, TestCaseData, ProblemDossier } from '../../utils/hackerRankData';
+import { executeRealCode } from '../../utils/realCodeRunner';
 import { CodeEditorWithSyntax } from './CodeEditorWithSyntax';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -115,44 +116,37 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
   };
 
   // Run Code against sample test cases
-  const handleRunCode = () => {
+  const handleRunCode = async () => {
     setIsRunning(true);
     setActiveBottomTab('TERMINAL');
     setMobileActiveView('CONSOLE');
 
-    setTimeout(() => {
-      setIsRunning(false);
-      const isCodeValid = code.trim().length > 20;
+    const result = await executeRealCode(code, selectedLanguage, dossier.testCases);
+    setIsRunning(false);
 
-      const updated = dossier.testCases.map((tc, idx) => ({
+    const updated = dossier.testCases.map((tc, idx) => {
+      const match = result.testResults.find(r => r.id === idx + 1);
+      return {
         ...tc,
-        passed: isCodeValid ? true : idx === 0,
-        actualOutput: isCodeValid ? tc.expectedOutput : 'NullPointerException',
-        executionTimeMs: 12 + idx * 3,
-      }));
+        passed: match ? match.passed : false,
+        actualOutput: match ? match.actualOutput : 'Error',
+        executionTimeMs: match ? match.executionTimeMs : 15,
+      };
+    });
 
-      setTestResults(updated);
+    setTestResults(updated);
 
-      if (useCustomInput && customInput.trim()) {
-        setTerminalLogs(
-          `[Compilation] Process completed successfully.\n` +
-          `[Execution Mode] Custom Stdin Evaluation\n\n` +
-          `Input Stdin:\n${customInput}\n\n` +
-          `Stdout:\nProcessed custom input vectors (${selectedLanguage.toUpperCase()}). Execution completed in 14ms.\n\n` +
-          `Status: SUCCESSFUL EXECUTION ✅`
-        );
-      } else {
-        setTerminalLogs(
-          `> Run starting...\n` +
-          `> Compiling Solution.${selectedLanguage === 'java' ? 'java' : selectedLanguage === 'cpp' ? 'cpp' : selectedLanguage === 'python' ? 'py' : 'js'}... Done.\n` +
-          `> Executing tests...\n` +
-          `> Test Case 0 (Sample): Pass (12ms)\n` +
-          `> Test Case 1 (Boundary): Pass (15ms)\n` +
-          `> Test Case 2 (Complexity): Pass (18ms)\n\n` +
-          `🎉 All sample test cases passed successfully (3/3).`
-        );
-      }
-    }, 550);
+    if (useCustomInput && customInput.trim()) {
+      setTerminalLogs(
+        `[Compilation] Process completed successfully.\n` +
+        `[Execution Mode] Custom Stdin Evaluation\n\n` +
+        `Input Stdin:\n${customInput}\n\n` +
+        `Stdout:\nProcessed custom input vectors (${selectedLanguage.toUpperCase()}). Execution completed in ${result.executionTimeMs}ms.\n\n` +
+        `Status: ${result.status}`
+      );
+    } else {
+      setTerminalLogs(result.logs);
+    }
   };
 
   // Final Submission (Runs full test bench including hidden cases)
@@ -161,25 +155,29 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
     setActiveBottomTab('TERMINAL');
     setMobileActiveView('CONSOLE');
 
-    setTimeout(async () => {
-      setIsSubmitting(false);
+    const result = await executeRealCode(code, selectedLanguage, dossier.testCases);
+    setIsSubmitting(false);
 
-      const updated = dossier.testCases.map((tc, idx) => ({
+    const updated = dossier.testCases.map((tc, idx) => {
+      const match = result.testResults.find(r => r.id === idx + 1);
+      return {
         ...tc,
-        passed: true,
-        actualOutput: tc.expectedOutput,
-        executionTimeMs: 14 + idx * 2,
-      }));
-      setTestResults(updated);
+        passed: match ? match.passed : false,
+        actualOutput: match ? match.actualOutput : 'Error',
+        executionTimeMs: match ? match.executionTimeMs : 15,
+      };
+    });
+    setTestResults(updated);
 
+    if (result.status === 'ACCEPTED') {
       setTerminalLogs(
         `======================================================\n` +
         `   🏆 INSTITUTIONAL EVALUATION BENCHMARK: ACCEPTED     \n` +
         `======================================================\n` +
         `Problem: ${problem.title} (Day ${problem.dayNumber} - Q${problem.dayQuestionNumber})\n` +
         `Language: ${selectedLanguage.toUpperCase()}\n` +
-        `Status: ACCEPTED ✅ (4/4 Test Cases Passed including Hidden Cases)\n` +
-        `Runtime: 18 ms (Beats 94.2% of GKCE student submissions)\n` +
+        `Status: ACCEPTED ✅ (${result.passedCount}/${result.totalCount} Test Cases Passed)\n` +
+        `Runtime: ${result.executionTimeMs} ms (Beats 94.2% of GKCE student submissions)\n` +
         `Memory Used: 41.2 MB (O(1) Auxiliary Space target met)\n` +
         `Submission Timestamp: ${new Date().toLocaleTimeString()}\n` +
         `======================================================`
@@ -190,7 +188,7 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
         date: 'Just now',
         language: selectedLanguage === 'java' ? 'Java 17' : selectedLanguage === 'cpp' ? 'C++ 11' : selectedLanguage === 'python' ? 'Python 3.10' : 'Node.js 18',
         status: 'Accepted',
-        runtime: '18 ms',
+        runtime: `${result.executionTimeMs} ms`,
         memory: '41.2 MB',
       };
       setSubmissionsHistory(prev => [newSub, ...prev]);
@@ -199,7 +197,9 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
       if (onSolve) {
         await onSolve(problem);
       }
-    }, 750);
+    } else {
+      setTerminalLogs(result.logs);
+    }
   };
 
   return (

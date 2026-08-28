@@ -3,8 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.database.base import Base
-from app.database.session import engine
-from app.routers import auth, student, mentor, dean, problems, submissions, exams
+from app.routers import auth, student, mentor, dean, problems, submissions, exams, code_runner
 
 # Ensure database tables exist for SQLite fallback; Neon PostgreSQL is initialized via init_neon_db
 if settings.DATABASE_URL.startswith("sqlite"):
@@ -85,6 +84,7 @@ app.include_router(dean.router, prefix=api_prefix)
 app.include_router(problems.router, prefix=api_prefix)
 app.include_router(submissions.router, prefix=api_prefix)
 app.include_router(exams.router, prefix=api_prefix)
+app.include_router(code_runner.router, prefix=api_prefix)
 
 
 @app.get("/health", tags=["System"])

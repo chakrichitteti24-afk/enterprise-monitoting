@@ -274,4 +274,35 @@ export async function batchVerifyMentorApi(payload: {
   });
 }
 
+// -------------------------------------------------------------
+// Real Code Execution Sandbox API
+// -------------------------------------------------------------
+export async function runCodeApi(payload: {
+  code: string;
+  language: string;
+  test_cases: Array<{ id?: number; input: string; expectedOutput: string; isHidden?: boolean }>;
+  entry_point?: string;
+}) {
+  return apiRequest<{
+    status: string;
+    passed_count: number;
+    total_count: number;
+    execution_time_ms: number;
+    test_results: Array<{
+      id: number;
+      input: string;
+      expected_output: string;
+      actual_output: string;
+      passed: boolean;
+      execution_time_ms: number;
+      status: string;
+    }>;
+    error?: string;
+  }>('/code/run', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+
 

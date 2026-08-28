@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { WeeklyExam, ExamQuestion, StudentExamSubmission } from '../../types';
 import { getShuffledQuestionsForStudent, getExamTier } from '../../data/mockExams';
+import { executeRealCode } from '../../utils/realCodeRunner';
 import { CodeEditorWithSyntax } from '../../components/coding/CodeEditorWithSyntax';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -139,56 +140,32 @@ export const StudentExamsPage: React.FC = () => {
     }
   };
 
-  const handleRunTest = () => {
+  const handleRunTest = async () => {
     if (!currentQuestion) return;
     setMobileExamTab('BENCH');
     setIsRunningTest(true);
-    const displayNum = selectedQuestionIdx + 1;
     const currentCode = (codeAnswers[currentQuestion.id] || '').trim();
 
-    setTimeout(() => {
-      setIsRunningTest(false);
+    const testCasesToRun = (currentQuestion.testCases && currentQuestion.testCases.length > 0)
+      ? currentQuestion.testCases.map((tc, i) => ({
+          id: i + 1,
+          input: tc.input || '5',
+          expectedOutput: tc.output || '15',
+          isHidden: tc.isHidden || false,
+        }))
+      : [
+          { id: 1, input: '5', expectedOutput: '15' },
+          { id: 2, input: '3', expectedOutput: '6' },
+        ];
 
-      if (!currentCode || currentCode.length < 20) {
-        setTestOutput(
-          `[Compilation Error] Solution body is empty or incomplete.\n\n` +
-          `Diagnostic: Please write your algorithmic solution inside the Solution class before running the test bench.\n` +
-          `Status: COMPILATION FAILED ❌`
-        );
-        return;
-      }
+    const result = await executeRealCode(currentCode, selectedLanguage, testCasesToRun);
+    setIsRunningTest(false);
 
-      if (selectedLanguage === 'java' || selectedLanguage === 'cpp') {
-        const openBraces = (currentCode.match(/\{/g) || []).length;
-        const closeBraces = (currentCode.match(/\}/g) || []).length;
-        if (openBraces !== closeBraces) {
-          setTestOutput(
-            `[Syntax Error] Mismatched curly braces detected (${openBraces} '{' vs ${closeBraces} '}').\n\n` +
-            `Line 8: error: syntax error: unexpected token, expected matching '}'\n` +
-            `Status: COMPILATION ERROR ❌`
-          );
-          return;
-        }
-      }
-
+    if (result.status === 'ACCEPTED') {
       setTestedQuestions(prev => ({ ...prev, [currentQuestion.id]: true }));
-      
-      const tc1Input = currentQuestion.testCases?.[0]?.input || 'nums = [2, 7, 11, 15], target = 9';
-      const tc1Output = currentQuestion.testCases?.[0]?.output || '[0, 1]';
-      const tc2Input = currentQuestion.testCases?.[1]?.input || 'nums = [3, 2, 4], target = 6';
-      const tc2Output = currentQuestion.testCases?.[1]?.output || '[1, 2]';
+    }
 
-      setTestOutput(
-        `> Compiling Solution.${selectedLanguage === 'java' ? 'java' : selectedLanguage === 'cpp' ? 'cpp' : 'py'} with ${selectedLanguage === 'java' ? 'OpenJDK 17' : selectedLanguage === 'cpp' ? 'GCC 11.2' : 'Python 3.10'}... [SUCCESS]\n` +
-        `> Running automated test suite for Q${displayNum}: "${currentQuestion.title}" (${currentQuestion.difficulty})\n\n` +
-        `[Test Case 1] Input: ${tc1Input}\n` +
-        `              Expected: ${tc1Output} | Actual: ${tc1Output} -> PASSED ✅ (11ms)\n\n` +
-        `[Test Case 2] Input: ${tc2Input}\n` +
-        `              Expected: ${tc2Output} | Actual: ${tc2Output} -> PASSED ✅ (14ms)\n\n` +
-        `[Institutional Benchmark 3] Private Hidden Evaluation -> PASSED ✅ (16ms)\n\n` +
-        `🎉 3/3 Test Cases Passed! (100% Score for Question #${displayNum})`
-      );
-    }, 600);
+    setTestOutput(result.logs);
   };
 
   const answeredCount = useMemo(() => {
