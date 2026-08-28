@@ -169,6 +169,64 @@ def get_all_verifications(db: Session = Depends(get_db)):
     return res
 
 
+def _sync_student_progress_db(db: Session, student_id_or_roll: str):
+    from app.models.student import Student
+    from app.models.progress import StudentProgress
+    from app.models.team import Team
+
+    clean_id = student_id_or_roll.strip()
+    student = None
+    if clean_id.isdigit():
+        student = db.query(Student).filter(Student.id == int(clean_id)).first()
+    if not student:
+        student = db.query(Student).filter(Student.roll_number == clean_id).first()
+
+    if not student:
+        return
+
+    verified_count = db.query(StudentVerifiedProblem).filter(
+        StudentVerifiedProblem.student_identifier == student.roll_number
+    ).count()
+
+    total_curriculum = 34.0
+    prog_pct = min(100.0, round((verified_count / total_curriculum) * 100.0, 1))
+    streak = max(1, verified_count // 5) if verified_count > 0 else 0
+
+    prog = db.query(StudentProgress).filter(StudentProgress.student_id == student.id).first()
+    if prog:
+        prog.problems_solved = verified_count
+        prog.problems_attempted = max(prog.problems_attempted, verified_count)
+        prog.overall_percentage = prog_pct
+        prog.current_streak = streak
+        prog.longest_streak = max(prog.longest_streak, streak)
+    else:
+        prog = StudentProgress(
+            student_id=student.id,
+            problems_solved=verified_count,
+            problems_attempted=verified_count,
+            overall_percentage=prog_pct,
+            current_streak=streak,
+            longest_streak=streak,
+        )
+        db.add(prog)
+
+    db.commit()
+
+    if student.team_id:
+        team_students = db.query(Student).filter(Student.team_id == student.team_id).all()
+        if team_students:
+            team_student_ids = [s.id for s in team_students]
+            progresses = db.query(StudentProgress).filter(StudentProgress.student_id.in_(team_student_ids)).all()
+            if progresses:
+                avg_prog = round(sum(p.overall_percentage for p in progresses) / len(team_students), 1)
+                tot_solved = sum(p.problems_solved for p in progresses)
+                team = db.query(Team).filter(Team.id == student.team_id).first()
+                if team:
+                    team.average_progress = avg_prog
+                    team.total_problems_solved = tot_solved
+                    db.commit()
+
+
 @router.post("/verify", summary="Toggle single problem verification")
 def toggle_problem_verification(
     payload: SingleVerifySchema,
@@ -200,6 +258,9 @@ def toggle_problem_verification(
             db.delete(existing)
             db.commit()
 
+    # Synchronize student progress and team metrics in database
+    _sync_student_progress_db(db, student_id)
+
     # Return updated list of verified problem IDs for this student
     verified_records = (
         db.query(StudentVerifiedProblem)
@@ -218,7 +279,7 @@ def batch_verify_problems(
     db: Session = Depends(get_db),
 ):
     student_id = payload.student_identifier.strip()
-    
+
     for pid in payload.problem_ids:
         pid = pid.strip()
         existing = (
@@ -241,6 +302,9 @@ def batch_verify_problems(
                 db.delete(existing)
 
     db.commit()
+
+    # Synchronize student progress and team metrics in database
+    _sync_student_progress_db(db, student_id)
 
     verified_records = (
         db.query(StudentVerifiedProblem)

@@ -1000,6 +1000,86 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   };
 
+  // Real-time synchronization of Mentor Verified Problems across all roles (Dean, Mentor, Student)
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncVerifications = async () => {
+      try {
+        const verificationsMap = await getVerificationsApi();
+        if (!verificationsMap || typeof verificationsMap !== 'object' || !isMounted) return;
+
+        setStudents(prevStudents => {
+          let hasAnyChanges = false;
+
+          const updated = prevStudents.map(st => {
+            const backendVerified = verificationsMap[st.rollNo] || verificationsMap[st.id] || [];
+            const currentVerified = st.verifiedProblemIds || [];
+
+            // Check if there is any difference
+            const isDiff =
+              backendVerified.length !== currentVerified.length ||
+              backendVerified.some(pid => !currentVerified.includes(pid));
+
+            if (isDiff) {
+              hasAnyChanges = true;
+              return recalculateStudentMetrics(st, backendVerified);
+            }
+            return st;
+          });
+
+          if (hasAnyChanges) {
+            // Recompute all teams
+            setTeams(prevTeams =>
+              prevTeams.map(t => {
+                const teamSts = updated.filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber);
+                const tSolved = teamSts.reduce((acc, s) => acc + (s.solved || 0), 0);
+                const tAttempted = teamSts.reduce((acc, s) => acc + (s.attempted || 0), 0);
+                const tAvgProg = teamSts.length > 0 ? Math.round(teamSts.reduce((acc, s) => acc + s.progress, 0) / teamSts.length) : 0;
+                const tAvgStreak = teamSts.length > 0 ? Math.round(teamSts.reduce((acc, s) => acc + s.streak, 0) / teamSts.length) : 0;
+
+                const tPerf: Record<string, number> = {};
+                const topicCaps: Record<string, number> = {
+                  Arrays: 55, Strings: 15, 'Linked Lists': 10, Stack: 10, Queue: 5, Trees: 5, Graphs: 0, 'Dynamic Programming': 0,
+                };
+                for (const top of Object.keys(topicCaps)) {
+                  const cap = topicCaps[top];
+                  if (cap > 0) {
+                    const totalTopicCap = cap * teamSts.length;
+                    const solvedTopic = teamSts.reduce((acc, s) => acc + (s.topicProgress[top as DSATopic]?.solved || 0), 0);
+                    tPerf[top] = Math.min(100, Math.round((solvedTopic / Math.max(1, totalTopicCap)) * 100));
+                  } else {
+                    tPerf[top] = 0;
+                  }
+                }
+
+                return {
+                  ...t,
+                  totalSolved: tSolved,
+                  totalAttempted: tAttempted,
+                  avgProgress: tAvgProg,
+                  avgStreak: tAvgStreak,
+                  topicPerformance: tPerf,
+                };
+              })
+            );
+            return updated;
+          }
+          return prevStudents;
+        });
+      } catch (err) {
+        // Backend not reachable, continue with active session
+      }
+    };
+
+    syncVerifications();
+    const interval = setInterval(syncVerifications, 3000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
   // Mentor verification toggle
   const toggleMentorProblemVerification = async (studentId: string, problemId: string, verified: boolean) => {
     // Strict RBAC: Only Mentors and Dean can verify problem completion
