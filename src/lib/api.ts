@@ -209,3 +209,69 @@ export async function submitSolutionApi(payload: {
   });
 }
 
+// -------------------------------------------------------------
+// Weekly Exams Operations (Shared across all devices via Neon)
+// -------------------------------------------------------------
+export async function getWeeklyExamsApi() {
+  return apiRequest<any[]>('/exams');
+}
+
+export async function createWeeklyExamApi(payload: any) {
+  return apiRequest<any>('/dean/exams', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateWeeklyExamApi(examId: string, payload: any) {
+  return apiRequest<any>(`/dean/exams/${examId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteWeeklyExamApi(examId: string) {
+  return apiRequest<{ detail: string }>(`/dean/exams/${examId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function submitExamSolutionApi(examId: string, payload: any) {
+  return apiRequest<any>(`/student/exams/${examId}/submit`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+// -------------------------------------------------------------
+// Mentor Problem Verification Operations (Shared across all devices via Neon)
+// -------------------------------------------------------------
+export async function getVerificationsApi() {
+  return apiRequest<Record<string, string[]>>('/mentor/verifications');
+}
+
+export async function toggleMentorVerificationApi(payload: {
+  student_identifier: string;
+  problem_id: string;
+  verified: boolean;
+  day_number?: number;
+}) {
+  return apiRequest<{ student_identifier: string; verified_problem_ids: string[] }>('/mentor/verify', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function batchVerifyMentorApi(payload: {
+  student_identifier: string;
+  problem_ids: string[];
+  verified: boolean;
+  day_number?: number;
+}) {
+  return apiRequest<{ student_identifier: string; verified_problem_ids: string[] }>('/mentor/batch-verify', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+

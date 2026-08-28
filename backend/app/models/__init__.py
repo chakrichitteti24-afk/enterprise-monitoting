@@ -15,6 +15,8 @@ from app.models.submission import Submission
 from app.models.progress import StudentProgress
 from app.models.activity import ActivityLog
 from app.models.note import MentorNote
+from app.models.exam import WeeklyExam, StudentExamSubmission
+from app.models.verification import StudentVerifiedProblem
 
 __all__ = [
     "UserRole",
@@ -32,4 +34,7 @@ __all__ = [
     "StudentProgress",
     "ActivityLog",
     "MentorNote",
+    "WeeklyExam",
+    "StudentExamSubmission",
+    "StudentVerifiedProblem",
 ]

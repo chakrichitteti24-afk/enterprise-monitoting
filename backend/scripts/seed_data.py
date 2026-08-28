@@ -169,12 +169,12 @@ REAL_GKCE_STUDENTS = [
 
 def seed(db_session: Session = None):
     """Seed database with complete GKCE institutional dataset."""
+    import app.models  # Ensure all models are registered with Base metadata
+    Base.metadata.create_all(bind=engine)
     close_db = False
     if db_session is not None:
         db = db_session
     else:
-        Base.metadata.drop_all(bind=engine)
-        Base.metadata.create_all(bind=engine)
         db = SessionLocal()
         close_db = True
 

@@ -24,6 +24,14 @@ import {
   deleteStudentApi,
   updateStudentAvatarApi,
   submitSolutionApi,
+  getWeeklyExamsApi,
+  createWeeklyExamApi,
+  updateWeeklyExamApi,
+  deleteWeeklyExamApi,
+  submitExamSolutionApi,
+  getVerificationsApi,
+  toggleMentorVerificationApi,
+  batchVerifyMentorApi,
 } from '../lib/api';
 
 interface AuthContextType {
@@ -993,13 +1001,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Mentor verification toggle
-  const toggleMentorProblemVerification = (studentId: string, problemId: string, verified: boolean) => {
+  const toggleMentorProblemVerification = async (studentId: string, problemId: string, verified: boolean) => {
     // Strict RBAC: Only Mentors and Dean can verify problem completion
     if (currentUser.role === 'STUDENT') {
       console.warn('[RBAC] Students cannot self-verify problem completions.');
       return;
     }
 
+    // Optimistic local state update
     setStudents(prevStudents => {
       const updated = prevStudents.map(st => {
         if (st.id === studentId || st.rollNo === studentId) {
@@ -1025,10 +1034,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return updated;
     });
+
+    // Sync with Neon database
+    try {
+      await toggleMentorVerificationApi({
+        student_identifier: studentId,
+        problem_id: problemId,
+        verified,
+      });
+    } catch (err) {
+      console.warn('[Neon DB] toggleMentorVerificationApi deferred:', err);
+    }
   };
 
   // Batch verify 5 problems for a specific day for a student
-  const batchVerifyDayProblems = (studentId: string, dayNumber: number, verified: boolean) => {
+  const batchVerifyDayProblems = async (studentId: string, dayNumber: number, verified: boolean) => {
     if (currentUser.role === 'STUDENT') return;
     const dayProblemIds = PROBLEMS_BANK_100.filter(p => p.dayNumber === dayNumber).map(p => p.id);
 
@@ -1058,6 +1078,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return updated;
     });
+
+    // Sync with Neon database
+    try {
+      await batchVerifyMentorApi({
+        student_identifier: studentId,
+        problem_ids: dayProblemIds,
+        verified,
+        day_number: dayNumber,
+      });
+    } catch (err) {
+      console.warn('[Neon DB] batchVerifyMentorApi deferred:', err);
+    }
   };
 
   // Batch verify a specific problem across all members of a team
@@ -1091,10 +1123,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('[RBAC Blocked] Only Dean/Root (SUDO) is authorized to schedule weekly DSA exams.');
     }
 
-    const newExamId = `exam-week-${String(examData.weekNumber || exams.length + 1).padStart(2, '0')}-${Date.now()}`;
+    const newExamId = examData.id || `exam-week-${String(examData.weekNumber || exams.length + 1).padStart(2, '0')}-${Date.now()}`;
     const newExam: WeeklyExam = {
       id: newExamId,
       weekNumber: examData.weekNumber || exams.length + 1,
+      tier: examData.tier || 'EASY',
+      tierBadge: examData.tierBadge || 'Tier 1: Easy Foundations',
       title: examData.title || `Week ${examData.weekNumber || exams.length + 1} Assessment`,
       description: examData.description || 'Weekly standardized DSA coding examination scheduled by Dean of Academic Affairs.',
       topicFocus: examData.topicFocus || 'DSA Core Curriculum',
@@ -1110,6 +1144,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setExams(prev => [newExam, ...prev]);
+
+    // Persist to Neon PostgreSQL
+    try {
+      await createWeeklyExamApi(newExam);
+    } catch (err) {
+      console.warn('[Neon DB] createWeeklyExamApi deferred:', err);
+    }
   };
 
   const updateWeeklyExam = async (examId: string, updates: Partial<WeeklyExam>): Promise<void> => {
@@ -1120,6 +1161,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setExams(prev =>
       prev.map(ex => (ex.id === examId ? { ...ex, ...updates } : ex))
     );
+
+    // Persist to Neon PostgreSQL
+    try {
+      await updateWeeklyExamApi(examId, updates);
+    } catch (err) {
+      console.warn('[Neon DB] updateWeeklyExamApi deferred:', err);
+    }
   };
 
   const deleteWeeklyExam = async (examId: string): Promise<void> => {
@@ -1128,6 +1176,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setExams(prev => prev.filter(ex => ex.id !== examId));
+
+    // Persist to Neon PostgreSQL
+    try {
+      await deleteWeeklyExamApi(examId);
+    } catch (err) {
+      console.warn('[Neon DB] deleteWeeklyExamApi deferred:', err);
+    }
   };
 
   const setExamStatus = async (examId: string, status: ExamStatus): Promise<void> => {
@@ -1138,6 +1193,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setExams(prev =>
       prev.map(ex => (ex.id === examId ? { ...ex, status } : ex))
     );
+
+    // Persist to Neon PostgreSQL
+    try {
+      await updateWeeklyExamApi(examId, { status });
+    } catch (err) {
+      console.warn('[Neon DB] updateWeeklyExamApi (status) deferred:', err);
+    }
   };
 
   const submitExamSolution = async (
@@ -1211,8 +1273,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
     );
 
+    // Persist to Neon PostgreSQL
+    try {
+      await submitExamSolutionApi(examId, {
+        studentId: student.id,
+        studentName: student.name,
+        studentRollNo: student.rollNo,
+        teamNumber: student.teamNumber,
+        randomizedSetCode: setCode,
+        answers: answerDetails,
+      });
+    } catch (err) {
+      console.warn('[Neon DB] submitExamSolutionApi deferred:', err);
+    }
+
     return newSubmission;
   };
+
+  // Background synchronize live data from Neon PostgreSQL
+  useEffect(() => {
+    const syncNeonData = async () => {
+      try {
+        const [cloudExamsRes, verificationsRes] = await Promise.allSettled([
+          getWeeklyExamsApi(),
+          getVerificationsApi(),
+        ]);
+
+        if (cloudExamsRes.status === 'fulfilled' && Array.isArray(cloudExamsRes.value)) {
+          setExams(cloudExamsRes.value);
+        }
+
+        if (verificationsRes.status === 'fulfilled' && verificationsRes.value) {
+          const vMap = verificationsRes.value;
+          setStudents(prevStudents => {
+            const updated = prevStudents.map(st => {
+              const cloudVerified = vMap[st.rollNo] || vMap[st.id] || [];
+              const combined = Array.from(new Set([...(st.verifiedProblemIds || []), ...cloudVerified]));
+              if (combined.length > 0) {
+                return recalculateStudentMetrics(st, combined);
+              }
+              return st;
+            });
+            return updated;
+          });
+        }
+      } catch (err) {
+        console.warn('[Neon DB Sync] Background sync deferred:', err);
+      }
+    };
+
+    syncNeonData();
+  }, []);
 
   // Keyboard shortcut for Cmd/Ctrl+K search
   useEffect(() => {

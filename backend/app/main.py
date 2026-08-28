@@ -4,27 +4,14 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.database.base import Base
 from app.database.session import engine
-from app.routers import auth, student, mentor, dean, problems, submissions
+from app.routers import auth, student, mentor, dean, problems, submissions, exams
 
-# Initialize database tables & initial data
-Base.metadata.create_all(bind=engine)
-
-def _init_db():
+# Ensure database tables exist for SQLite fallback; Neon PostgreSQL is initialized via init_neon_db
+if settings.DATABASE_URL.startswith("sqlite"):
     try:
-        from app.database.session import SessionLocal
-        from app.models.user import User
-        with SessionLocal() as db:
-            if db.query(User).count() == 0:
-                try:
-                    from scripts.seed_data import seed
-                except ImportError:
-                    from backend.scripts.seed_data import seed
-                seed(db_session=db)
+        Base.metadata.create_all(bind=engine)
     except Exception as e:
-        # Non-blocking in case of external migrations or seed already present
-        print("Initial database check / seed:", e)
-
-_init_db()
+        print("SQLite init:", e)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -97,6 +84,7 @@ app.include_router(mentor.router, prefix=api_prefix)
 app.include_router(dean.router, prefix=api_prefix)
 app.include_router(problems.router, prefix=api_prefix)
 app.include_router(submissions.router, prefix=api_prefix)
+app.include_router(exams.router, prefix=api_prefix)
 
 
 @app.get("/health", tags=["System"])

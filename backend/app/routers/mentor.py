@@ -134,3 +134,121 @@ def add_mentor_note(
         student_id=student_id,
         note_text=note_in.note,
     )
+
+
+# ---------------------------------------------------------------------------
+# Problem Verification Endpoints (Mentor / Dean)
+# ---------------------------------------------------------------------------
+from pydantic import BaseModel
+from typing import Dict, Any, Optional
+from app.models.verification import StudentVerifiedProblem
+
+
+class SingleVerifySchema(BaseModel):
+    student_identifier: str
+    problem_id: str
+    verified: bool
+    day_number: Optional[int] = None
+
+
+class BatchVerifySchema(BaseModel):
+    student_identifier: str
+    problem_ids: List[str]
+    verified: bool
+    day_number: Optional[int] = None
+
+
+@router.get("/verifications", summary="Get all verified problem completions")
+def get_all_verifications(db: Session = Depends(get_db)):
+    records = db.query(StudentVerifiedProblem).all()
+    res: Dict[str, List[str]] = {}
+    for r in records:
+        if r.student_identifier not in res:
+            res[r.student_identifier] = []
+        res[r.student_identifier].append(r.problem_id)
+    return res
+
+
+@router.post("/verify", summary="Toggle single problem verification")
+def toggle_problem_verification(
+    payload: SingleVerifySchema,
+    db: Session = Depends(get_db),
+):
+    student_id = payload.student_identifier.strip()
+    problem_id = payload.problem_id.strip()
+
+    existing = (
+        db.query(StudentVerifiedProblem)
+        .filter(
+            StudentVerifiedProblem.student_identifier == student_id,
+            StudentVerifiedProblem.problem_id == problem_id,
+        )
+        .first()
+    )
+
+    if payload.verified:
+        if not existing:
+            new_record = StudentVerifiedProblem(
+                student_identifier=student_id,
+                problem_id=problem_id,
+                day_number=payload.day_number,
+            )
+            db.add(new_record)
+            db.commit()
+    else:
+        if existing:
+            db.delete(existing)
+            db.commit()
+
+    # Return updated list of verified problem IDs for this student
+    verified_records = (
+        db.query(StudentVerifiedProblem)
+        .filter(StudentVerifiedProblem.student_identifier == student_id)
+        .all()
+    )
+    return {
+        "student_identifier": student_id,
+        "verified_problem_ids": [r.problem_id for r in verified_records],
+    }
+
+
+@router.post("/batch-verify", summary="Batch verify problems for student")
+def batch_verify_problems(
+    payload: BatchVerifySchema,
+    db: Session = Depends(get_db),
+):
+    student_id = payload.student_identifier.strip()
+    
+    for pid in payload.problem_ids:
+        pid = pid.strip()
+        existing = (
+            db.query(StudentVerifiedProblem)
+            .filter(
+                StudentVerifiedProblem.student_identifier == student_id,
+                StudentVerifiedProblem.problem_id == pid,
+            )
+            .first()
+        )
+        if payload.verified:
+            if not existing:
+                db.add(StudentVerifiedProblem(
+                    student_identifier=student_id,
+                    problem_id=pid,
+                    day_number=payload.day_number,
+                ))
+        else:
+            if existing:
+                db.delete(existing)
+
+    db.commit()
+
+    verified_records = (
+        db.query(StudentVerifiedProblem)
+        .filter(StudentVerifiedProblem.student_identifier == student_id)
+        .all()
+    )
+    return {
+        "student_identifier": student_id,
+        "verified_problem_ids": [r.problem_id for r in verified_records],
+    }
+
