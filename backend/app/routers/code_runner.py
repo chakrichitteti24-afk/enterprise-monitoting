@@ -190,10 +190,260 @@ __run_test()
             })
 
     # -------------------------------------------------------------
-    # Java / C++ / Other Languages Simulation Sandbox
+    # JavaScript Execution via Node.js
+    # -------------------------------------------------------------
+    elif lang in ("javascript", "js"):
+        import tempfile
+        for idx, tc in enumerate(test_cases):
+            tc_input = tc.input.strip()
+            expected = tc.expectedOutput.strip()
+            is_passed = False
+            actual_out = ""
+            status_str = "WRONG_ANSWER"
+
+            # Create a wrapper script for JS
+            js_script = f"""
+{code}
+
+function __run_test() {{
+    const rawInput = {json.dumps(tc_input)};
+    let args = [];
+    try {{
+        if (rawInput.startsWith('[') || rawInput.startsWith('{{')) {{
+            args = [JSON.parse(rawInput)];
+        }} else if (rawInput.includes(' ')) {{
+            args = rawInput.split(' ').map(x => isNaN(x) ? x : Number(x));
+        }} else {{
+            args = [isNaN(rawInput) ? rawInput : Number(rawInput)];
+        }}
+    }} catch (e) {{
+        args = [rawInput];
+    }}
+
+    try {{
+        let fn = null;
+        if (typeof {req.entry_point} === 'function') fn = {req.entry_point};
+        else if (typeof solve === 'function') fn = solve;
+        else if (typeof Solution !== 'undefined') {{
+            const s = new Solution();
+            if (typeof s.{req.entry_point} === 'function') fn = s.{req.entry_point}.bind(s);
+            else if (typeof s.solve === 'function') fn = s.solve.bind(s);
+        }}
+        
+        if (!fn) throw new Error("Function not found");
+        const res = fn(...args);
+        
+        let out_str;
+        if (typeof res === 'boolean') out_str = String(res).toLowerCase();
+        else if (typeof res === 'object') out_str = JSON.stringify(res);
+        else out_str = String(res ?? '');
+        
+        console.log(JSON.stringify({{actual: out_str}}));
+    }} catch (err) {{
+        console.log(JSON.stringify({{error: err.message}}));
+    }}
+}}
+__run_test();
+"""
+            try:
+                # Use a temporary file for the JS script
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False) as f:
+                    f.write(js_script)
+                    temp_path = f.name
+                
+                proc = subprocess.run(
+                    ["node", temp_path],
+                    capture_output=True,
+                    text=True,
+                    timeout=3.0,
+                )
+                os.remove(temp_path)
+                
+                stdout = proc.stdout.strip()
+                stderr = proc.stderr.strip()
+
+                if proc.returncode != 0 or stderr:
+                    actual_out = stderr.splitlines()[-1] if stderr else "Runtime Error"
+                    is_passed = False
+                    status_str = "RUNTIME_ERROR"
+                    error_message = stderr
+                else:
+                    try:
+                        parsed = json.loads(stdout)
+                        if "error" in parsed:
+                            actual_out = parsed["error"]
+                            is_passed = False
+                            status_str = "RUNTIME_ERROR"
+                            error_message = parsed["error"]
+                        else:
+                            actual_out = str(parsed.get("actual", ""))
+                            # Compare outputs
+                            norm_actual = actual_out.strip().replace(" ", "").lower()
+                            norm_expected = expected.strip().replace(" ", "").lower()
+                            is_passed = (norm_actual == norm_expected)
+                            status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
+                    except:
+                        actual_out = stdout or "No output"
+                        is_passed = (actual_out.strip() == expected.strip())
+                        status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
+
+            except subprocess.TimeoutExpired:
+                actual_out = "Time Limit Exceeded ( > 3.0s )"
+                is_passed = False
+                status_str = "TIME_LIMIT_EXCEEDED"
+            except Exception as ex:
+                actual_out = f"Execution Error: {str(ex)}"
+                is_passed = False
+                status_str = "RUNTIME_ERROR"
+
+            if is_passed:
+                passed_count += 1
+            elif overall_status == "ACCEPTED":
+                overall_status = status_str
+
+            results.append({
+                "id": idx + 1,
+                "input": tc_input,
+                "expected_output": expected,
+                "actual_output": actual_out,
+                "passed": is_passed,
+                "execution_time_ms": int((time.time() - start_time) * 1000) + 10,
+                "status": status_str,
+            })
+
+    # -------------------------------------------------------------
+    # Java Execution via Javac/Java
+    # -------------------------------------------------------------
+    elif lang == "java":
+        import tempfile
+        for idx, tc in enumerate(test_cases):
+            tc_input = tc.input.strip()
+            expected = tc.expectedOutput.strip()
+            is_passed = False
+            actual_out = ""
+            status_str = "WRONG_ANSWER"
+
+            java_script = f"""
+import java.util.*;
+
+{code}
+
+public class Main {{
+    public static void main(String[] args) {{
+        try {{
+            String rawInput = {json.dumps(tc_input)};
+            Solution sol = new Solution();
+            
+            java.lang.reflect.Method[] methods = Solution.class.getDeclaredMethods();
+            java.lang.reflect.Method target = null;
+            for (java.lang.reflect.Method m : methods) {{
+                if (m.getName().equals("{req.entry_point}") || m.getName().equals("solve") || methods.length == 1) {{
+                    target = m;
+                    break;
+                }}
+            }}
+            if (target == null) throw new Exception("Entry method not found");
+            
+            Class<?>[] paramTypes = target.getParameterTypes();
+            Object[] invokeArgs = new Object[paramTypes.length];
+            
+            if (paramTypes.length > 0) {{
+                Class<?> pType = paramTypes[0];
+                if (pType == int.class) {{
+                    invokeArgs[0] = Integer.parseInt(rawInput.trim().split("\\\\s+")[0]);
+                }} else if (pType == String.class) {{
+                    invokeArgs[0] = rawInput.trim();
+                }} else if (pType == int[].class) {{
+                    String[] parts = rawInput.trim().split("\\\\s+");
+                    int[] arr = new int[parts.length];
+                    for(int i=0; i<parts.length; i++) {{
+                        try {{ arr[i] = Integer.parseInt(parts[i]); }} catch(Exception ignored) {{}}
+                    }}
+                    invokeArgs[0] = arr;
+                }}
+            }}
+            
+            Object res = target.invoke(sol, invokeArgs);
+            String outStr = "";
+            if (res instanceof Boolean) outStr = String.valueOf(res).toLowerCase();
+            else outStr = String.valueOf(res);
+            
+            System.out.println("{{\\"actual\\": \\"" + outStr.replace("\\"", "\\\\\\"") + "\\"}}");
+        }} catch (Exception e) {{
+            System.out.println("{{\\"error\\": \\"" + e.toString().replace("\\"", "\\\\\\"") + "\\"}}");
+        }}
+    }}
+}}
+"""
+            try:
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    java_file = os.path.join(tmpdir, "Main.java")
+                    with open(java_file, "w") as f:
+                        f.write(java_script)
+                    
+                    compile_proc = subprocess.run(["javac", java_file], capture_output=True, text=True, timeout=3.0)
+                    if compile_proc.returncode != 0:
+                        actual_out = compile_proc.stderr.splitlines()[-1] if compile_proc.stderr else "Compilation Error"
+                        is_passed = False
+                        status_str = "COMPILATION_ERROR"
+                        error_message = compile_proc.stderr
+                        overall_status = "COMPILATION_ERROR"
+                    else:
+                        proc = subprocess.run(["java", "-cp", tmpdir, "Main"], capture_output=True, text=True, timeout=3.0)
+                        stdout = proc.stdout.strip()
+                        stderr = proc.stderr.strip()
+
+                        if proc.returncode != 0 or stderr:
+                            actual_out = stderr.splitlines()[-1] if stderr else "Runtime Error"
+                            is_passed = False
+                            status_str = "RUNTIME_ERROR"
+                            error_message = stderr
+                        else:
+                            try:
+                                parsed = json.loads(stdout)
+                                if "error" in parsed:
+                                    actual_out = parsed["error"]
+                                    is_passed = False
+                                    status_str = "RUNTIME_ERROR"
+                                else:
+                                    actual_out = str(parsed.get("actual", ""))
+                                    norm_actual = actual_out.strip().replace(" ", "").lower()
+                                    norm_expected = expected.strip().replace(" ", "").lower()
+                                    is_passed = (norm_actual == norm_expected)
+                                    status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
+                            except:
+                                actual_out = stdout or "No output"
+                                is_passed = (actual_out.strip() == expected.strip())
+                                status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
+            except subprocess.TimeoutExpired:
+                actual_out = "Time Limit Exceeded ( > 3.0s )"
+                is_passed = False
+                status_str = "TIME_LIMIT_EXCEEDED"
+            except Exception as ex:
+                actual_out = f"Execution Error: {str(ex)}"
+                is_passed = False
+                status_str = "RUNTIME_ERROR"
+
+            if is_passed:
+                passed_count += 1
+            elif overall_status == "ACCEPTED":
+                overall_status = status_str
+
+            results.append({
+                "id": idx + 1,
+                "input": tc_input,
+                "expected_output": expected,
+                "actual_output": actual_out,
+                "passed": is_passed,
+                "execution_time_ms": int((time.time() - start_time) * 1000) + 10,
+                "status": status_str,
+            })
+
+    # -------------------------------------------------------------
+    # C++ / Other Languages Simulation Sandbox
     # -------------------------------------------------------------
     else:
-        # Evaluate syntax and basic patterns for Java / C++
+        # Evaluate syntax and basic patterns for C++
         for idx, tc in enumerate(test_cases):
             tc_input = tc.input.strip()
             expected = tc.expectedOutput.strip()

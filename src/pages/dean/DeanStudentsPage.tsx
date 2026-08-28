@@ -121,6 +121,7 @@ export const DeanStudentsPage: React.FC = () => {
         name: studentName,
         rollNo: studentRoll,
         email: studentEmail,
+        password: studentPassword,
         teamNumber: targetTeam,
         dsaLevel: dsaLevelInput,
         status: statusInput,

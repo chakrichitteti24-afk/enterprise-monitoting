@@ -111,6 +111,7 @@ export const MentorStudentsPage: React.FC = () => {
         name: studentName,
         rollNo: studentRoll,
         email: cleanEmail,
+        password: cleanPassword,
         teamNumber: targetTeam,
         dsaLevel: dsaLevelInput,
         status: statusInput,

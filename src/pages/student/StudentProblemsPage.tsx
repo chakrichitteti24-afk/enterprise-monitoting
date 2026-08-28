@@ -38,7 +38,8 @@ export const StudentProblemsPage: React.FC = () => {
   }, [searchQuery, selectedDay, selectedTopic, selectedDifficulty]);
 
   const verifiedCount = PROBLEMS_BANK.filter((p) => verifiedProblemIds.has(p.id)).length;
-  const overallProgressPct = Math.round((verifiedCount / PROBLEMS_BANK.length) * 100);
+  // 34 = real backend curriculum size — consistent with AuthContext and backend DB
+  const overallProgressPct = Math.round((verifiedCount / 34) * 100);
 
   // Navigation indices for active problem in IDE
   const currentIdx = activeProblem ? filteredProblems.findIndex(p => p.id === activeProblem.id) : -1;

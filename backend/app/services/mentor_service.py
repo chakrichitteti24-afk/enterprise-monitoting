@@ -145,3 +145,59 @@ class MentorService:
             note=note.note,
             created_at=note.created_at,
         )
+
+    def create_student(self, student_in: "StudentCreate") -> "StudentOut":
+        from fastapi import HTTPException, status
+        from app.models.user import User, UserRole
+        from app.models.student import Student
+        from app.models.progress import StudentProgress
+        from app.core.security import get_password_hash
+
+        if self.db.query(User).filter(User.email == student_in.email).first():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Email '{student_in.email}' is already registered.")
+            
+        if self.student_repo.get_by_roll_number(student_in.roll_number):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Roll number '{student_in.roll_number}' is already registered.")
+
+        # Create User
+        user = User(
+            name=student_in.name,
+            email=student_in.email,
+            password_hash=get_password_hash(student_in.password or "Student@GKCE2026"),
+            role=UserRole.STUDENT,
+            is_active=True,
+        )
+        self.db.add(user)
+        self.db.flush()
+
+        # Create Student Profile
+        student = Student(
+            user_id=user.id,
+            roll_number=student_in.roll_number,
+            team_id=student_in.team_id,
+            status=student_in.status,
+            dsa_level=student_in.dsa_level,
+            leetcode_username=f"{student_in.name.lower().replace(' ', '_')[:10]}_{student_in.roll_number[-4:]}",
+            github_username=f"{student_in.name.lower().replace(' ', '')[:10]}_{student_in.roll_number[-4:]}",
+        )
+        self.db.add(student)
+        self.db.flush()
+
+        # Create Progress Tracker
+        progress = StudentProgress(
+            student_id=student.id,
+            problems_solved=0,
+            problems_attempted=0,
+            overall_percentage=0.0,
+            current_streak=0,
+            longest_streak=0,
+            easy_solved=0,
+            medium_solved=0,
+            hard_solved=0,
+        )
+        self.db.add(progress)
+        self.db.commit()
+
+        # Build output
+        student_with_rel = self.student_repo.get_by_id_with_relations(student.id)
+        return self.student_service._build_student_out(student_with_rel)

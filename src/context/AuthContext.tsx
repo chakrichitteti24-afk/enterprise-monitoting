@@ -20,6 +20,7 @@ import {
   updateTeamApi,
   deleteTeamApi,
   createStudentApi,
+  createStudentAsMentorApi,
   updateStudentApi,
   deleteStudentApi,
   updateStudentAvatarApi,
@@ -32,6 +33,11 @@ import {
   getVerificationsApi,
   toggleMentorVerificationApi,
   batchVerifyMentorApi,
+  getStudentMeDetailApi,
+  getDeanStudentsAllApi,
+  getDeanTeamsApi,
+  getMentorTeamStudentsApi,
+  getMentorTeamDetailApi,
 } from '../lib/api';
 
 interface AuthContextType {
@@ -59,7 +65,7 @@ interface AuthContextType {
   addTeam: (teamData: Partial<Team>) => Promise<void>;
   updateTeam: (teamId: string, updates: Partial<Team>) => Promise<void>;
   removeTeam: (teamId: string) => Promise<void>;
-  addStudent: (studentData: Partial<Student>) => Promise<void>;
+  addStudent: (studentData: Partial<Student> & { password?: string }) => Promise<void>;
   updateStudent: (studentId: string, updates: Partial<Student>) => Promise<void>;
   removeStudent: (studentId: string) => Promise<void>;
   updateAvatar: (newAvatarUrl: string) => Promise<void>;
@@ -105,16 +111,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [students, setStudents] = useState<Student[]>(() => {
+    // Clear all legacy localStorage caches — backend is the source of truth now
     localStorage.removeItem('gkce_students');
     localStorage.removeItem('gkce_teams');
     localStorage.removeItem('gkce_students_v4');
     localStorage.removeItem('gkce_teams_v4');
-    const saved = localStorage.getItem('gkce_students_v5');
-    return saved ? JSON.parse(saved) : ALL_STUDENTS;
+    localStorage.removeItem('gkce_students_v5');
+    localStorage.removeItem('gkce_teams_v5');
+    // Start with mock data; syncFromBackend() will overwrite with real DB data right after login
+    return ALL_STUDENTS;
   });
   const [teams, setTeams] = useState<Team[]>(() => {
-    const saved = localStorage.getItem('gkce_teams_v5');
-    return saved ? JSON.parse(saved) : ALL_TEAMS;
+    // Start with mock data; syncFromBackend() will overwrite with real DB data right after login
+    return ALL_TEAMS;
   });
   const [mentors] = useState<Mentor[]>(ALL_MENTORS);
   const [exams, setExams] = useState<WeeklyExam[]>(() => {
@@ -136,14 +145,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     localStorage.setItem('gkce_weekly_exams_v4', JSON.stringify(exams));
   }, [exams]);
-
-  useEffect(() => {
-    localStorage.setItem('gkce_students_v5', JSON.stringify(students));
-  }, [students]);
-
-  useEffect(() => {
-    localStorage.setItem('gkce_teams_v5', JSON.stringify(teams));
-  }, [teams]);
 
   const addTeam = async (teamData: Partial<Team>) => {
     try {
@@ -264,7 +265,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const addStudent = async (studentData: Partial<Student>) => {
+  const addStudent = async (studentData: Partial<Student> & { password?: string }) => {
     try {
       const roll = (studentData.rollNo || `24F81A05${Math.floor(100 + Math.random() * 900)}`).toUpperCase();
       const name = studentData.name || 'New Student';
@@ -283,15 +284,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       try {
-        const res = await createStudentApi({
+        const payload = {
           name,
           roll_number: roll,
           email,
           team_id: teamNumId,
           team_number: matchedTeam?.teamNumber,
+          password: studentData.password,
           dsa_level: dsaLevel.toUpperCase(),
           status: studentStatus.toUpperCase().replace(' ', '_'),
-        });
+        };
+        const res = currentUser.role === 'MENTOR' 
+          ? await createStudentAsMentorApi(payload)
+          : await createStudentApi(payload);
+          
         if (res && res.id) {
           createdStudentId = `student-${res.id}`;
         }
@@ -506,6 +512,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (me && me.role) {
             mapAndSetUser(me.role, me);
             setIsAuthenticated(true);
+            // Hydrate students/teams from real DB on session restore
+            syncFromBackend(me.role as UserRole, me);
           }
         } catch (err: any) {
           const is401 = err?.message?.includes('401') || err?.message?.toLowerCase().includes('unauthorized') || err?.message?.toLowerCase().includes('invalid');
@@ -604,6 +612,218 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // Map backend API responses → frontend Student/Team shapes
+  // ---------------------------------------------------------------------------
+  const backendStudentToFrontend = (s: any, existingStudents?: Student[]): Student => {
+    const existing = existingStudents?.find(
+      (e) => `student-${s.id}` === e.id || e.rollNo === s.roll_number
+    );
+    const topicProgress: Record<string, { solved: number; total: number; percentage: number }> = {
+      Arrays: { solved: 0, total: 55, percentage: 0 },
+      Strings: { solved: 0, total: 15, percentage: 0 },
+      'Linked Lists': { solved: 0, total: 10, percentage: 0 },
+      Stack: { solved: 0, total: 10, percentage: 0 },
+      Queue: { solved: 0, total: 5, percentage: 0 },
+      Trees: { solved: 0, total: 5, percentage: 0 },
+      Graphs: { solved: 0, total: 0, percentage: 0 },
+      'Dynamic Programming': { solved: 0, total: 0, percentage: 0 },
+    };
+    // If backend returned detailed progress with topic breakdown, use it
+    if (s.progress?.topic_progress) {
+      for (const [topic, data] of Object.entries(s.progress.topic_progress as Record<string, any>)) {
+        const friendlyTopic = topic.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+        const mapped: Record<string, string> = {
+          'Arrays': 'Arrays', 'Strings': 'Strings', 'Linked Lists': 'Linked Lists',
+          'Stack': 'Stack', 'Queue': 'Queue', 'Trees': 'Trees',
+          'Graphs': 'Graphs', 'Dynamic Programming': 'Dynamic Programming',
+          'Linked_lists': 'Linked Lists', 'Dynamic_programming': 'Dynamic Programming',
+        };
+        const key = mapped[friendlyTopic] || friendlyTopic;
+        if (topicProgress[key]) {
+          topicProgress[key] = {
+            solved: data.solved ?? 0,
+            total: data.total ?? topicProgress[key].total,
+            percentage: data.percentage ?? 0,
+          };
+        }
+      }
+    }
+    const prog = s.progress || {};
+    const solved = prog.problems_solved ?? s.problems_solved ?? 0;
+    const attempted = prog.problems_attempted ?? s.problems_attempted ?? 0;
+    const progressPct = Math.round(prog.overall_percentage ?? s.progress_percentage ?? 0);
+    const streak = prog.current_streak ?? s.current_streak ?? 0;
+    const longestStreak = prog.longest_streak ?? s.longest_streak ?? 0;
+    const dsaLevelMap: Record<string, string> = {
+      BEGINNER: 'Beginner', INTERMEDIATE: 'Intermediate', ADVANCED: 'Advanced', MASTERY: 'Mastery',
+    };
+    const statusMap: Record<string, string> = {
+      ACTIVE: 'Active', NEEDS_ATTENTION: 'Needs Attention', INACTIVE: 'Inactive',
+    };
+
+    return {
+      id: `student-${s.id}`,
+      rollNo: s.roll_number,
+      name: s.name,
+      email: s.email,
+      avatar: s.avatar_url || existing?.avatar || `https://images.unsplash.com/photo-1535713875002?w=150&auto=format&fit=crop&q=80`,
+      teamId: `team-${s.team_id}`,
+      teamNumber: s.team_number,
+      mentorId: s.mentor_id ? `mentor-${s.mentor_id}` : (existing?.mentorId || ''),
+      mentorName: s.mentor_name || existing?.mentorName || 'Faculty Mentor',
+      dsaLevel: (dsaLevelMap[s.dsa_level] || 'Beginner') as any,
+      progress: progressPct,
+      solved,
+      attempted,
+      pending: Math.max(0, 100 - solved),
+      streak,
+      longestStreak,
+      status: (statusMap[s.status] || 'Active') as any,
+      topicProgress: topicProgress as any,
+      difficultyStats: {
+        easy: { solved: prog.easy_solved ?? 0, total: prog.difficulty_stats?.easy?.total ?? 70 },
+        medium: { solved: prog.medium_solved ?? 0, total: prog.difficulty_stats?.medium?.total ?? 28 },
+        hard: { solved: prog.hard_solved ?? 0, total: prog.difficulty_stats?.hard?.total ?? 2 },
+      },
+      recentActivities: existing?.recentActivities || [],
+      submissionsHistory: existing?.submissionsHistory || [],
+      mentorFeedbackNotes: existing?.mentorFeedbackNotes || [],
+      verifiedProblemIds: existing?.verifiedProblemIds || [],
+      leetcodeUsername: s.leetcode_username,
+      githubUsername: s.github_username,
+    };
+  };
+
+  const backendTeamToFrontend = (t: any, existingTeams?: Team[]): Team => {
+    const existing = existingTeams?.find(
+      (e) => `team-${t.id}` === e.id || e.teamNumber === t.team_number
+    );
+    const statusMap: Record<string, string> = {
+      ACTIVE: 'Active', NEEDS_ATTENTION: 'Needs Attention', INACTIVE: 'Inactive',
+      Active: 'Active', 'Needs Attention': 'Needs Attention',
+    };
+    return {
+      id: `team-${t.id}`,
+      teamNumber: t.team_number,
+      name: t.name,
+      mentorId: t.mentor_id ? `mentor-${t.mentor_id}` : (existing?.mentorId || ''),
+      mentorName: t.mentor_name || existing?.mentorName || 'Faculty Mentor',
+      mentorEmail: t.mentor_email || existing?.mentorEmail || '',
+      mentorDepartment: t.mentor_department || existing?.mentorDepartment || 'CSE',
+      mentorAvatar: t.mentor_avatar || existing?.mentorAvatar,
+      studentIds: existing?.studentIds || [],
+      avgProgress: Math.round(t.average_progress ?? 0),
+      totalSolved: t.total_problems_solved ?? 0,
+      totalAttempted: t.total_attempted ?? 0,
+      avgStreak: Math.round(t.average_streak ?? 0),
+      status: (statusMap[t.status] || 'Active') as any,
+      topicPerformance: (existing?.topicPerformance || {
+        Arrays: 0, Strings: 0, 'Linked Lists': 0, Stack: 0,
+        Queue: 0, Trees: 0, Graphs: 0, 'Dynamic Programming': 0,
+      }) as any,
+      rank: t.rank ?? 1,
+    };
+  };
+
+  // ---------------------------------------------------------------------------
+  // syncFromBackend — fetches live DB data for the given role and updates state
+  // ---------------------------------------------------------------------------
+  const syncFromBackend = async (role: UserRole, userPayload?: any) => {
+    const token = getStoredToken();
+    if (!token || token.startsWith('gkce_local_token_')) return; // no real JWT, skip
+
+    try {
+      if (role === 'DEAN') {
+        const [studentsRes, teamsRes] = await Promise.allSettled([
+          getDeanStudentsAllApi(),
+          getDeanTeamsApi(),
+        ]);
+
+        if (studentsRes.status === 'fulfilled' && studentsRes.value?.items) {
+          const mapped = studentsRes.value.items.map((s: any) =>
+            backendStudentToFrontend(s)
+          );
+          setStudents(mapped);
+          // Re-wire studentIds into teams after students arrive
+          setTeams(prev =>
+            prev.map(t => ({
+              ...t,
+              studentIds: mapped.filter(s => s.teamId === t.id).map(s => s.id),
+            }))
+          );
+        }
+
+        if (teamsRes.status === 'fulfilled' && Array.isArray(teamsRes.value)) {
+          setTeams(prev => {
+            const mapped = teamsRes.value.map((t: any) =>
+              backendTeamToFrontend(t, prev)
+            );
+            return mapped;
+          });
+        }
+      } else if (role === 'MENTOR') {
+        const [studentsRes, teamRes] = await Promise.allSettled([
+          getMentorTeamStudentsApi(),
+          getMentorTeamDetailApi(),
+        ]);
+
+        if (studentsRes.status === 'fulfilled' && Array.isArray(studentsRes.value)) {
+          const backendStudents = studentsRes.value;
+          setStudents(prev => {
+            const updated = [...prev];
+            for (const bs of backendStudents) {
+              const mapped = backendStudentToFrontend(bs, prev);
+              const idx = updated.findIndex(
+                s => s.rollNo === bs.roll_number || s.id === `student-${bs.id}`
+              );
+              if (idx >= 0) {
+                updated[idx] = mapped;
+              }
+            }
+            return updated;
+          });
+        }
+
+        if (teamRes.status === 'fulfilled' && teamRes.value) {
+          const bt = teamRes.value;
+          setTeams(prev => {
+            const idx = prev.findIndex(
+              t => t.id === `team-${bt.id}` || t.teamNumber === bt.team_number
+            );
+            const mapped = backendTeamToFrontend(bt, prev);
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = { ...mapped, studentIds: prev[idx].studentIds };
+              return next;
+            }
+            return prev;
+          });
+        }
+      } else if (role === 'STUDENT') {
+        const detail = await getStudentMeDetailApi();
+        if (detail && detail.id) {
+          const mapped = backendStudentToFrontend(detail);
+          setStudents(prev => {
+            const idx = prev.findIndex(
+              s => s.rollNo === detail.roll_number || s.id === `student-${detail.id}`
+            );
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = mapped;
+              return next;
+            }
+            return prev;
+          });
+          // Also update currentUser.studentData so the dashboard is instant
+          setCurrentUser(prev => ({ ...prev, studentData: mapped }));
+        }
+      }
+    } catch (err) {
+      console.warn('[syncFromBackend] Backend sync failed, using local state:', err);
+    }
+  };
+
   const loginWithCredentials = async (email: string, password: string) => {
     // ── Canonical backend DB credentials (from seed_data.py) ──────────────
     // These are the ONLY passwords stored in the backend DB.
@@ -632,6 +852,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const role = res.user.role as UserRole;
       mapAndSetUser(role, res.user);
       setIsAuthenticated(true);
+      // Immediately hydrate state from real backend DB
+      syncFromBackend(role, res.user);
     } catch (backendErr: any) {
       const normalizedEmail = email.toLowerCase().trim();
       const rawPassword = password.trim();
@@ -669,7 +891,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isDeanIdentifier && isDeanPasswordValid) {
         mapAndSetUser('DEAN');
         setIsAuthenticated(true);
-        silentBackendLogin(BACKEND_DEAN_EMAIL, BACKEND_DEAN_PASSWORD);
+        // Get JWT then sync live data
+        silentBackendLogin(BACKEND_DEAN_EMAIL, BACKEND_DEAN_PASSWORD).then(() =>
+          syncFromBackend('DEAN')
+        );
         return;
       }
 
@@ -692,7 +917,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (matchedMentor && isMentorPasswordValid) {
         mapAndSetUser('MENTOR', { email: matchedMentor.email, team_number: matchedMentor.assignedTeamNumber });
         setIsAuthenticated(true);
-        silentBackendLogin(matchedMentor.email, BACKEND_MENTOR_PASSWORD);
+        // Get JWT then sync live data
+        silentBackendLogin(matchedMentor.email, BACKEND_MENTOR_PASSWORD).then(() =>
+          syncFromBackend('MENTOR')
+        );
         return;
       }
 
@@ -710,7 +938,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (matchedStudent && isStudentPasswordValid) {
         mapAndSetUser('STUDENT', { email: matchedStudent.email, roll_number: matchedStudent.rollNo });
         setIsAuthenticated(true);
-        silentBackendLogin(matchedStudent.email, BACKEND_STUDENT_PASSWORD);
+        // Get JWT then sync live data
+        silentBackendLogin(matchedStudent.email, BACKEND_STUDENT_PASSWORD).then(() =>
+          syncFromBackend('STUDENT')
+        );
         return;
       }
 
@@ -804,8 +1035,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const newSolved = targetStudent.solved + 1;
     const newAttempted = Math.max(targetStudent.attempted + 1, newSolved);
-    const newPending = Math.max(0, 100 - newSolved);
-    const newProgress = Math.min(100, Math.round((newSolved / 100) * 100));
+    const newPending = Math.max(0, 34 - newSolved);
+    const newProgress = Math.min(100, Math.round((newSolved / 34) * 100));
     const newStreak = targetStudent.streak + 1;
     const newLongestStreak = Math.max(targetStudent.longestStreak, newStreak);
     const newLevel = newProgress >= 85 ? 'Mastery' : newProgress >= 65 ? 'Advanced' : newProgress >= 40 ? 'Intermediate' : 'Beginner';
@@ -882,32 +1113,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
     );
 
-    // Try backend submission if token exists
+    // Persist submission to backend DB and re-sync progress
     try {
       const pNum = parseInt(problem.id.replace('prob-', ''), 10) || 1;
       await submitSolutionApi({
         problem_id: pNum,
         status: 'SOLVED',
         score: 100,
-        runtime_ms: 54,
-        memory_mb: 41.8,
-        code_snippet: '// Solved via GKCE Sandbox Runner',
         language: 'Java',
       });
+      // Re-fetch from DB so progress is accurate on all devices
+      syncFromBackend('STUDENT');
     } catch {
-      // Local state already updated
+      // Local state already updated — backend sync will catch up on next poll
     }
 
     return true;
   };
 
   // Recalculate student metrics from verifiedProblemIds
+  // NOTE: The backend curriculum has 34 problems (dsa_problems table).
+  // Frontend PROBLEMS_BANK_100 has 100 problems but only 34 are tracked for verification.
+  // To stay consistent with the backend's overall_percentage, we divide by 34.
+  const CURRICULUM_TOTAL = 34;
   const recalculateStudentMetrics = (student: Student, verifiedIds: string[]): Student => {
     const verifiedSet = new Set(verifiedIds);
     const verifiedProblems = PROBLEMS_BANK_100.filter(p => verifiedSet.has(p.id));
     const solvedCount = verifiedProblems.length;
-    const progress = Math.min(100, Math.round((solvedCount / 100) * 100));
-    const pending = Math.max(0, 100 - solvedCount);
+    // Match backend: progress = min(100, round(solved / 34 * 100))
+    const progress = Math.min(100, Math.round((solvedCount / CURRICULUM_TOTAL) * 100));
+    const pending = Math.max(0, CURRICULUM_TOTAL - solvedCount);
     const attempted = Math.max(student.attempted || 0, solvedCount);
 
     const topicProgress: Record<DSATopic, { solved: number; total: number; percentage: number }> = {
@@ -943,7 +1178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const dsaLevel = progress >= 85 ? 'Mastery' : progress >= 65 ? 'Advanced' : progress >= 40 ? 'Intermediate' : 'Beginner';
-    const streak = solvedCount > 0 ? Math.max(1, Math.min(20, Math.ceil(solvedCount / 5))) : 0;
+    const streak = solvedCount > 0 ? Math.max(1, Math.min(20, Math.ceil(solvedCount / 3))) : 0;
 
     return {
       ...student,
@@ -1382,40 +1617,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return newSubmission;
   };
 
-  // Background synchronize live data from Neon PostgreSQL
-  useEffect(() => {
-    const syncNeonData = async () => {
-      try {
-        const [cloudExamsRes, verificationsRes] = await Promise.allSettled([
-          getWeeklyExamsApi(),
-          getVerificationsApi(),
-        ]);
-
-        if (cloudExamsRes.status === 'fulfilled' && Array.isArray(cloudExamsRes.value)) {
-          setExams(cloudExamsRes.value);
-        }
-
-        if (verificationsRes.status === 'fulfilled' && verificationsRes.value) {
-          const vMap = verificationsRes.value;
-          setStudents(prevStudents => {
-            const updated = prevStudents.map(st => {
-              const cloudVerified = vMap[st.rollNo] || vMap[st.id] || [];
-              const combined = Array.from(new Set([...(st.verifiedProblemIds || []), ...cloudVerified]));
-              if (combined.length > 0) {
-                return recalculateStudentMetrics(st, combined);
-              }
-              return st;
-            });
-            return updated;
-          });
-        }
-      } catch (err) {
-        console.warn('[Neon DB Sync] Background sync deferred:', err);
-      }
-    };
-
-    syncNeonData();
-  }, []);
 
   // Keyboard shortcut for Cmd/Ctrl+K search
   useEffect(() => {

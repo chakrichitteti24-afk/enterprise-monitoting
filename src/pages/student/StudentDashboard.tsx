@@ -195,7 +195,7 @@ export const StudentDashboard: React.FC = () => {
             <div className="text-center mt-3">
               <div className="text-sm font-bold text-slate-900">{student.progress}% DSA Progress</div>
               <div className="text-[11px] text-slate-500 mt-0.5">
-                {student.solved} of {TOTAL_CURRICULUM_PROBLEMS} core problems mastered
+                {student.solved} of 34 core problems mastered
               </div>
             </div>
           </div>

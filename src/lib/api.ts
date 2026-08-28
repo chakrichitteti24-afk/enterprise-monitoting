@@ -139,6 +139,22 @@ export async function createStudentApi(payload: {
   });
 }
 
+export async function createStudentAsMentorApi(payload: {
+  name: string;
+  roll_number: string;
+  email: string;
+  team_id?: number;
+  team_number?: string;
+  password?: string;
+  dsa_level?: string;
+  status?: string;
+}) {
+  return apiRequest<any>('/mentor/students', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function updateStudentApi(
   studentId: number,
   payload: {
@@ -304,5 +320,33 @@ export async function runCodeApi(payload: {
   });
 }
 
+// -------------------------------------------------------------
+// Cross-Device Sync: Fetch live data from backend on login
+// -------------------------------------------------------------
 
+/** Full student detail for the currently authenticated student */
+export async function getStudentMeDetailApi() {
+  return apiRequest<any>('/student/me');
+}
 
+/** All students (up to 200) for Dean */
+export async function getDeanStudentsAllApi() {
+  return apiRequest<{ items: any[]; total: number; page: number; limit: number }>(
+    '/dean/students?page=1&limit=200'
+  );
+}
+
+/** All teams for Dean */
+export async function getDeanTeamsApi() {
+  return apiRequest<any[]>('/dean/teams');
+}
+
+/** 5 students in the authenticated mentor's assigned team */
+export async function getMentorTeamStudentsApi() {
+  return apiRequest<any[]>('/mentor/team/students');
+}
+
+/** Mentor's own team detail (includes topic_performance, average_progress etc.) */
+export async function getMentorTeamDetailApi() {
+  return apiRequest<any>('/mentor/team');
+}

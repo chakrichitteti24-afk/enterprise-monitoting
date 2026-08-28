@@ -136,6 +136,26 @@ def add_mentor_note(
     )
 
 
+from app.schemas.student import StudentCreate
+
+@router.post(
+    "/students",
+    response_model=StudentOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a student to mentor's assigned cohort",
+    description="Creates a new student strictly assigned to the mentor's team.",
+)
+def create_mentor_student(
+    student_in: StudentCreate,
+    current_user: User = Depends(require_mentor),
+    db: Session = Depends(get_db),
+):
+    mentor_service = MentorService(db)
+    # Ensure they can only add to their own team
+    team_id = current_user.mentor_profile.assigned_team_id
+    student_in.team_id = team_id
+    return mentor_service.create_student(student_in)
+
 # ---------------------------------------------------------------------------
 # Problem Verification Endpoints (Mentor / Dean)
 # ---------------------------------------------------------------------------

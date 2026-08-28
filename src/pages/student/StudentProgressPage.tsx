@@ -13,10 +13,8 @@ export const StudentProgressPage: React.FC = () => {
 
   if (!student) return null;
 
-  const totalCurriculum =
-    student.difficultyStats.easy.total +
-    student.difficultyStats.medium.total +
-    student.difficultyStats.hard.total;
+  // Use 34 to match backend curriculum instead of summing fallback stats (which sum to 100)
+  const totalCurriculum = 34;
 
   return (
     <div className="space-y-5 sm:space-y-6">

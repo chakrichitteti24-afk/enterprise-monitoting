@@ -16,7 +16,13 @@ from scripts.seed_data import seed as seed_database, DEAN_PASSWORD, MENTOR_PASSW
 def setup_test_db():
     db = SessionLocal()
     try:
+        # Check if we have the exact number of users seeded
         if db.query(User).count() < 121:
+            from app.database.session import engine
+            from app.database.base import Base
+            # Wipe everything and recreate
+            Base.metadata.drop_all(bind=engine)
+            Base.metadata.create_all(bind=engine)
             seed_database()
     finally:
         db.close()
