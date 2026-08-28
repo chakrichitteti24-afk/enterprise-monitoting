@@ -14,6 +14,9 @@ import {
   ExternalLink,
   LogOut,
   User as UserIcon,
+  Sparkles,
+  Radio,
+  BookOpen,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -35,6 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
     logout,
     students,
     teams,
+    exams,
   } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -42,7 +46,27 @@ export const Header: React.FC<HeaderProps> = ({
   const topTeam = teams.length > 0 ? [...teams].sort((a, b) => b.avgProgress - a.avgProgress)[0] : null;
   const attentionStudentCount = students.filter((s) => s.status === 'Needs Attention').length;
 
+  const liveExam = exams.find(e => e.status === 'LIVE');
+  const studentSubmission = liveExam?.submissions?.find(
+    s => s.studentId === currentUser.studentData?.id || s.studentRollNo === currentUser.studentData?.rollNo
+  );
+
   const notifications = [
+    ...(liveExam
+      ? [
+          {
+            id: 'live-exam-alert',
+            title: `🚨 Live Exam Active: ${liveExam.title}`,
+            desc: studentSubmission
+              ? `You have submitted this exam (Score: ${studentSubmission.score}/${studentSubmission.totalMarks}).`
+              : `Root (Dean) has launched this assessment. Complete ${liveExam.questions?.length || 20} problems within ${liveExam.durationMinutes} mins.`,
+            time: 'Live Now',
+            icon: Radio,
+            color: 'text-rose-600 bg-rose-50',
+            isLive: true,
+          },
+        ]
+      : []),
     ...(topTeam
       ? [
           {
@@ -70,91 +94,127 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-2xl border-b border-slate-200/60 px-3 sm:px-6 md:px-8 py-2 sm:py-2.5 transition-all">
-      <div className="flex items-center justify-between gap-2 sm:gap-3 max-w-[1720px] 2xl:max-w-[1880px] w-full mx-auto">
-        {/* Left: Brand / Mobile Toggle */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={onMobileMenuToggle}
-            className="md:hidden p-2 rounded-2xl bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 transition-colors shrink-0"
-            aria-label="Toggle navigation menu"
+    <>
+      {/* 🚨 Global Live Exam Alert Emergency Banner */}
+      {liveExam && !studentSubmission && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-red-600 via-rose-600 to-indigo-600 text-white px-3 sm:px-6 py-2 text-xs font-bold flex items-center justify-between shadow-md border-b border-red-500/40 select-none z-40 relative"
+        >
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <span className="flex h-2.5 w-2.5 relative shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+            </span>
+            <span className="truncate">
+              🚨 <strong>LIVE EXAMINATION ACTIVE:</strong> Root (Dean) has launched <strong>{liveExam.title}</strong> ({liveExam.questions?.length || 20} Problems, {liveExam.durationMinutes} Mins)!
+            </span>
+          </div>
+          <button
+            onClick={() => setActiveTab('exams')}
+            className="ml-3 px-3.5 py-1 bg-white text-rose-700 hover:bg-rose-50 rounded-xl text-xs font-extrabold shadow-sm transition-all active:scale-95 shrink-0 flex items-center gap-1 cursor-pointer"
           >
-            {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-          </motion.button>
+            <span>Take Exam Now &rarr;</span>
+          </button>
+        </motion.div>
+      )}
 
-          <div
-            onClick={() => {
-              setActiveTab('dashboard');
-              setSelectedStudent(null);
-              setSelectedTeam(null);
-            }}
-            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group shrink-0"
-          >
-            <AppLogo size="md" showGlow animated />
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-slate-900 tracking-tight text-sm sm:text-base group-hover:text-blue-700 transition-colors">
-                  GKCE
-                </span>
-                <span className="text-slate-300 font-light hidden md:inline">|</span>
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-100 hidden md:inline-block">
-                  DSA Monitor
-                </span>
-              </div>
-              <div className="text-[10px] text-slate-400 leading-none truncate hidden lg:block">
-                Gokula Krishna College of Engineering
+      <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-2xl border-b border-slate-200/60 px-3 sm:px-6 md:px-8 py-2 sm:py-2.5 transition-all">
+        <div className="flex items-center justify-between gap-2 sm:gap-3 max-w-[1720px] 2xl:max-w-[1880px] w-full mx-auto">
+          {/* Left: Brand / Mobile Toggle */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={onMobileMenuToggle}
+              className="md:hidden p-2 rounded-2xl bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 transition-colors shrink-0"
+              aria-label="Toggle navigation menu"
+            >
+              {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </motion.button>
+
+            <div
+              onClick={() => {
+                setActiveTab('dashboard');
+                setSelectedStudent(null);
+                setSelectedTeam(null);
+              }}
+              className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group shrink-0"
+            >
+              <AppLogo size="md" showGlow animated />
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-slate-900 tracking-tight text-sm sm:text-base group-hover:text-blue-700 transition-colors">
+                    GKCE
+                  </span>
+                  <span className="text-slate-300 font-light hidden md:inline">|</span>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-100 hidden md:inline-block">
+                    DSA Monitor
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-400 leading-none truncate hidden lg:block">
+                  Gokula Krishna College of Engineering
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Center: Search Bar Button (Cmd+K) on Desktop */}
-        <div className="flex-1 max-w-md mx-2 hidden md:block">
-          <motion.button
-            whileTap={{ scale: 0.99 }}
-            onClick={() => setIsSearchOpen(true)}
-            className="w-full flex items-center justify-between px-3.5 py-2 rounded-2xl bg-slate-100/70 hover:bg-slate-100 text-slate-500 text-xs font-normal border border-slate-200/50 transition-all text-left shadow-2xs group"
-          >
-            <div className="flex items-center gap-2.5">
-              <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors" />
-              <span className="text-slate-500 truncate">Search students, teams, topics...</span>
-            </div>
-            <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono bg-white border border-slate-200 rounded-md text-slate-400 shadow-2xs">
-              ⌘K
-            </kbd>
-          </motion.button>
-        </div>
+          {/* Center: Search Bar Button (Cmd+K) on Desktop */}
+          <div className="flex-1 max-w-md mx-2 hidden md:block">
+            <motion.button
+              whileTap={{ scale: 0.99 }}
+              onClick={() => setIsSearchOpen(true)}
+              className="w-full flex items-center justify-between px-3.5 py-2 rounded-2xl bg-slate-100/70 hover:bg-slate-100 text-slate-500 text-xs font-normal border border-slate-200/50 transition-all text-left shadow-2xs group"
+            >
+              <div className="flex items-center gap-2.5">
+                <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                <span className="text-slate-500 truncate">Search students, teams, topics...</span>
+              </div>
+              <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono bg-white border border-slate-200 rounded-md text-slate-400 shadow-2xs">
+                ⌘K
+              </kbd>
+            </motion.button>
+          </div>
 
-        {/* Right: Quick Switcher & User Profile */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Quick Role Switcher / Strict RBAC Badge */}
-          <QuickRoleSwitcher />
+          {/* Right: Quick Switcher & User Profile */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Quick Role Switcher / Strict RBAC Badge */}
+            <QuickRoleSwitcher />
 
-          {/* Search Trigger for Mobile/Tablet */}
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setIsSearchOpen(true)}
-            className="md:hidden h-9 w-9 flex items-center justify-center rounded-2xl bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 transition-colors shrink-0"
-            aria-label="Open search"
-          >
-            <Search className="w-4 h-4" />
-          </motion.button>
-
-          {/* Notifications */}
-          <div className="relative">
+            {/* Search Trigger for Mobile/Tablet */}
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onClick={() => {
-                setShowNotifications(!showNotifications);
-                setShowProfileMenu(false);
-              }}
-              className="relative h-9 w-9 flex items-center justify-center rounded-2xl bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 transition-colors shrink-0"
-              aria-label="Notifications"
+              onClick={() => setIsSearchOpen(true)}
+              className="md:hidden h-9 w-9 flex items-center justify-center rounded-2xl bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 transition-colors shrink-0"
+              aria-label="Open search"
             >
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full ring-2 ring-white animate-pulse" />
+              <Search className="w-4 h-4" />
             </motion.button>
+
+            {/* Notifications */}
+            <div className="relative">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => {
+                  setShowNotifications(!showNotifications);
+                  setShowProfileMenu(false);
+                }}
+                className={`relative h-9 w-9 flex items-center justify-center rounded-2xl transition-colors shrink-0 ${
+                  liveExam && !studentSubmission
+                    ? 'bg-rose-100 text-rose-700 hover:bg-rose-200 ring-2 ring-rose-400'
+                    : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/80'
+                }`}
+                aria-label="Notifications"
+              >
+                <Bell className="w-4 h-4" />
+                {liveExam && !studentSubmission ? (
+                  <span className="absolute -top-1 -right-1 px-1.5 py-0.2 bg-rose-600 text-white rounded-full text-[9px] font-extrabold animate-bounce">
+                    LIVE
+                  </span>
+                ) : (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full ring-2 ring-white animate-pulse" />
+                )}
+              </motion.button>
 
             <AnimatePresence>
               {showNotifications && (
@@ -180,18 +240,40 @@ export const Header: React.FC<HeaderProps> = ({
                       </span>
                     </div>
                     <div className="mt-2 space-y-2 max-h-[60vh] overflow-y-auto">
-                      {notifications.map((n) => (
+                      {notifications.map((n: any) => (
                         <div
                           key={n.id}
-                          className="p-2.5 rounded-2xl hover:bg-slate-50 flex items-start gap-3 transition-colors cursor-pointer"
+                          onClick={() => {
+                            if (n.id === 'live-exam-alert') {
+                              setActiveTab('exams');
+                            }
+                            setShowNotifications(false);
+                          }}
+                          className={`p-2.5 rounded-2xl flex items-start gap-3 transition-colors cursor-pointer ${
+                            n.isLive ? 'bg-rose-50/80 hover:bg-rose-100/80 border border-rose-200/60' : 'hover:bg-slate-50'
+                          }`}
                         >
                           <div className={`p-1.5 rounded-xl shrink-0 ${n.color}`}>
                             <n.icon className="w-3.5 h-3.5" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-semibold text-slate-900">{n.title}</div>
-                            <div className="text-[11px] text-slate-500 leading-tight mt-0.5">{n.desc}</div>
-                            <div className="text-[10px] text-slate-400 mt-1">{n.time}</div>
+                            <div className="text-xs font-semibold text-slate-900 flex items-center justify-between">
+                              <span>{n.title}</span>
+                              {n.isLive && (
+                                <span className="px-1.5 py-0.2 bg-rose-600 text-white rounded text-[9px] font-extrabold animate-pulse">
+                                  LIVE
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-600 leading-tight mt-0.5">{n.desc}</div>
+                            <div className="text-[10px] text-slate-400 mt-1 flex items-center justify-between">
+                              <span>{n.time}</span>
+                              {n.isLive && (
+                                <span className="text-rose-600 font-bold hover:underline">
+                                  Enter Exam &rarr;
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -311,6 +393,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
     </header>
-  );
+  </>
+);
 };
 

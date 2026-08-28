@@ -1226,13 +1226,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const answerDetails: Record<string, any> = {};
 
     questions.forEach((q) => {
-      const code = answers[q.id] || '';
-      const hasCode = code.trim().length > 15;
-      const passedTestCases = hasCode ? 3 : 0;
-      const totalTestCases = 3;
+      const code = (answers[q.id] || '').trim();
+      const isUntouchedTemplate = !code || code.length < 35 || code.includes('// TODO: Implement') || code.includes('# TODO: Implement');
+      const hasSyntaxError = (code.includes('{') && (code.match(/\{/g) || []).length !== (code.match(/\}/g) || []).length);
+      const hasLogic = !isUntouchedTemplate && !hasSyntaxError && (code.includes('return') || code.includes('System.out') || code.includes('print'));
+
+      let passedTestCases = 0;
+      const totalTestCases = Math.max(3, q.testCases?.length || 3);
+
+      if (!isUntouchedTemplate && !hasSyntaxError) {
+        if (hasLogic && (code.includes('for') || code.includes('while') || code.includes('+') || code.includes('*') || code.length > 60)) {
+          passedTestCases = totalTestCases; // All passed
+        } else if (hasLogic) {
+          passedTestCases = Math.max(1, totalTestCases - 1); // Partial pass
+        }
+      }
+
       const marksEarned = Math.round((passedTestCases / totalTestCases) * q.marks);
       score += marksEarned;
-      if (passedTestCases >= 2) solvedCount += 1;
+      if (passedTestCases === totalTestCases) solvedCount += 1;
 
       answerDetails[q.id] = {
         code,

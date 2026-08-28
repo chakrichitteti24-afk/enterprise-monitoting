@@ -30,7 +30,7 @@ class TestCaseResult(BaseModel):
     input: str
     expected_output: str
     actual_output: str
-    passed: boolean = False
+    passed: bool = False
     execution_time_ms: int = 0
     stdout: Optional[str] = ""
     error: Optional[str] = None
@@ -68,7 +68,7 @@ def run_code_sandbox(req: CodeRunRequest):
             expected = tc.expectedOutput.strip()
 
             runner_script = f"""
-import sys, json, math
+import sys, json, math, ast
 
 {code}
 
@@ -96,29 +96,21 @@ def __run_test():
             print(json.dumps({{"error": "Function 'solve' or 'Solution' class not found"}}))
             return
 
-        # Parse inputs
+        # Parse inputs with ast
         args = []
         if raw_input:
             try:
-                # Try evaluating raw_input as python literals / json
-                if ',' in raw_input and not (raw_input.startswith('[') or raw_input.startswith('{{')):
-                    parts = raw_input.split(',')
-                    for p in parts:
-                        p = p.strip()
-                        try:
-                            args.append(json.loads(p))
-                        except:
-                            args.append(p)
-                else:
-                    try:
-                        args.append(json.loads(raw_input))
-                    except:
-                        if ' ' in raw_input:
-                            args.extend([int(x) if x.isdigit() else x for x in raw_input.split()])
-                        else:
-                            args.append(int(raw_input) if raw_input.isdigit() else raw_input)
-            except:
-                args = [raw_input]
+                parsed_val = ast.literal_eval(f"({{raw_input}},)")
+                args = list(parsed_val)
+            except Exception:
+                try:
+                    parsed_val = ast.literal_eval(raw_input)
+                    args = [parsed_val]
+                except Exception:
+                    if ' ' in raw_input:
+                        args = [int(x) if x.isdigit() else x for x in raw_input.split()]
+                    else:
+                        args = [int(raw_input) if raw_input.isdigit() else raw_input]
 
         import inspect
         sig = inspect.signature(target_fn)
@@ -131,7 +123,7 @@ def __run_test():
             res = target_fn(*args[:num_params])
 
         # Normalize output
-        out_str = str(res).lower() if isinstance(res, bool) else json.dumps(res) if isinstance(res, (list, dict)) else str(res)
+        out_str = str(res).lower() if isinstance(res, bool) else json.dumps(res) if isinstance(res, (list, dict, tuple)) else str(res)
         print(json.dumps({{"actual": out_str}}))
     except Exception as e:
         print(json.dumps({{"error": str(e)}}))

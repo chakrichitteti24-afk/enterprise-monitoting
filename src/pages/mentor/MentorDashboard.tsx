@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { BentoCard } from '../../components/ui/BentoCard';
 import { ProgressRing } from '../../components/ui/ProgressRing';
@@ -14,22 +14,41 @@ import {
   BarChart3,
   ChevronRight,
   UserPlus,
+  Layers,
 } from 'lucide-react';
 import { Student } from '../../types';
 
 export const MentorDashboard: React.FC = () => {
   const { currentUser, students, teams, setSelectedStudent, setActiveTab } = useAuth();
+  const [selectedCohort, setSelectedCohort] = useState<string>('ALL');
 
-  const assignedTeamNumber = currentUser.teamNumber || 'Team 07';
-  const assignedTeamId = currentUser.teamId || 'team-7';
+  // Strictly retrieve ALL assigned teams for this mentor
+  const myTeams = teams.filter(
+    (t) =>
+      t.mentorId === currentUser.id ||
+      t.mentorEmail?.toLowerCase() === currentUser.email?.toLowerCase() ||
+      t.mentorName?.toLowerCase() === currentUser.name?.toLowerCase() ||
+      t.teamNumber === currentUser.teamNumber ||
+      t.id === currentUser.teamId
+  );
+  const activeTeams = myTeams.length > 0 ? myTeams : (teams.filter(t => t.teamNumber === 'Team 07') || [teams[0]]);
 
-  // Strictly retrieve ONLY the assigned students
-  const teamStudents = students.filter((s) => s.teamId === assignedTeamId || s.teamNumber === assignedTeamNumber);
-  const team = teams.find((t) => t.id === assignedTeamId || t.teamNumber === assignedTeamNumber);
+  // Filter based on selected cohort tab
+  const displayedTeams = selectedCohort === 'ALL'
+    ? activeTeams
+    : activeTeams.filter(t => t.id === selectedCohort || t.teamNumber === selectedCohort);
 
-  const avgProgress = teamStudents.length > 0 ? Math.round(teamStudents.reduce((a, b) => a + b.progress, 0) / teamStudents.length) : (team?.avgProgress || 0);
+  const teamStudents = students.filter(s =>
+    displayedTeams.some(t => t.id === s.teamId || t.teamNumber === s.teamNumber)
+  );
+
+  const avgProgress = teamStudents.length > 0
+    ? Math.round(teamStudents.reduce((a, b) => a + b.progress, 0) / teamStudents.length)
+    : Math.round(displayedTeams.reduce((a, b) => a + b.avgProgress, 0) / Math.max(1, displayedTeams.length));
   const totalProblemsSolved = teamStudents.reduce((sum, st) => sum + st.solved, 0);
-  const avgStreak = teamStudents.length > 0 ? Math.round((teamStudents.reduce((sum, st) => sum + st.streak, 0) / teamStudents.length) * 10) / 10 : 0;
+  const avgStreak = teamStudents.length > 0
+    ? Math.round((teamStudents.reduce((sum, st) => sum + st.streak, 0) / teamStudents.length) * 10) / 10
+    : 0;
 
   const handleStudentClick = (student: Student) => {
     setSelectedStudent(student);
@@ -37,20 +56,37 @@ export const MentorDashboard: React.FC = () => {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      {/* Header matching specifications */}
+      {/* Header matching specifications with Multi-Cohort Support */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/85 backdrop-blur-xl p-5 md:p-6 rounded-3xl border border-slate-200/80 shadow-xs">
         <div className="min-w-0">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold mb-2 border border-indigo-100">
-            <Users className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-            <span>Mentor Monitoring Dashboard</span>
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold border border-indigo-100">
+              <Users className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+              <span>Mentor Monitoring Dashboard</span>
+            </span>
+            {activeTeams.length > 1 && (
+              <span className="px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 text-xs font-bold border border-purple-200 flex items-center gap-1">
+                <Layers className="w-3 h-3" />
+                <span>{activeTeams.length} Cohorts Assigned</span>
+              </span>
+            )}
           </div>
+
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 tracking-tight truncate">
-            {assignedTeamNumber}
+            {selectedCohort === 'ALL'
+              ? (activeTeams.length > 1 ? `All Mentored Cohorts (${activeTeams.map(t => t.teamNumber).join(', ')})` : activeTeams[0]?.teamNumber)
+              : displayedTeams[0]?.teamNumber}
           </h1>
           <p className="text-xs md:text-sm text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
             <span>Cohort of <strong>{teamStudents.length} Students</strong></span>
             <span>•</span>
             <span>Faculty Mentor: <strong className="text-slate-800">{currentUser.name}</strong></span>
+            {activeTeams.length > 1 && (
+              <>
+                <span>•</span>
+                <span className="text-purple-700 font-bold">Managing {activeTeams.length} Teams</span>
+              </>
+            )}
           </p>
         </div>
 
@@ -71,6 +107,42 @@ export const MentorDashboard: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Multi-Cohort Selector Tabs if Mentor has > 1 Team */}
+      {activeTeams.length > 1 && (
+        <div className="bg-white/80 backdrop-blur-md p-2 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs font-bold text-slate-500 px-3 flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Select Cohort:</span>
+          </span>
+          <button
+            onClick={() => setSelectedCohort('ALL')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              selectedCohort === 'ALL'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            }`}
+          >
+            All Teams ({activeTeams.length} Teams • {students.filter(s => activeTeams.some(t => t.id === s.teamId || t.teamNumber === s.teamNumber)).length} Students)
+          </button>
+          {activeTeams.map((t) => {
+            const count = students.filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber).length;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setSelectedCohort(t.id)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  selectedCohort === t.id
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+              >
+                {t.teamNumber} ({count} Students)
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Main Bento Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-5">
@@ -152,7 +224,7 @@ export const MentorDashboard: React.FC = () => {
               {DSA_TOPICS.slice(0, 4).map((topic) => {
                 const perc = teamStudents.length > 0
                   ? Math.round(teamStudents.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / teamStudents.length)
-                  : (team?.topicPerformance[topic] || 0);
+                  : (displayedTeams[0]?.topicPerformance?.[topic] || 0);
                 return (
                   <div key={topic} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
                     <div className="flex justify-between text-[11px] font-medium text-slate-700 mb-1">

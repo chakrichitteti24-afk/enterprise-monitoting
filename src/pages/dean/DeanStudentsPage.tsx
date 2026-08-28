@@ -16,6 +16,10 @@ import {
   X,
   ShieldAlert,
   Edit3,
+  ShieldCheck,
+  Copy,
+  Check,
+  Key,
 } from 'lucide-react';
 import { Student, DSALevel, StudentStatus } from '../../types';
 
@@ -40,17 +44,25 @@ export const DeanStudentsPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteConfirmStudent, setDeleteConfirmStudent] = useState<Student | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    name: string;
+    rollNo: string;
+    email: string;
+    password: string;
+    teamNumber: string;
+  } | null>(null);
+  const [copiedCreds, setCopiedCreds] = useState(false);
 
   // Lock body scroll while modals are open
   React.useEffect(() => {
-    if (isEnrollOpen || editingStudent || deleteConfirmStudent) {
+    if (isEnrollOpen || editingStudent || deleteConfirmStudent || createdCredentials) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => {
         document.body.style.overflow = originalOverflow;
       };
     }
-  }, [isEnrollOpen, editingStudent, deleteConfirmStudent]);
+  }, [isEnrollOpen, editingStudent, deleteConfirmStudent, createdCredentials]);
 
   const openEnrollModal = () => {
     const nextRollNum = 100 + students.length + 1;
@@ -74,16 +86,6 @@ export const DeanStudentsPage: React.FC = () => {
     setStatusInput(student.status);
   };
 
-  // Lock body scroll while modals are open
-  React.useEffect(() => {
-    if (isEnrollOpen || editingStudent || deleteConfirmStudent) {
-      const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = originalOverflow;
-      };
-    }
-  }, [isEnrollOpen, editingStudent, deleteConfirmStudent]);
   const filteredStudents = students.filter((s) => {
     const matchesSearch =
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -111,20 +113,32 @@ export const DeanStudentsPage: React.FC = () => {
     try {
       const studentRoll = rollInput.trim().toUpperCase();
       const studentName = nameInput.trim();
+      const targetTeam = teamNumberInput || teams[0]?.teamNumber || 'Team 01';
+      const studentEmail = emailInput.trim() || `${studentRoll.toLowerCase()}@gkce.edu.in`;
+      const studentPassword = 'gkce@1234';
+
       await addStudent({
         name: studentName,
         rollNo: studentRoll,
-        email: emailInput.trim() || `${studentRoll.toLowerCase()}@gkce.edu.in`,
-        teamNumber: teamNumberInput || teams[0]?.teamNumber || 'Team 01',
+        email: studentEmail,
+        teamNumber: targetTeam,
         dsaLevel: dsaLevelInput,
         status: statusInput,
       });
+
       setIsEnrollOpen(false);
-      setSuccessMessage(`Student ${studentName} (${studentRoll}) enrolled in ${teamNumberInput || 'Team 01'}!`);
-      setTimeout(() => setSuccessMessage(null), 4000);
       setNameInput('');
       setRollInput('');
       setEmailInput('');
+
+      // Show auto-generated login credentials modal
+      setCreatedCredentials({
+        name: studentName,
+        rollNo: studentRoll,
+        email: studentEmail,
+        password: studentPassword,
+        teamNumber: targetTeam,
+      });
     } catch (err: any) {
       console.error(err);
       alert(err.message || 'Failed to enroll student. Check connection.');
@@ -674,6 +688,28 @@ export const DeanStudentsPage: React.FC = () => {
                   </select>
                 </div>
 
+                {/* Auto-Generated Login Credentials Preview */}
+                <div className="p-3.5 bg-blue-50/80 border border-blue-100 rounded-2xl space-y-1.5 text-xs text-blue-950">
+                  <div className="font-bold flex items-center gap-1.5 text-blue-800 text-xs">
+                    <Key className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Auto-Generated Student Login Credentials</span>
+                  </div>
+                  <div className="font-mono text-[11px] text-slate-700 space-y-1 bg-white/80 p-2.5 rounded-xl border border-blue-100/60">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Login ID / Roll:</span>
+                      <strong className="text-blue-700">{rollInput.trim().toUpperCase() || '24F81A05XX'}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Institutional Email:</span>
+                      <span className="text-slate-800 truncate max-w-[200px]">{emailInput.trim() || (rollInput.trim() ? `${rollInput.trim().toLowerCase()}@gkce.edu.in` : 'student@gkce.edu.in')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Default Password:</span>
+                      <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">gkce@1234</span>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="pt-3 flex gap-2 justify-end">
                   <button
                     type="button"
@@ -852,6 +888,106 @@ export const DeanStudentsPage: React.FC = () => {
                   className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
                 >
                   Confirm De-enroll
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: Student Credentials Generated Success */}
+      <AnimatePresence>
+        {createdCredentials && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-100 space-y-4"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2 text-slate-900 font-bold text-base">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <span>Student Credentials Generated!</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setCreatedCredentials(null);
+                    setCopiedCreds(false);
+                  }}
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-xs text-slate-600">
+                  Student <strong>{createdCredentials.name}</strong> has been enrolled and registered in the database. Their login credentials are ready:
+                </p>
+
+                <div className="p-4 bg-slate-900 text-slate-100 rounded-2xl space-y-2 font-mono text-xs shadow-inner">
+                  <div className="flex justify-between border-b border-slate-800 pb-1.5">
+                    <span className="text-slate-400">Student:</span>
+                    <span className="font-bold text-white">{createdCredentials.name}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-800 pb-1.5">
+                    <span className="text-slate-400">Roll No (Login ID):</span>
+                    <span className="font-bold text-blue-400">{createdCredentials.rollNo}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-800 pb-1.5">
+                    <span className="text-slate-400">Institutional Email:</span>
+                    <span className="text-slate-300 truncate max-w-[200px]">{createdCredentials.email}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-800 pb-1.5">
+                    <span className="text-slate-400">Default Password:</span>
+                    <span className="font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-700/50">{createdCredentials.password}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Assigned Cohort:</span>
+                    <span className="text-indigo-300 font-bold">{createdCredentials.teamNumber}</span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-[11px] text-amber-800 leading-relaxed">
+                  💡 The student can log in on any device using their <strong>Roll Number</strong> or <strong>Email</strong> with password <strong>{createdCredentials.password}</strong>.
+                </div>
+              </div>
+
+              <div className="pt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = `🏛️ GKCE Student Portal Login Credentials\n\nStudent: ${createdCredentials.name}\nRoll Number: ${createdCredentials.rollNo}\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\nTeam: ${createdCredentials.teamNumber}\nRole: Student\nPortal URL: ${window.location.origin}`;
+                    navigator.clipboard.writeText(text);
+                    setCopiedCreds(true);
+                    setTimeout(() => setCopiedCreds(false), 3000);
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all"
+                >
+                  {copiedCreds ? (
+                    <>
+                      <Check className="w-4 h-4 text-white" />
+                      <span>Copied to Clipboard!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Copy Login Credentials</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreatedCredentials(null);
+                    setCopiedCreds(false);
+                  }}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition-all"
+                >
+                  Done
                 </button>
               </div>
             </motion.div>

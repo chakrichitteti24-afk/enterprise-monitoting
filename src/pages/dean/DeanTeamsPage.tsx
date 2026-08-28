@@ -249,11 +249,18 @@ export const DeanTeamsPage: React.FC = () => {
                 </div>
 
                 <div className="text-xs font-semibold text-slate-700">{t.name}</div>
-                <div className="flex items-center gap-2 mt-2">
-                  <UserAvatar name={t.mentorName} role="MENTOR" size="xs" showBadge />
-                  <div className="text-[11px] text-slate-600 truncate">
-                    Mentor: <strong className="text-slate-800">{t.mentorName}</strong>
+                <div className="flex items-center justify-between gap-1 mt-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <UserAvatar name={t.mentorName} role="MENTOR" size="xs" showBadge />
+                    <div className="text-[11px] text-slate-600 truncate">
+                      Mentor: <strong className="text-slate-800">{t.mentorName}</strong>
+                    </div>
                   </div>
+                  {teams.filter(tm => tm.mentorName === t.mentorName || tm.mentorId === t.mentorId).length > 1 && (
+                    <span className="px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 text-[10px] font-bold border border-purple-200 shrink-0">
+                      {teams.filter(tm => tm.mentorName === t.mentorName || tm.mentorId === t.mentorId).length} Teams
+                    </span>
+                  )}
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
@@ -428,11 +435,17 @@ export const DeanTeamsPage: React.FC = () => {
                     className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 outline-hidden font-medium text-slate-700"
                   >
                     <option value="">Select Faculty Mentor...</option>
-                    {mentors.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} ({m.department})
-                      </option>
-                    ))}
+                    {mentors.map((m) => {
+                      const currentAssigned = teams.filter(t => t.mentorId === m.id || t.mentorName === m.name);
+                      const assignedStr = currentAssigned.length > 0
+                        ? ` (Mentoring: ${currentAssigned.map(t => t.teamNumber).join(', ')} — ${currentAssigned.length} Teams)`
+                        : ' (Available)';
+                      return (
+                        <option key={m.id} value={m.id}>
+                          {m.name} — {m.department}{assignedStr}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 

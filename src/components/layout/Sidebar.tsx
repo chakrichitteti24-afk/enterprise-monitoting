@@ -52,16 +52,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '', onItemClick })
         ];
       }
       case 'MENTOR': {
+        const myAssignedTeams = teams.filter(
+          t => t.mentorId === currentUser.id ||
+               t.mentorEmail?.toLowerCase() === currentUser.email?.toLowerCase() ||
+               t.mentorName?.toLowerCase() === currentUser.name?.toLowerCase() ||
+               t.teamNumber === currentUser.teamNumber ||
+               t.id === currentUser.teamId
+        );
+        const activeMentorTeams = myAssignedTeams.length > 0 ? myAssignedTeams : (teams.filter(t => t.teamNumber === 'Team 07') || [teams[0]]);
         const myTeamStudents = students.filter(
-          s => s.teamId === currentUser.teamId || s.teamNumber === currentUser.teamNumber
+          s => activeMentorTeams.some(t => t.id === s.teamId || t.teamNumber === s.teamNumber)
         );
         const myTeamAvg = myTeamStudents.length > 0
           ? Math.round(myTeamStudents.reduce((acc, s) => acc + s.progress, 0) / myTeamStudents.length)
           : 0;
+        const teamBadge = activeMentorTeams.length > 1
+          ? `${activeMentorTeams.length} Teams`
+          : (activeMentorTeams[0]?.teamNumber || 'Team 07');
+
         return [
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: undefined },
           { id: 'exams', label: 'Weekly Exams', icon: Award, badge: undefined },
-          { id: 'my-team', label: 'My Team', icon: Users, badge: currentUser.teamNumber || 'Team 07' },
+          { id: 'my-team', label: activeMentorTeams.length > 1 ? 'My Cohorts' : 'My Team', icon: Users, badge: teamBadge },
           { id: 'students', label: 'Students', icon: GraduationCap, badge: String(myTeamStudents.length) },
           { id: 'progress', label: 'Progress', icon: TrendingUp, badge: `${myTeamAvg}%` },
         ];

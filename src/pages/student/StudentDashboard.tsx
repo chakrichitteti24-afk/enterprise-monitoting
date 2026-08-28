@@ -7,6 +7,7 @@ import { StreakBadge } from '../../components/ui/StreakBadge';
 import { TopicProgressList } from '../../components/ui/TopicProgressList';
 import { UserAvatar } from '../../components/ui/UserAvatar';
 import { TOTAL_CURRICULUM_PROBLEMS } from '../../data/mockData';
+import { motion } from 'framer-motion';
 import {
   User,
   CheckCircle2,
@@ -16,11 +17,17 @@ import {
   ArrowUpRight,
   Sparkles,
   BookOpen,
+  Radio,
 } from 'lucide-react';
 
 export const StudentDashboard: React.FC = () => {
-  const { currentUser, setActiveTab } = useAuth();
+  const { currentUser, setActiveTab, exams } = useAuth();
   const student = currentUser.studentData;
+
+  const liveExam = exams.find(e => e.status === 'LIVE');
+  const studentSubmission = liveExam?.submissions?.find(
+    s => s.studentId === student?.id || s.studentRollNo === student?.rollNo
+  );
 
   if (!student) {
     return (
@@ -32,6 +39,46 @@ export const StudentDashboard: React.FC = () => {
 
   return (
     <div className="space-y-5 sm:space-y-6">
+      {/* 🚨 Priority Live Exam Alert Banner */}
+      {liveExam && !studentSubmission && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98, y: -8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-red-600 via-rose-600 to-indigo-700 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-red-400/30"
+        >
+          <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+            <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shrink-0 shadow-inner">
+              <Radio className="w-6 h-6 animate-pulse text-white" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2 py-0.5 rounded-full bg-white text-rose-700 text-[10px] font-black uppercase tracking-wider shadow-2xs">
+                  Active Examination
+                </span>
+                <span className="text-xs text-rose-100 font-semibold">Curated by Dean of Academic Affairs</span>
+              </div>
+              <h2 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight truncate">
+                {liveExam.title}
+              </h2>
+              <p className="text-xs text-rose-100/90 mt-0.5 flex items-center gap-2 flex-wrap font-medium">
+                <span>{liveExam.questions?.length || 20} Programming Problems</span>
+                <span>&bull;</span>
+                <span>{liveExam.durationMinutes} Minutes</span>
+                <span>&bull;</span>
+                <span className="text-emerald-300 font-bold">Anti-Cheating Shuffled</span>
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setActiveTab('exams')}
+            className="px-5 py-3 bg-white hover:bg-rose-50 text-rose-700 rounded-2xl text-xs font-black shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+          >
+            <span>Start Live Exam</span>
+            <ArrowUpRight className="w-4 h-4" />
+          </button>
+        </motion.div>
+      )}
       {/* Top Banner / Welcome with RBAC Tier 3 Badge */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/85 backdrop-blur-xl p-5 md:p-6 rounded-3xl border border-slate-200/80 shadow-xs">
         <div className="min-w-0">
