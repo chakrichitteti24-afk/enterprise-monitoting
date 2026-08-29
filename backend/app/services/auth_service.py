@@ -45,14 +45,20 @@ class AuthService:
         
         team_id = None
         team_number = None
+        assigned_team_ids = None
+        assigned_teams_list = None
+        
         if user.student_profile:
             team_id = user.student_profile.team_id
             if user.student_profile.team:
                 team_number = user.student_profile.team.team_number
         elif user.mentor_profile:
-            team_id = user.mentor_profile.assigned_team_id
-            if user.mentor_profile.assigned_team:
-                team_number = user.mentor_profile.assigned_team.team_number
+            mentor = user.mentor_profile
+            if mentor.assigned_teams:
+                assigned_team_ids = [t.id for t in mentor.assigned_teams]
+                assigned_teams_list = [{"id": t.id, "team_number": t.team_number, "name": t.name} for t in mentor.assigned_teams]
+                team_id = assigned_team_ids[0]
+                team_number = mentor.assigned_teams[0].team_number
 
         # Create JWT access token
         access_token = create_access_token(
@@ -78,6 +84,8 @@ class AuthService:
             team_id=team_id,
             team_number=team_number,
             roll_number=roll_number,
+            assigned_team_ids=assigned_team_ids,
+            assigned_teams=assigned_teams_list,
         )
 
         return TokenResponse(

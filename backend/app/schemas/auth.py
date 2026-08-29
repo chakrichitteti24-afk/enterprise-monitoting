@@ -19,6 +19,8 @@ class UserAuthProfile(BaseModel):
     team_id: Optional[int] = None
     team_number: Optional[str] = None
     roll_number: Optional[str] = None
+    assigned_team_ids: Optional[list[int]] = None
+    assigned_teams: Optional[list[dict]] = None
 
     model_config = ConfigDict(from_attributes=True)
 
