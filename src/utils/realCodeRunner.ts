@@ -25,10 +25,15 @@ export interface ExecutionResult {
   error?: string;
 }
 
+const LANGUAGE_MAP = {
+  java: { language: 'java', version: '15.0.2', file: 'Main.java' },
+  cpp: { language: 'c++', version: '10.2.0', file: 'main.cpp' },
+  python: { language: 'python', version: '3.10.0', file: 'main.py' },
+  javascript: { language: 'javascript', version: '18.15.0', file: 'main.js' },
+};
+
 /**
- * Real Code Execution Sandbox:
- * Evaluates student code against test cases with genuine input processing,
- * actual output capture, and real verification against expected outputs.
+ * Real Code Execution Sandbox using Piston API
  */
 export async function executeRealCode(
   code: string,
@@ -39,7 +44,7 @@ export async function executeRealCode(
   const cleanCode = code.trim();
   const startTime = Date.now();
 
-  if (!cleanCode || cleanCode.length < 15) {
+  if (!cleanCode || cleanCode.length < 5) {
     return {
       status: 'COMPILATION_ERROR',
       passedCount: 0,
@@ -54,165 +59,68 @@ export async function executeRealCode(
         executionTimeMs: 0,
         status: 'COMPILATION_ERROR',
       })),
-      logs: `[Compilation Error] Source code is empty or missing.\n\nDiagnostic: Please implement your algorithm logic before running test cases.`,
+      logs: `[Compilation Error] Source code is empty or missing.\n\nDiagnostic: Please implement your logic before running test cases.`,
       error: 'Empty code body',
     };
   }
 
-  // 1. Try Backend Sandbox Runner first
-  try {
-    const cloudRes = await runCodeApi({
-      code: cleanCode,
-      language,
-      test_cases: testCases,
-      entry_point: entryPoint,
-    });
-
-    if (cloudRes && Array.isArray(cloudRes.test_results)) {
-      const isAccepted = cloudRes.passed_count === cloudRes.total_count;
-      const formattedLogs =
-        `> Compiling Solution.${language === 'java' ? 'java' : language === 'cpp' ? 'cpp' : language === 'python' ? 'py' : 'js'} with Cloud Execution Sandbox... [SUCCESS]\n` +
-        `> Automated Test Suite Evaluation:\n\n` +
-        cloudRes.test_results
-          .map(
-            (tr, i) =>
-              `[Test Case ${i + 1}] Input: ${tr.input}\n` +
-              `              Expected: ${tr.expected_output} | Actual: ${tr.actual_output} -> ${
-                tr.passed ? 'PASSED ✅' : 'FAILED ❌'
-              } (${tr.execution_time_ms}ms)`
-          )
-          .join('\n\n') +
-        `\n\n${
-          isAccepted
-            ? `🎉 All ${cloudRes.total_count}/${cloudRes.total_count} Test Cases Passed! Status: ACCEPTED ✅`
-            : `❌ ${cloudRes.passed_count}/${cloudRes.total_count} Test Cases Passed. Status: ${cloudRes.status}`
-        }`;
-
-      return {
-        status: cloudRes.status as any,
-        passedCount: cloudRes.passed_count,
-        totalCount: cloudRes.total_count,
-        executionTimeMs: cloudRes.execution_time_ms,
-        testResults: cloudRes.test_results.map(tr => ({
-          id: tr.id,
-          input: tr.input,
-          expectedOutput: tr.expected_output,
-          actualOutput: tr.actual_output,
-          passed: tr.passed,
-          executionTimeMs: tr.execution_time_ms,
-          status: tr.status,
-        })),
-        logs: formattedLogs,
-        error: cloudRes.error,
-      };
-    }
-  } catch (err) {
-    // Fallback to in-browser execution sandbox
-  }
-
-  // 2. In-Browser Real Execution Engine (JavaScript / Logic Engine)
   const results = [];
   let passedCount = 0;
-  let hasSyntaxError = false;
-  let syntaxErrorMessage = '';
+  let hasCompilationError = false;
+  let compilationLogs = '';
 
-  // Syntax sanity checks for Java / C++
-  if (language === 'java' || language === 'cpp') {
-    const openBraces = (cleanCode.match(/\{/g) || []).length;
-    const closeBraces = (cleanCode.match(/\}/g) || []).length;
-    if (openBraces !== closeBraces) {
-      hasSyntaxError = true;
-      syntaxErrorMessage = `error: syntax error: mismatched curly braces (${openBraces} '{' vs ${closeBraces} '}').`;
-    }
-  }
+  const langConfig = LANGUAGE_MAP[language];
 
-  if (hasSyntaxError) {
-    return {
-      status: 'COMPILATION_ERROR',
-      passedCount: 0,
-      totalCount: testCases.length,
-      executionTimeMs: 10,
-      testResults: testCases.map((tc, idx) => ({
-        id: idx + 1,
-        input: tc.input,
-        expectedOutput: tc.expectedOutput,
-        actualOutput: syntaxErrorMessage,
-        passed: false,
-        executionTimeMs: 0,
-        status: 'COMPILATION_ERROR',
-      })),
-      logs: `[Compilation Error] ${syntaxErrorMessage}\n\nDiagnostic: Check line endings and matching closing braces '}'.`,
-      error: syntaxErrorMessage,
-    };
-  }
-
+  // Execute test cases sequentially using Piston API
   for (let idx = 0; idx < testCases.length; idx++) {
     const tc = testCases[idx];
     const rawInput = tc.input.trim();
     const expected = tc.expectedOutput.trim();
+    
     let actual = '';
     let passed = false;
-    const elapsed = 10 + idx * 3;
+    let tcStatus = 'WRONG_ANSWER';
+    const tcStartTime = Date.now();
 
     try {
-      // Evaluate basic JavaScript or algorithm logic
-      let evalFn: any = null;
-      try {
-        // Extract function body or evaluate directly
-        const wrapped = `
-          ${cleanCode}
-          if (typeof ${entryPoint} === 'function') return ${entryPoint};
-          if (typeof solve === 'function') return solve;
-          if (typeof Solution !== 'undefined') {
-            const s = new Solution();
-            if (typeof s.${entryPoint} === 'function') return (...args) => s.${entryPoint}(...args);
-            if (typeof s.solve === 'function') return (...args) => s.solve(...args);
-          }
-          return null;
-        `;
-        const factory = new Function(wrapped);
-        evalFn = factory();
-      } catch (compileErr) {
-        // Not a direct JS function (e.g. Java / C++ syntax written in editor)
+      const response = await fetch('https://emkc.org/api/v2/piston/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: langConfig.language,
+          version: langConfig.version,
+          files: [{ name: langConfig.file, content: cleanCode }],
+          stdin: rawInput,
+          compile_timeout: 10000,
+          run_timeout: 3000,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
       }
 
-      if (evalFn) {
-        let parsedArgs: any[] = [];
-        try {
-          if (rawInput.startsWith('[') || rawInput.startsWith('{') || rawInput.startsWith('"')) {
-            parsedArgs = [JSON.parse(rawInput)];
-          } else if (rawInput.includes(' ')) {
-            parsedArgs = rawInput.split(' ').map(x => (isNaN(Number(x)) ? x : Number(x)));
-          } else {
-            parsedArgs = [isNaN(Number(rawInput)) ? rawInput : Number(rawInput)];
-          }
-        } catch {
-          parsedArgs = [rawInput];
-        }
+      const data = await response.json();
 
-        const out = evalFn(...parsedArgs);
-        actual = typeof out === 'boolean' ? String(out) : typeof out === 'object' && out !== null ? JSON.stringify(out) : String(out ?? '');
-        passed = actual.trim().toLowerCase().replace(/\s+/g, '') === expected.trim().toLowerCase().replace(/\s+/g, '');
+      if (data.compile && data.compile.code !== 0) {
+        hasCompilationError = true;
+        compilationLogs = data.compile.output;
+        break;
+      }
+
+      if (data.run.code !== 0) {
+        actual = data.run.output || data.run.stderr || 'Runtime Error';
+        tcStatus = 'RUNTIME_ERROR';
       } else {
-        // Evaluate based on code content logic checks
-        const hasReturn = cleanCode.includes('return');
-        const hasMath = cleanCode.includes('+') || cleanCode.includes('*') || cleanCode.includes('Math');
-        const hasLoop = cleanCode.includes('for') || cleanCode.includes('while');
-
-        if (hasReturn && (hasMath || hasLoop || cleanCode.length > 50)) {
-          actual = expected;
-          passed = true;
-        } else {
-          actual = '0';
-          passed = (expected === '0');
-        }
+        actual = (data.run.stdout || data.run.output || '').trim();
+        passed = actual === expected;
+        tcStatus = passed ? 'ACCEPTED' : 'WRONG_ANSWER';
+        if (passed) passedCount++;
       }
-    } catch (execErr: any) {
-      actual = `Runtime Error: ${execErr.message || 'Execution failed'}`;
-      passed = false;
+    } catch (err: any) {
+      actual = `Execution Engine Error: ${err.message}`;
+      tcStatus = 'RUNTIME_ERROR';
     }
-
-    if (passed) passedCount++;
 
     results.push({
       id: idx + 1,
@@ -220,34 +128,55 @@ export async function executeRealCode(
       expectedOutput: expected,
       actualOutput: actual,
       passed,
-      executionTimeMs: elapsed,
-      status: passed ? 'ACCEPTED' : 'WRONG_ANSWER',
+      executionTimeMs: Date.now() - tcStartTime,
+      status: tcStatus,
     });
   }
 
+  const totalDuration = Date.now() - startTime;
+
+  if (hasCompilationError) {
+    return {
+      status: 'COMPILATION_ERROR',
+      passedCount: 0,
+      totalCount: testCases.length,
+      executionTimeMs: totalDuration,
+      testResults: testCases.map((tc, idx) => ({
+        id: idx + 1,
+        input: tc.input,
+        expectedOutput: tc.expectedOutput,
+        actualOutput: 'Compilation Failed',
+        passed: false,
+        executionTimeMs: 0,
+        status: 'COMPILATION_ERROR',
+      })),
+      logs: `> Compiling Solution.${language === 'java' ? 'java' : language === 'cpp' ? 'cpp' : language === 'python' ? 'py' : 'js'} with Cloud Execution Sandbox... [FAILED]\n\n${compilationLogs}`,
+      error: compilationLogs,
+    };
+  }
+
   const isAccepted = passedCount === testCases.length;
-  const totalDuration = Date.now() - startTime + 12;
 
   const logs =
-    `> Compiling Solution.${language === 'java' ? 'java' : language === 'cpp' ? 'cpp' : language === 'python' ? 'py' : 'js'} with ${language === 'java' ? 'OpenJDK 17' : language === 'cpp' ? 'GCC 11.2' : 'Python 3.10 Runtime'}... [SUCCESS]\n` +
+    `> Compiling Solution.${language === 'java' ? 'java' : language === 'cpp' ? 'cpp' : language === 'python' ? 'py' : 'js'} with Cloud Execution Sandbox... [SUCCESS]\n` +
     `> Automated Test Suite Evaluation:\n\n` +
     results
       .map(
         (tr, i) =>
-          `[Test Case ${i + 1}] Input: ${tr.input}\n` +
+          `[Test Case ${i + 1}] Input: ${tr.input.replace(/\\n/g, ' ')}\n` +
           `              Expected: ${tr.expectedOutput} | Actual: ${tr.actualOutput} -> ${
-            tr.passed ? 'PASSED ✅' : 'FAILED ❌'
+            tr.passed ? 'PASSED ' : 'FAILED '
           } (${tr.executionTimeMs}ms)`
       )
       .join('\n\n') +
     `\n\n${
       isAccepted
-        ? `🎉 All ${results.length}/${results.length} Test Cases Passed! Status: ACCEPTED ✅`
-        : `❌ ${passedCount}/${results.length} Test Cases Passed. Status: WRONG ANSWER`
+        ? ` All ${results.length}/${results.length} Test Cases Passed! Status: ACCEPTED`
+        : ` ${passedCount}/${results.length} Test Cases Passed. Status: ${results[0]?.status || 'WRONG ANSWER'}`
     }`;
 
   return {
-    status: isAccepted ? 'ACCEPTED' : 'WRONG_ANSWER',
+    status: isAccepted ? 'ACCEPTED' : (results.find(r => r.status === 'RUNTIME_ERROR') ? 'RUNTIME_ERROR' : 'WRONG_ANSWER'),
     passedCount,
     totalCount: testCases.length,
     executionTimeMs: totalDuration,

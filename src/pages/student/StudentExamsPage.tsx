@@ -50,11 +50,11 @@ export const StudentExamsPage: React.FC = () => {
       return q.starterCode[lang]!;
     }
     if (lang === 'java') {
-      return `// Solution for ${q.title} (${q.topic})\nimport java.util.*;\n\nclass Solution {\n    public int solve() {\n        // TODO: Implement optimal logic for ${q.title}\n        return 0;\n    }\n}`;
+      return `// Solution for ${q.title} (${q.topic})\nimport java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        // TODO: Read input from sc and print output\n        System.out.println(0);\n    }\n}`;
     } else if (lang === 'cpp') {
-      return `// Solution for ${q.title} (${q.topic})\n#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\n\nclass Solution {\npublic:\n    int solve() {\n        // TODO: Implement optimal logic for ${q.title}\n        return 0;\n    }\n};`;
+      return `// Solution for ${q.title} (${q.topic})\n#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\n\nint main() {\n    // TODO: Read input from cin and print output\n    cout << 0 << endl;\n    return 0;\n}`;
     } else {
-      return `# Solution for ${q.title} (${q.topic})\nclass Solution:\n    def solve(self) -> int:\n        # TODO: Implement optimal logic for ${q.title}\n        return 0`;
+      return `# Solution for ${q.title} (${q.topic})\nimport sys\n\ndef main():\n    # TODO: Read input from sys.stdin and print output\n    # data = sys.stdin.read().split()\n    print(0)\n\nif __name__ == '__main__':\n    main()`;
     }
   }, []);
 

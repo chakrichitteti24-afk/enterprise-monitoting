@@ -5,12 +5,7 @@ from sqlalchemy.pool import NullPool
 from app.core.config import settings
 
 # Engine configuration
-engine_kwargs = {}
-if settings.DATABASE_URL.startswith("sqlite"):
-    engine_kwargs["connect_args"] = {"check_same_thread": False}
-else:
-    engine_kwargs["poolclass"] = NullPool
-
+engine_kwargs = {"poolclass": NullPool}
 engine = create_engine(settings.DATABASE_URL, **engine_kwargs)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

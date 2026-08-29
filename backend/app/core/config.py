@@ -7,12 +7,6 @@ import json
 import os
 import tempfile
 
-is_vercel = bool(os.environ.get("VERCEL"))
-if is_vercel:
-    DEFAULT_DB_PATH = os.path.join(tempfile.gettempdir(), "gkce_dsa.db").replace("\\", "/")
-else:
-    DEFAULT_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "gkce_dsa.db")).replace("\\", "/")
-
 class Settings(BaseSettings):
     PROJECT_NAME: str = "GKCE DSA Monitor API"
     VERSION: str = "1.0.0"
@@ -22,7 +16,12 @@ class Settings(BaseSettings):
     COMPANY_URL: str = "https://cipherflux-labs.vercel.app"
 
     # Database
-    DATABASE_URL: str = os.environ.get("POSTGRES_URL") or os.environ.get("DATABASE_URL") or f"sqlite:///{DEFAULT_DB_PATH}"
+    # Remove SQLite entirely to prevent Vercel Serverless /tmp ephemeral storage bugs
+    DATABASE_URL: str = (
+        os.environ.get("POSTGRES_URL") or 
+        os.environ.get("DATABASE_URL") or 
+        "postgresql://neondb_owner:npg_xPGygHtMbX26@ep-proud-rain-a5pb0iy6-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require"
+    )
 
     # JWT Security
     JWT_SECRET_KEY: str = "gkce-dsa-super-secret-jwt-key-2026-production-ready-32bytes-min"
