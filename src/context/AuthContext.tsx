@@ -547,13 +547,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (role === 'DEAN') {
       newUser = DEAN_USER;
     } else if (role === 'MENTOR') {
-      const teamNum = userPayload?.team_number || userPayload?.assignedTeamNumber || 'Team 07';
-      const foundMentor = mentors.find(
+      const teamNum = userPayload?.team_number || userPayload?.assignedTeamNumber || userPayload?.assigned_team_number || 'Team 07';
+      let foundMentor = mentors.find(
         m =>
           m.assignedTeamNumber === teamNum ||
           m.email?.toLowerCase() === userPayload?.email?.toLowerCase() ||
           m.id === userPayload?.id
       ) || DEFAULT_MENTOR_USER.mentorData!;
+
+      // Overlay backend payload for multi-team data
+      if (userPayload?.assigned_team_ids) {
+        foundMentor = {
+          ...foundMentor,
+          assignedTeamIds: userPayload.assigned_team_ids.map((id: number) => `team-${id}`),
+          assignedTeams: userPayload.assigned_teams?.map((t: any) => ({
+            id: `team-${t.id}`,
+            teamNumber: t.team_number,
+            name: t.name
+          })) || []
+        };
+      }
+
+      // Default to the first team if multi-team is present
+      const primaryTeamId = foundMentor.assignedTeamIds?.[0] || foundMentor.assignedTeamId;
+      const primaryTeamNum = foundMentor.assignedTeams?.[0]?.teamNumber || foundMentor.assignedTeamNumber;
 
       newUser = {
         id: foundMentor.id,
@@ -563,8 +580,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: 'Faculty Mentor, GKCE',
         avatar: userPayload?.avatar_url || userPayload?.avatar || foundMentor.avatar,
         mentorData: foundMentor,
-        teamId: foundMentor.assignedTeamId,
-        teamNumber: foundMentor.assignedTeamNumber,
+        teamId: primaryTeamId,
+        teamNumber: primaryTeamNum,
       };
     } else {
       const rollNo = userPayload?.roll_number || userPayload?.rollNo || '24F81A0501';

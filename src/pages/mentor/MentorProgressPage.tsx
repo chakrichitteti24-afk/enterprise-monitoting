@@ -7,14 +7,43 @@ import { MentorDailyVerificationGrid } from '../../components/mentor/MentorDaily
 import { TrendingUp, BookOpen, CheckSquare, BarChart3, Users } from 'lucide-react';
 
 export const MentorProgressPage: React.FC = () => {
-  const { currentUser, students, setSelectedStudent } = useAuth();
+  const { currentUser, students, teams, setSelectedStudent } = useAuth();
   const [activeSubTab, setActiveSubTab] = useState<'daily-tasks' | 'topic-matrix'>('daily-tasks');
+  const [selectedCohort, setSelectedCohort] = useState<string>('ALL');
 
-  const assignedTeamId = currentUser.teamId || 'team-7';
-  const assignedTeamNumber = currentUser.teamNumber || 'Team 07';
+  // Strictly retrieve ALL assigned teams for this mentor
+  let activeTeams = [];
+  if (currentUser.mentorData?.assignedTeams && currentUser.mentorData.assignedTeams.length > 0) {
+    activeTeams = currentUser.mentorData.assignedTeams.map((t: any) => ({
+      id: t.id,
+      teamNumber: t.teamNumber,
+      name: t.name
+    }));
+  } else {
+    const myTeams = teams.filter(
+      (t) =>
+        t.mentorId === currentUser.id ||
+        t.mentorEmail?.toLowerCase() === currentUser.email?.toLowerCase() ||
+        t.mentorName?.toLowerCase() === currentUser.name?.toLowerCase() ||
+        t.teamNumber === currentUser.teamNumber ||
+        t.id === currentUser.teamId
+    );
+    activeTeams = myTeams.length > 0 ? myTeams : (teams.filter(t => t.teamNumber === 'Team 07') || [teams[0]]);
+  }
+
   const teamStudents = students.filter(
-    (s) => s.teamId === assignedTeamId || s.teamNumber === assignedTeamNumber
+    (s) => {
+      if (selectedCohort === 'ALL') {
+        return activeTeams.some(t => t.id === s.teamId || t.teamNumber === s.teamNumber);
+      } else {
+        return s.teamId === selectedCohort || s.teamNumber === activeTeams.find(t => t.id === selectedCohort)?.teamNumber;
+      }
+    }
   );
+
+  const displayedTeamName = selectedCohort === 'ALL'
+    ? (activeTeams.length > 1 ? `All Cohorts` : activeTeams[0]?.teamNumber)
+    : activeTeams.find(t => t.id === selectedCohort)?.teamNumber;
 
   return (
     <div className="space-y-6">
@@ -26,7 +55,7 @@ export const MentorProgressPage: React.FC = () => {
             <span>Academic Performance & Verification Portal</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            {assignedTeamNumber} Curriculum & Task Verification
+            {displayedTeamName} Curriculum & Task Verification
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Sign off daily student tasks (100 placement questions, 5/day) and inspect comprehensive topic mastery.
@@ -60,6 +89,39 @@ export const MentorProgressPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Cohort Selector Tabs if Mentor has > 1 Team */}
+      {activeTeams.length > 1 && (
+        <div className="bg-white/80 backdrop-blur-md p-2 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs font-bold text-slate-500 px-3 flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Select Cohort:</span>
+          </span>
+          <button
+            onClick={() => setSelectedCohort('ALL')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              selectedCohort === 'ALL'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            }`}
+          >
+            All Teams ({activeTeams.length} Teams)
+          </button>
+          {activeTeams.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSelectedCohort(t.id)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                selectedCohort === t.id
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              }`}
+            >
+              {t.teamNumber}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Tab 1: Daily 5 Verification Grid */}
       {activeSubTab === 'daily-tasks' && (

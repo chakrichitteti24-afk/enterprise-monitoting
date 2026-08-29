@@ -87,12 +87,13 @@ def check_student_access(student_id: int, current_user: User, db: Session) -> St
     if current_user.role == UserRole.DEAN:
         return student
 
-    # 2. Mentor can ONLY access students in their assigned team
+    # 2. Mentor can ONLY access students in their assigned teams
     if current_user.role == UserRole.MENTOR:
         mentor = current_user.mentor_profile
-        if not mentor or mentor.assigned_team_id != student.team_id:
+        assigned_team_ids = [t.id for t in mentor.assigned_teams] if mentor else []
+        if student.team_id not in assigned_team_ids:
             raise PermissionDeniedException(
-                detail="Forbidden: Mentor can only view students assigned to their own team."
+                detail="Forbidden: Mentor can only view students assigned to their own team(s)."
             )
         return student
 
@@ -119,9 +120,10 @@ def check_team_access(team_id: int, current_user: User, db: Session) -> Team:
     # 2. Mentor can ONLY access their assigned team
     if current_user.role == UserRole.MENTOR:
         mentor = current_user.mentor_profile
-        if not mentor or mentor.assigned_team_id != team_id:
+        assigned_team_ids = [t.id for t in mentor.assigned_teams] if mentor else []
+        if team_id not in assigned_team_ids:
             raise PermissionDeniedException(
-                detail=f"Forbidden: Mentor is only authorized to access their assigned team ({mentor.assigned_team_id if mentor else 'None'})."
+                detail=f"Forbidden: Mentor is only authorized to access their assigned team(s) ({assigned_team_ids})."
             )
         return team
 

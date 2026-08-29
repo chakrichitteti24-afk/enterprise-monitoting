@@ -8,6 +8,8 @@ from app.routers import auth, student, mentor, dean, problems, submissions, exam
 # Ensure database tables exist for SQLite fallback; Neon PostgreSQL is initialized via init_neon_db
 if settings.DATABASE_URL.startswith("sqlite"):
     try:
+        from app.database.session import engine
+        import app.models
         Base.metadata.create_all(bind=engine)
     except Exception as e:
         print("SQLite init:", e)

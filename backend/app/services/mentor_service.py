@@ -26,15 +26,21 @@ class MentorService:
         self.student_service = StudentService(db)
 
     def _build_mentor_out(self, mentor) -> MentorOut:
-        team_num = mentor.assigned_team.team_number if mentor.assigned_team else None
+        teams_summary = []
+        team_ids = []
+        if mentor.assigned_teams:
+            for t in mentor.assigned_teams:
+                teams_summary.append({"id": t.id, "team_number": t.team_number, "name": t.name})
+                team_ids.append(t.id)
+
         return MentorOut(
             id=mentor.id,
             user_id=mentor.user_id,
             name=mentor.user.name,
             email=mentor.user.email,
             avatar_url=mentor.user.avatar_url,
-            assigned_team_id=mentor.assigned_team_id,
-            assigned_team_number=team_num,
+            assigned_team_ids=team_ids,
+            assigned_teams=teams_summary,
             department=mentor.department,
             phone=mentor.phone,
             experience_years=mentor.experience_years,

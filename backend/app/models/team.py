@@ -21,13 +21,15 @@ class Team(Base):
         nullable=False,
     )
 
+    mentor_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("mentors.id", ondelete="SET NULL"), index=True, nullable=True)
+
     # Relationships
     # A team has 1 mentor and exactly 5 students
     mentor: Mapped[Optional["Mentor"]] = relationship(
         "Mentor",
-        back_populates="assigned_team",
+        back_populates="assigned_teams",
         uselist=False,
-        foreign_keys="Mentor.assigned_team_id",
+        foreign_keys=[mentor_id],
     )
     students: Mapped[List["Student"]] = relationship(
         "Student", back_populates="team", cascade="all, delete-orphan", foreign_keys="Student.team_id"

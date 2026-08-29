@@ -17,9 +17,6 @@ class Mentor(Base):
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True, nullable=False
     )
-    assigned_team_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("teams.id", ondelete="SET NULL"), unique=True, index=True, nullable=True
-    )
     department: Mapped[str] = mapped_column(String(100), default="Computer Science & Engineering")
     phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     experience_years: Mapped[int] = mapped_column(Integer, default=8)
@@ -31,8 +28,8 @@ class Mentor(Base):
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="mentor_profile")
-    assigned_team: Mapped[Optional["Team"]] = relationship(
-        "Team", back_populates="mentor", foreign_keys=[assigned_team_id]
+    assigned_teams: Mapped[List["Team"]] = relationship(
+        "Team", back_populates="mentor", foreign_keys="Team.mentor_id"
     )
     feedback_notes: Mapped[List["MentorNote"]] = relationship(
         "MentorNote", back_populates="mentor", cascade="all, delete-orphan"

@@ -2,8 +2,9 @@ from typing import List
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from app.database.session import get_db
-from app.core.dependencies import require_mentor, check_student_access
+from app.core.dependencies import require_mentor, check_student_access, require_roles
 from app.models.user import User
+from app.models.enums import UserRole
 from app.services.mentor_service import MentorService
 from app.services.student_service import StudentService
 from app.schemas.mentor import MentorOut
@@ -32,28 +33,58 @@ def get_mentor_me(
     "/team",
     response_model=TeamDetailOut,
     summary="Get assigned team dossier",
-    description="Returns details, metrics, and all 5 student profiles for the mentor's assigned cohort.",
+    description="Returns the full dossier for a specific assigned team, including all 5 students' profiles, overall progress metrics, and topic-by-topic performance.",
 )
 def get_mentor_team(
+    team_id: Optional[int] = None,
     current_user: User = Depends(require_mentor),
     db: Session = Depends(get_db),
 ):
+    mentor = current_user.mentor_profile
+    if not mentor or not mentor.assigned_teams:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="You are not assigned to any team.",
+        )
+    
+    target_team_id = team_id if team_id else mentor.assigned_teams[0].id
+    
+    assigned_team_ids = [t.id for t in mentor.assigned_teams]
+    if target_team_id not in assigned_team_ids:
+        raise PermissionDeniedException(detail="Forbidden: Mentor can only view their assigned teams.")
+
     mentor_service = MentorService(db)
-    return mentor_service.get_team_detail(current_user.mentor_profile.assigned_team_id)
+    return mentor_service.get_team_detail(target_team_id)
 
 
 @router.get(
     "/team/students",
     response_model=List[StudentOut],
     summary="Get the 5 assigned students",
-    description="Lists the exactly 5 students assigned to this mentor's cohort.",
+    description="Returns a lightweight list of the students assigned to the specified team.",
 )
 def get_mentor_team_students(
+    team_id: Optional[int] = None,
     current_user: User = Depends(require_mentor),
     db: Session = Depends(get_db),
 ):
+    mentor = current_user.mentor_profile
+    if not mentor or not mentor.assigned_teams:
+        return []
+        
     mentor_service = MentorService(db)
-    return mentor_service.get_team_students(current_user.mentor_profile.assigned_team_id)
+    assigned_team_ids = [t.id for t in mentor.assigned_teams]
+
+    if team_id:
+        if team_id not in assigned_team_ids:
+            raise PermissionDeniedException(detail="Forbidden: Mentor can only view their assigned teams.")
+        return mentor_service.get_team_students(team_id)
+    
+    # Return all students for all assigned teams
+    all_students = []
+    for t_id in assigned_team_ids:
+        all_students.extend(mentor_service.get_team_students(t_id))
+    return all_students
 
 
 @router.get(
@@ -76,40 +107,66 @@ def get_mentor_student_detail(
 @router.get(
     "/team/progress",
     summary="Get team topic mastery matrix",
-    description="Returns topic-by-topic completion rates for the assigned 5-student team.",
+    description="Returns topic-by-topic completion rates for the assigned team.",
 )
 def get_mentor_team_progress(
+    team_id: Optional[int] = None,
     current_user: User = Depends(require_mentor),
     db: Session = Depends(get_db),
 ):
+    mentor = current_user.mentor_profile
+    if not mentor or not mentor.assigned_teams:
+        return {}
+        
+    target_team_id = team_id if team_id else mentor.assigned_teams[0].id
+    
+    assigned_team_ids = [t.id for t in mentor.assigned_teams]
+    if target_team_id not in assigned_team_ids:
+        raise PermissionDeniedException(detail="Forbidden: Mentor can only view their assigned teams.")
+
     mentor_service = MentorService(db)
-    team_detail = mentor_service.get_team_detail(current_user.mentor_profile.assigned_team_id)
-    return {
-        "team_id": team_detail.id,
-        "team_number": team_detail.team_number,
-        "average_progress": team_detail.average_progress,
-        "topic_performance": team_detail.topic_performance,
-    }
+    team_detail = mentor_service.get_team_detail(target_team_id)
+    return team_detail.topic_performance
 
 
 @router.get(
     "/team/analytics",
     summary="Get aggregate cohort analytics",
-    description="Returns high-level statistics across the assigned 5 students.",
+    description="Returns high-level statistics across the assigned team.",
 )
 def get_mentor_team_analytics(
+    team_id: Optional[int] = None,
     current_user: User = Depends(require_mentor),
     db: Session = Depends(get_db),
 ):
+    mentor = current_user.mentor_profile
+    if not mentor or not mentor.assigned_teams:
+        return {
+            "average_progress": 0.0,
+            "total_solved": 0,
+            "average_streak": 0.0,
+            "students_at_risk": 0,
+            "top_performers": 0,
+        }
+        
+    target_team_id = team_id if team_id else mentor.assigned_teams[0].id
+    
+    assigned_team_ids = [t.id for t in mentor.assigned_teams]
+    if target_team_id not in assigned_team_ids:
+        raise PermissionDeniedException(detail="Forbidden: Mentor can only view their assigned teams.")
+
     mentor_service = MentorService(db)
-    team_detail = mentor_service.get_team_detail(current_user.mentor_profile.assigned_team_id)
+    team_detail = mentor_service.get_team_detail(target_team_id)
+
+    at_risk = sum(1 for s in team_detail.students if s.progress_percentage < 40)
+    top_performers = sum(1 for s in team_detail.students if s.progress_percentage > 85)
+
     return {
-        "team_number": team_detail.team_number,
-        "student_count": team_detail.student_count,
         "average_progress": team_detail.average_progress,
-        "total_problems_solved": team_detail.total_problems_solved,
+        "total_solved": team_detail.total_problems_solved,
         "average_streak": team_detail.average_streak,
-        "status": team_detail.status,
+        "students_at_risk": at_risk,
+        "top_performers": top_performers,
     }
 
 
@@ -179,7 +236,10 @@ class BatchVerifySchema(BaseModel):
 
 
 @router.get("/verifications", summary="Get all verified problem completions")
-def get_all_verifications(db: Session = Depends(get_db)):
+def get_all_verifications(
+    current_user: User = Depends(require_roles(UserRole.MENTOR, UserRole.DEAN)),
+    db: Session = Depends(get_db)
+):
     from app.models.student import Student
     students = db.query(Student).all()
     id_to_roll = {}
@@ -246,9 +306,28 @@ def _sync_student_progress_db(db: Session, student_id_or_roll: str):
     # Deduplicate the list
     possible_identifiers = list(set(possible_identifiers))
     
-    verified_count = db.query(StudentVerifiedProblem).filter(
+    # Get verifications
+    ver_records = db.query(StudentVerifiedProblem.problem_id).filter(
         StudentVerifiedProblem.student_identifier.in_(possible_identifiers)
-    ).count()
+    ).all()
+    ver_ids = set()
+    for (pid,) in ver_records:
+        if pid.startswith("prob-"):
+            try: ver_ids.add(int(pid.replace("prob-", "")))
+            except: pass
+        elif pid.isdigit(): ver_ids.add(int(pid))
+        else: ver_ids.add(pid)
+
+    # Get submissions
+    from app.models.submission import Submission
+    from app.models.enums import SubmissionStatus
+    sub_records = db.query(Submission.problem_id).filter(
+        Submission.student_id == student.id,
+        Submission.status == SubmissionStatus.SOLVED
+    ).all()
+    sub_ids = {pid for (pid,) in sub_records}
+
+    verified_count = len(ver_ids.union(sub_ids))
 
     total_curriculum = 34.0
     prog_pct = min(100.0, round((verified_count / total_curriculum) * 100.0, 1))
@@ -292,6 +371,7 @@ def _sync_student_progress_db(db: Session, student_id_or_roll: str):
 @router.post("/verify", summary="Toggle single problem verification")
 def toggle_problem_verification(
     payload: SingleVerifySchema,
+    current_user: User = Depends(require_roles(UserRole.MENTOR, UserRole.DEAN)),
     db: Session = Depends(get_db),
 ):
     student_id = payload.student_identifier.strip()
@@ -338,6 +418,7 @@ def toggle_problem_verification(
 @router.post("/batch-verify", summary="Batch verify problems for student")
 def batch_verify_problems(
     payload: BatchVerifySchema,
+    current_user: User = Depends(require_roles(UserRole.MENTOR, UserRole.DEAN)),
     db: Session = Depends(get_db),
 ):
     student_id = payload.student_identifier.strip()

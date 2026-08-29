@@ -350,13 +350,11 @@ class DeanService:
         self.db.flush()
 
         if team_in.mentor_id:
-            mentor = self.mentor_repo.get_by_id(team_in.mentor_id)
-            if mentor:
-                mentor.assigned_team_id = team.id
+            team.mentor_id = team_in.mentor_id
         elif team_in.mentor_name:
             mentor = self.db.query(Mentor).join(User).filter(User.name == team_in.mentor_name).first()
             if mentor:
-                mentor.assigned_team_id = team.id
+                team.mentor_id = mentor.id
 
         self.db.commit()
         full_team = self.team_repo.get_by_id_with_details(team.id) or team
@@ -374,23 +372,16 @@ class DeanService:
             team.name = team_in.name
 
         if team_in.mentor_id is not None:
-            # Clear old mentor assigned to this team
-            old_mentor = self.db.query(Mentor).filter(Mentor.assigned_team_id == team.id).first()
-            if old_mentor and old_mentor.id != team_in.mentor_id:
-                old_mentor.assigned_team_id = None
-
             if team_in.mentor_id > 0:
-                new_mentor = self.mentor_repo.get_by_id(team_in.mentor_id)
-                if new_mentor:
-                    new_mentor.assigned_team_id = team.id
+                team.mentor_id = team_in.mentor_id
+            else:
+                team.mentor_id = None
         elif team_in.mentor_name is not None:
-            old_mentor = self.db.query(Mentor).filter(Mentor.assigned_team_id == team.id).first()
-            if old_mentor:
-                old_mentor.assigned_team_id = None
-            
             new_mentor = self.db.query(Mentor).join(User).filter(User.name == team_in.mentor_name).first()
             if new_mentor:
-                new_mentor.assigned_team_id = team.id
+                team.mentor_id = new_mentor.id
+            else:
+                team.mentor_id = None
 
         self.db.commit()
         full_team = self.team_repo.get_by_id_with_details(team.id) or team
@@ -404,11 +395,7 @@ class DeanService:
                 detail=f"Team {team_id} not found.",
             )
 
-        # Unassign mentor
-        mentor = self.db.query(Mentor).filter(Mentor.assigned_team_id == team.id).first()
-        if mentor:
-            mentor.assigned_team_id = None
-
+        # Deleting team will cascade or handle mentor naturally since mentor_id is on team
         self.db.delete(team)
         self.db.commit()
         return {"detail": f"Team {team.team_number} successfully deleted."}
@@ -575,10 +562,16 @@ class DeanService:
             department=mentor_in.department,
             phone=mentor_in.phone,
             experience_years=mentor_in.experience_years,
-            assigned_team_id=mentor_in.assigned_team_id,
         )
         self.db.add(mentor)
         self.db.commit()
+        
+        if mentor_in.assigned_team_id:
+            team = self.db.query(Team).filter(Team.id == mentor_in.assigned_team_id).first()
+            if team:
+                team.mentor_id = mentor.id
+                self.db.commit()
+                
         return self.mentor_service._build_mentor_out(mentor)
 
     def delete_mentor(self, mentor_id: int):

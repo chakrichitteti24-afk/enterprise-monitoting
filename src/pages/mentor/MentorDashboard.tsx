@@ -21,17 +21,26 @@ import { Student } from '../../types';
 export const MentorDashboard: React.FC = () => {
   const { currentUser, students, teams, setSelectedStudent, setActiveTab } = useAuth();
   const [selectedCohort, setSelectedCohort] = useState<string>('ALL');
-
-  // Strictly retrieve ALL assigned teams for this mentor
-  const myTeams = teams.filter(
-    (t) =>
-      t.mentorId === currentUser.id ||
-      t.mentorEmail?.toLowerCase() === currentUser.email?.toLowerCase() ||
-      t.mentorName?.toLowerCase() === currentUser.name?.toLowerCase() ||
-      t.teamNumber === currentUser.teamNumber ||
-      t.id === currentUser.teamId
-  );
-  const activeTeams = myTeams.length > 0 ? myTeams : (teams.filter(t => t.teamNumber === 'Team 07') || [teams[0]]);
+  let activeTeams: any[] = [];
+  if (currentUser.mentorData?.assignedTeams && currentUser.mentorData.assignedTeams.length > 0) {
+    activeTeams = currentUser.mentorData.assignedTeams.map(t => ({
+      id: t.id,
+      teamNumber: t.teamNumber,
+      name: t.name,
+      avgProgress: 0,
+      topicPerformance: {}
+    }));
+  } else {
+    const myTeams = teams.filter(
+      (t) =>
+        t.mentorId === currentUser.id ||
+        t.mentorEmail?.toLowerCase() === currentUser.email?.toLowerCase() ||
+        t.mentorName?.toLowerCase() === currentUser.name?.toLowerCase() ||
+        t.teamNumber === currentUser.teamNumber ||
+        t.id === currentUser.teamId
+    );
+    activeTeams = myTeams.length > 0 ? myTeams : (teams.filter(t => t.teamNumber === 'Team 07') || [teams[0]]);
+  }
 
   // Filter based on selected cohort tab
   const displayedTeams = selectedCohort === 'ALL'

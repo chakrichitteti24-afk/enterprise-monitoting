@@ -82,59 +82,60 @@ class StudentService:
         # Total curriculum problems in database
         total_curriculum_problems = self.db.query(func.count(DSAProblem.id)).scalar() or 1
 
-        # Real distinct problems solved by student
-        actual_solved_count = self.db.query(func.count(distinct(Submission.problem_id))).filter(
+        # Get solved IDs from submissions
+        sub_solved = self.db.query(Submission.problem_id).filter(
             Submission.student_id == student_id,
             Submission.status == SubmissionStatus.SOLVED,
-        ).scalar() or (prog.problems_solved if prog else 0)
+        ).all()
+        sub_solved_ids = {r[0] for r in sub_solved}
 
-        # Real total submissions attempted
+        # Get solved IDs from mentor verifications
+        from app.models.verification import StudentVerifiedProblem
+        possible_ids = [student.roll_number, f"student-{student.id}", str(student.id)]
+        ver_solved = self.db.query(StudentVerifiedProblem.problem_id).filter(
+            StudentVerifiedProblem.student_identifier.in_(possible_ids)
+        ).all()
+        ver_solved_ids = set()
+        for r in ver_solved:
+            pid_str = r[0]
+            if pid_str.startswith("prob-"):
+                try:
+                    ver_solved_ids.add(int(pid_str.replace("prob-", "")))
+                except ValueError:
+                    pass
+            elif pid_str.isdigit():
+                ver_solved_ids.add(int(pid_str))
+
+        all_solved_ids = sub_solved_ids.union(ver_solved_ids)
+        actual_solved_count = len(all_solved_ids)
         actual_attempted_count = self.db.query(func.count(Submission.id)).filter(
             Submission.student_id == student_id,
         ).scalar() or (prog.problems_attempted if prog else 0)
-
-        # Real percentage
         percentage = round((actual_solved_count / max(1, total_curriculum_problems)) * 100, 1)
 
-        # Solved breakdown per topic directly from database
+        # Get all problems mapping
+        all_probs = self.db.query(DSAProblem).all()
+        prob_topic_map = {p.id: p.topic for p in all_probs}
+        prob_diff_map = {p.id: p.difficulty for p in all_probs}
+
+        # Topic Progress
         topic_progress_dict: Dict[str, TopicProgressDetail] = {}
         for topic in DSATopic:
-            topic_total = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.topic == topic).scalar() or 1
-            topic_solved = self.db.query(func.count(distinct(Submission.problem_id))).join(DSAProblem).filter(
-                Submission.student_id == student_id,
-                DSAProblem.topic == topic,
-                Submission.status == SubmissionStatus.SOLVED,
-            ).scalar() or 0
-
+            topic_total = sum(1 for p in all_probs if p.topic == topic) or 1
+            topic_solved = sum(1 for pid in all_solved_ids if prob_topic_map.get(pid) == topic)
             pct = min(100, round((topic_solved / max(1, topic_total)) * 100))
             topic_progress_dict[topic.value] = TopicProgressDetail(
-                solved=topic_solved,
-                total=topic_total,
-                percentage=pct,
+                solved=topic_solved, total=topic_total, percentage=pct
             )
 
-        # Real Difficulty distribution directly from database
-        easy_total = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.difficulty == ProblemDifficulty.EASY).scalar() or 1
-        med_total = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.difficulty == ProblemDifficulty.MEDIUM).scalar() or 1
-        hard_total = self.db.query(func.count(DSAProblem.id)).filter(DSAProblem.difficulty == ProblemDifficulty.HARD).scalar() or 1
+        # Difficulty Stats
+        easy_total = sum(1 for p in all_probs if p.difficulty == ProblemDifficulty.EASY) or 1
+        med_total = sum(1 for p in all_probs if p.difficulty == ProblemDifficulty.MEDIUM) or 1
+        hard_total = sum(1 for p in all_probs if p.difficulty == ProblemDifficulty.HARD) or 1
 
-        easy_s = self.db.query(func.count(distinct(Submission.problem_id))).join(DSAProblem).filter(
-            Submission.student_id == student_id,
-            DSAProblem.difficulty == ProblemDifficulty.EASY,
-            Submission.status == SubmissionStatus.SOLVED,
-        ).scalar() or 0
-
-        med_s = self.db.query(func.count(distinct(Submission.problem_id))).join(DSAProblem).filter(
-            Submission.student_id == student_id,
-            DSAProblem.difficulty == ProblemDifficulty.MEDIUM,
-            Submission.status == SubmissionStatus.SOLVED,
-        ).scalar() or 0
-
-        hard_s = self.db.query(func.count(distinct(Submission.problem_id))).join(DSAProblem).filter(
-            Submission.student_id == student_id,
-            DSAProblem.difficulty == ProblemDifficulty.HARD,
-            Submission.status == SubmissionStatus.SOLVED,
-        ).scalar() or 0
+        easy_s = sum(1 for pid in all_solved_ids if prob_diff_map.get(pid) == ProblemDifficulty.EASY)
+        med_s = sum(1 for pid in all_solved_ids if prob_diff_map.get(pid) == ProblemDifficulty.MEDIUM)
+        hard_s = sum(1 for pid in all_solved_ids if prob_diff_map.get(pid) == ProblemDifficulty.HARD)
 
         diff_stats = DifficultyStats(
             easy={"solved": easy_s, "total": easy_total},

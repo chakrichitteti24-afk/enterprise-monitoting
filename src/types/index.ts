@@ -85,6 +85,8 @@ export interface Mentor {
   avatar: string;
   assignedTeamId: string;
   assignedTeamNumber: string;
+  assignedTeamIds?: string[];
+  assignedTeams?: { id: string; teamNumber: string; name: string }[];
   experienceYears?: number;
 }
 

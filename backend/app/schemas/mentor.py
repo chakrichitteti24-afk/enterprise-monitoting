@@ -22,14 +22,19 @@ class MentorUpdate(BaseModel):
     assigned_team_id: Optional[int] = None
 
 
+class AssignedTeamSummary(BaseModel):
+    id: int
+    team_number: str
+    name: str
+
 class MentorOut(BaseModel):
     id: int
     user_id: int
     name: str
     email: str
     avatar_url: Optional[str] = None
-    assigned_team_id: Optional[int] = None
-    assigned_team_number: Optional[str] = None
+    assigned_team_ids: List[int] = []
+    assigned_teams: List[AssignedTeamSummary] = []
     department: str
     phone: Optional[str] = None
     experience_years: int
