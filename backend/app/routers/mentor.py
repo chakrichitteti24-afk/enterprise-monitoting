@@ -207,10 +207,22 @@ def create_mentor_student(
     current_user: User = Depends(require_mentor),
     db: Session = Depends(get_db),
 ):
+    mentor = current_user.mentor_profile
+    if not mentor or not mentor.assigned_teams:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must be assigned to at least one team before creating students.",
+        )
+    
+    assigned_team_ids = [t.id for t in mentor.assigned_teams]
+    target_team_id = student_in.team_id if student_in.team_id else assigned_team_ids[0]
+    
+    if target_team_id not in assigned_team_ids:
+        raise PermissionDeniedException(detail="Forbidden: You can only enroll students into teams assigned to you.")
+        
+    student_in.team_id = target_team_id
+    
     mentor_service = MentorService(db)
-    # Ensure they can only add to their own team
-    team_id = current_user.mentor_profile.assigned_team_id
-    student_in.team_id = team_id
     return mentor_service.create_student(student_in)
 
 # ---------------------------------------------------------------------------
