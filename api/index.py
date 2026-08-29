@@ -5,44 +5,16 @@ import os
 if "VERCEL" not in os.environ:
     os.environ["VERCEL"] = "1"
 
-# Add backend root to sys.path across all possible deployment structures
-current_file_dir = os.path.dirname(os.path.abspath(__file__))
-possible_backend_dirs = [
-    os.path.abspath(os.path.join(current_file_dir, "..", "backend")),
-    os.path.abspath(os.path.join(current_file_dir, "backend")),
-    os.path.abspath(os.path.join(os.getcwd(), "backend")),
-    os.path.abspath(os.path.join(current_file_dir, "..")),
-    "/var/task/backend",
-    "/var/task",
-]
+# Add directories to sys.path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(current_dir, ".."))
+backend_dir = os.path.abspath(os.path.join(parent_dir, "backend"))
 
-for d in possible_backend_dirs:
-    if os.path.isdir(d) and d not in sys.path:
-        sys.path.insert(0, d)
+for p in [current_dir, parent_dir, backend_dir, "/var/task/api", "/var/task/backend", "/var/task"]:
+    if os.path.isdir(p) and p not in sys.path:
+        sys.path.insert(0, p)
 
-try:
-    from app.main import app
-except Exception as e:
-    import traceback
-    from fastapi import FastAPI
-    from fastapi.responses import JSONResponse
-    
-    app = FastAPI(title="GKCE DSA Monitor API - Startup Error Handler")
-    error_trace = traceback.format_exc()
-    
-    @app.api_route("/{path_name:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])
-    async def catch_all_startup_error(path_name: str):
-        return JSONResponse(
-            status_code=500,
-            content={
-                "error": "StartupError",
-                "detail": str(e),
-                "traceback": error_trace.splitlines(),
-                "sys_path": sys.path,
-                "current_dir": current_file_dir,
-                "cwd": os.getcwd(),
-            }
-        )
+from app.main import app
 
 # Expose app for Vercel Python runtime
 __all__ = ["app"]
