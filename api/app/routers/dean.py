@@ -87,7 +87,7 @@ def get_dean_team_students(
 )
 def get_dean_students(
     page: int = Query(1, ge=1, description="Page number"),
-    limit: int = Query(20, ge=1, le=100, description="Items per page"),
+    limit: int = Query(20, ge=1, le=500, description="Items per page"),
     search: Optional[str] = Query(None, description="Search by student name or roll number"),
     team_id: Optional[int] = Query(None, description="Filter by Team ID"),
     team_number: Optional[str] = Query(None, description="Filter by Team Number (e.g. 'Team 07')"),
