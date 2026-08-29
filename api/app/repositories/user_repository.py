@@ -47,9 +47,8 @@ class UserRepository(BaseRepository[User]):
             select(User)
             .join(Mentor, Mentor.user_id == User.id)
             .where(
-                (Mentor.email.ilike(f"%{raw_prefix}%")) |
-                (Mentor.name.ilike(f"%{raw_prefix}%")) |
-                (User.email.ilike(f"%{raw_prefix}%"))
+                (User.email.ilike(f"%{raw_prefix}%")) |
+                (User.name.ilike(f"%{raw_prefix}%"))
             )
             .options(
                 joinedload(User.student_profile),
@@ -66,7 +65,7 @@ class UserRepository(BaseRepository[User]):
             .where(
                 (Student.roll_number.ilike(clean_input)) |
                 (Student.roll_number.ilike(f"%{raw_prefix}%")) |
-                (Student.name.ilike(f"%{raw_prefix}%")) |
+                (User.name.ilike(f"%{raw_prefix}%")) |
                 (User.email.ilike(f"%{raw_prefix}%"))
             )
             .options(
