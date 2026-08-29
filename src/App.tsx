@@ -145,7 +145,15 @@ const MainLayout: React.FC = () => {
       }
     }
 
-    return <DeanDashboard />;
+    // Fallback: role not yet determined — show loading instead of another role's dashboard
+    return (
+      <div className="flex items-center justify-center h-64 text-slate-400">
+        <div className="text-center space-y-2">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs">Loading dashboard...</p>
+        </div>
+      </div>
+    );
   };
 
 

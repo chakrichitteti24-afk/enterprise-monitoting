@@ -95,7 +95,9 @@ const getInitialAuthState = (): { user: CurrentUser; isAuth: boolean } => {
       }
     }
     if (token) {
-      return { user: DEAN_USER, isAuth: true };
+      // Don't assume any role — restoreSession will validate via /auth/me
+      // isLoadingAuth will be true, so the spinner will show
+      return { user: DEAN_USER, isAuth: false };
     }
   } catch {}
   return { user: DEAN_USER, isAuth: false };
@@ -105,7 +107,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const initialAuth = getInitialAuthState();
   const [currentUser, setCurrentUser] = useState<CurrentUser>(initialAuth.user);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(initialAuth.isAuth);
-  const [isLoadingAuth, setIsLoadingAuth] = useState<boolean>(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState<boolean>(() => {
+    // Show loading spinner while we validate any existing session
+    try {
+      return !!(localStorage.getItem('gkce_user_profile_v1') || getStoredToken());
+    } catch {
+      return false;
+    }
+  });
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -484,6 +493,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      // Ensure loading spinner is visible while we validate
+      setIsLoadingAuth(true);
+
       // If we have a cached profile, restore user state immediately
       let restoredFromCache = false;
       if (cachedProfileRaw) {
@@ -519,12 +531,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const is401 = err?.message?.includes('401') || err?.message?.toLowerCase().includes('unauthorized') || err?.message?.toLowerCase().includes('invalid');
           if (is401) {
             clearStoredToken();
-            if (!restoredFromCache) {
-              try {
-                localStorage.removeItem('gkce_user_profile_v1');
-              } catch {}
-              setIsAuthenticated(false);
-            }
+            try {
+              localStorage.removeItem('gkce_user_profile_v1');
+            } catch {}
+            setIsAuthenticated(false);
+            setCurrentUser(DEAN_USER);
           } else if (restoredFromCache) {
             console.info('[Auth] Backend sync deferred, continuing with active local session.');
           }
@@ -622,11 +633,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         rollNo: newUser.studentData?.rollNo,
       }));
     } catch {}
-
-    // Ensure stored token exists so browser reloads stay authenticated
-    if (!getStoredToken()) {
-      setStoredToken(`gkce_local_token_${role.toLowerCase()}_${Date.now()}`);
-    }
   };
 
   // ---------------------------------------------------------------------------
@@ -693,7 +699,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       progress: progressPct,
       solved,
       attempted,
-      pending: Math.max(0, 100 - solved),
+      pending: prog.pending ?? Math.max(0, 34 - solved),
       streak,
       longestStreak,
       status: (statusMap[s.status] || 'Active') as any,
@@ -757,27 +763,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           getDeanTeamsApi(),
         ]);
 
+        // Build mapped students early so both blocks can reference them
+        let mappedStudents: ReturnType<typeof backendStudentToFrontend>[] = [];
         if (studentsRes.status === 'fulfilled' && studentsRes.value?.items) {
-          const mapped = studentsRes.value.items.map((s: any) =>
+          mappedStudents = studentsRes.value.items.map((s: any) =>
             backendStudentToFrontend(s)
           );
-          setStudents(mapped);
-          // Re-wire studentIds into teams after students arrive
-          setTeams(prev =>
-            prev.map(t => ({
-              ...t,
-              studentIds: mapped.filter(s => s.teamId === t.id).map(s => s.id),
-            }))
-          );
+          setStudents(mappedStudents);
         }
 
         if (teamsRes.status === 'fulfilled' && Array.isArray(teamsRes.value)) {
           setTeams(prev => {
-            const mapped = teamsRes.value.map((t: any) =>
-              backendTeamToFrontend(t, prev)
-            );
+            const mapped = teamsRes.value.map((t: any) => {
+              const ft = backendTeamToFrontend(t, prev);
+              // Re-wire studentIds from the freshly fetched students list
+              ft.studentIds = mappedStudents
+                .filter(s => s.teamId === ft.id)
+                .map(s => s.id);
+              return ft;
+            });
             return mapped;
           });
+        } else if (mappedStudents.length > 0) {
+          // Teams API failed but students succeeded — still re-wire studentIds into existing teams
+          setTeams(prev =>
+            prev.map(t => ({
+              ...t,
+              studentIds: mappedStudents.filter(s => s.teamId === t.id).map(s => s.id),
+            }))
+          );
         }
       } else if (role === 'MENTOR') {
         const [studentsRes, teamRes] = await Promise.allSettled([
@@ -785,6 +799,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           getMentorTeamDetailApi(),
         ]);
 
+        let syncedMentorStudents: ReturnType<typeof backendStudentToFrontend>[] = [];
         if (studentsRes.status === 'fulfilled' && Array.isArray(studentsRes.value)) {
           const backendStudents = studentsRes.value;
           setStudents(prev => {
@@ -796,7 +811,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               );
               if (idx >= 0) {
                 updated[idx] = mapped;
+              } else {
+                // Student exists in Neon but not in local mock data — append them
+                updated.push(mapped);
               }
+              syncedMentorStudents.push(mapped);
             }
             return updated;
           });
@@ -809,9 +828,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               t => t.id === `team-${bt.id}` || t.teamNumber === bt.team_number
             );
             const mapped = backendTeamToFrontend(bt, prev);
+            // Use synced student list for accurate studentIds
+            const resolvedStudentIds = syncedMentorStudents.length > 0
+              ? syncedMentorStudents.map(s => s.id)
+              : (idx >= 0 ? prev[idx].studentIds : []);
             if (idx >= 0) {
               const next = [...prev];
-              next[idx] = { ...mapped, studentIds: prev[idx].studentIds };
+              next[idx] = { ...mapped, studentIds: resolvedStudentIds };
               return next;
             }
             return prev;
@@ -830,9 +853,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               next[idx] = mapped;
               return next;
             }
-            return prev;
+            // Student exists in Neon but not in local mock — append them
+            return [...prev, mapped];
           });
-          // Also update currentUser.studentData so the dashboard is instant
+          // Always update currentUser.studentData with live Neon data
           setCurrentUser(prev => ({ ...prev, studentData: mapped }));
         }
       }
@@ -979,15 +1003,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    // Clear auth state FIRST to prevent any render with stale role
+    setIsAuthenticated(false);
     clearStoredToken();
     try {
       localStorage.removeItem('gkce_user_profile_v1');
+      localStorage.removeItem('gkce_weekly_exams_v4');
     } catch {}
-    setIsAuthenticated(false);
+    setCurrentUser(DEAN_USER);
     setSelectedStudent(null);
     setSelectedTeam(null);
     setActiveTab('dashboard');
-    setCurrentUser(DEAN_USER);
   };
 
   const addMentorFeedback = (studentId: string, note: string) => {
