@@ -20,13 +20,13 @@ class Settings(BaseSettings):
     DATABASE_URL: str = (
         os.environ.get("POSTGRES_URL") or 
         os.environ.get("DATABASE_URL") or 
-        "sqlite:///./gkce_dsa.db"
+        "postgresql://neondb_owner:npg_xPGygHtMbX26@ep-proud-rain-a5pb0iy6-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require"
     )
 
     # JWT Security
     JWT_SECRET_KEY: str = os.environ.get(
         "JWT_SECRET_KEY",
-        "dev-only-insecure-key-replace-in-production"
+        "gkce-dsa-super-secret-jwt-key-2026-production-ready-32bytes-min"
     )
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
