@@ -250,7 +250,7 @@ class BatchVerifySchema(BaseModel):
 
 @router.get("/verifications", summary="Get all verified problem completions")
 def get_all_verifications(
-    current_user: User = Depends(require_roles(UserRole.MENTOR, UserRole.DEAN)),
+    current_user: User = Depends(require_roles(UserRole.STUDENT, UserRole.MENTOR, UserRole.DEAN)),
     db: Session = Depends(get_db)
 ):
     from app.models.student import Student

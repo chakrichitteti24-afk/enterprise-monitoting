@@ -1280,10 +1280,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Real-time synchronization of Mentor Verified Problems across all roles (Dean, Mentor, Student)
   useEffect(() => {
+    if (!isAuthenticated) return;
+    const token = getStoredToken();
+    if (!token || token.startsWith('gkce_local_token_')) return;
+
     let isMounted = true;
 
     const syncVerifications = async () => {
       try {
+        const currentToken = getStoredToken();
+        if (!currentToken || !isMounted) return;
+
         const verificationsMap = await getVerificationsApi();
         if (!verificationsMap || typeof verificationsMap !== 'object' || !isMounted) return;
 
@@ -1346,17 +1353,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return prevStudents;
         });
       } catch (err) {
-        // Backend not reachable, continue with active session
+        // Silently catch error when backend is busy
       }
     };
 
     syncVerifications();
-    const interval = setInterval(syncVerifications, 3000);
+    const interval = setInterval(syncVerifications, 10000);
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [isAuthenticated]);
 
   // Mentor verification toggle
   const toggleMentorProblemVerification = async (studentId: string, problemId: string, verified: boolean) => {
