@@ -5,10 +5,20 @@ import os
 if "VERCEL" not in os.environ:
     os.environ["VERCEL"] = "1"
 
-# Add backend root to sys.path
-backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
-if backend_dir not in sys.path:
-    sys.path.insert(0, backend_dir)
+# Add backend root to sys.path across all possible deployment structures
+current_file_dir = os.path.dirname(os.path.abspath(__file__))
+possible_backend_dirs = [
+    os.path.abspath(os.path.join(current_file_dir, "..", "backend")),
+    os.path.abspath(os.path.join(current_file_dir, "backend")),
+    os.path.abspath(os.path.join(os.getcwd(), "backend")),
+    os.path.abspath(os.path.join(current_file_dir, "..")),
+    "/var/task/backend",
+    "/var/task",
+]
+
+for d in possible_backend_dirs:
+    if os.path.isdir(d) and d not in sys.path:
+        sys.path.insert(0, d)
 
 from app.main import app
 
