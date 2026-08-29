@@ -6,7 +6,7 @@ import { ProgressBar } from '../../components/ui/ProgressBar';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { StreakBadge } from '../../components/ui/StreakBadge';
 import { UserAvatar } from '../../components/ui/UserAvatar';
-import { DSA_TOPICS } from '../../data/mockData';
+import { DSA_TOPICS, TOPIC_CURRICULUM_TOTALS } from '../../data/mockData';
 import { motion } from 'framer-motion';
 import {
   Users,
@@ -230,7 +230,7 @@ export const MentorDashboard: React.FC = () => {
               </button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {DSA_TOPICS.slice(0, 4).map((topic) => {
+              {DSA_TOPICS.filter(t => (TOPIC_CURRICULUM_TOTALS[t] ?? 0) > 0).map((topic) => {
                 const perc = teamStudents.length > 0
                   ? Math.round(teamStudents.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / teamStudents.length)
                   : (displayedTeams[0]?.topicPerformance?.[topic] || 0);

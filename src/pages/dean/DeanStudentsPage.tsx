@@ -4,6 +4,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { StreakBadge } from '../../components/ui/StreakBadge';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { UserAvatar } from '../../components/ui/UserAvatar';
+import { TOTAL_CURRICULUM_PROBLEMS } from '../../data/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   GraduationCap,
@@ -418,7 +419,7 @@ export const DeanStudentsPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-                  <span>Solved: <strong className="text-slate-800">{s.solved}</strong>/34</span>
+                  <span>Solved: <strong className="text-slate-800">{s.solved}</strong>/{TOTAL_CURRICULUM_PROBLEMS}</span>
                   <StreakBadge streak={s.streak} size="sm" />
                 </div>
               </div>

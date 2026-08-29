@@ -12,15 +12,31 @@ export const StudentActivityPage: React.FC = () => {
 
   const totalWeeklySubmissions = (student.submissionsHistory || []).reduce((acc, curr) => acc + curr.count, 0);
 
-  // 28-day activity heatmap aligned with student's active streak
+  // Real 28-day activity heatmap based on authentic submission history and daily solves
   const days = Array.from({ length: 28 }, (_, i) => {
     const daysAgo = 27 - i;
-    const isActiveDay = daysAgo < student.streak;
-    const solvedCount = isActiveDay
-      ? Math.min(4, Math.max(1, Math.floor((student.solved / 28) * 1.5) + (i % 2)))
-      : (i % 5 === 0 && i < 12 ? 1 : 0);
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    const dateStr = d.toISOString().split('T')[0];
+    const dayLabel = d.getDate();
+
+    // Match against real submission history date
+    const historyEntry = (student.submissionsHistory || []).find((sh) => sh.date === dateStr);
+    let solvedCount = historyEntry ? historyEntry.count : 0;
+
+    // Check today's real-time activities if any
+    if (solvedCount === 0 && daysAgo === 0 && student.recentActivities && student.recentActivities.length > 0) {
+      const todayActs = student.recentActivities.filter(
+        (a) => a.timeAgo.includes('Just now') || a.timeAgo.includes('Today') || a.timeAgo.includes('m ago') || a.timeAgo.includes('h ago')
+      );
+      if (todayActs.length > 0) {
+        solvedCount = todayActs.length;
+      }
+    }
+
     return {
-      day: i + 1,
+      day: dayLabel,
+      date: dateStr,
       solvedCount,
     };
   });
@@ -122,8 +138,8 @@ export const StudentActivityPage: React.FC = () => {
                     className="p-3 sm:p-3.5 rounded-2xl border border-slate-100 bg-slate-50/60 flex items-center justify-between hover:bg-slate-50 transition-colors gap-2"
                   >
                     <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-4 h-4" />
+                      <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 ${act.status === 'Attempted' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {act.status === 'Attempted' ? <Clock className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-xs font-bold text-slate-900 truncate">
@@ -134,10 +150,12 @@ export const StudentActivityPage: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-xs font-semibold text-slate-700 block">{act.timeAgo}</span>
-                      <div className="text-[10px] text-emerald-600 font-bold block">Verified Solved</div>
-                    </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[11px] font-semibold text-slate-600 block">{act.timeAgo}</span>
+                        <span className={`text-[9px] font-bold block mt-0.5 ${act.status === 'Attempted' ? 'text-amber-600' : 'text-emerald-600'}`}>
+                          {act.status === 'Attempted' ? 'Attempted' : 'Verified Correct'}
+                        </span>
+                      </div>
                   </div>
                 ))
               )}

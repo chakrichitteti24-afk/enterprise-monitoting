@@ -4,26 +4,31 @@ import { PROBLEMS_BANK_100 } from './dsaCurriculum100';
 export { PROBLEMS_BANK_100 as PROBLEMS_BANK } from './dsaCurriculum100';
 
 export const DSA_TOPICS: DSATopic[] = [
+  'Basics',
+  'Numbers',
   'Arrays',
   'Strings',
+  'Searching',
+  'Sorting',
+  'Hashing',
+  'Two Pointers',
   'Linked Lists',
-  'Stack',
-  'Queue',
-  'Trees',
-  'Graphs',
-  'Dynamic Programming',
+  'Stack & Queue',
+  'Mixed Placement'
 ];
 
-export const TOPIC_CURRICULUM_TOTALS: Record<DSATopic, number> = {
-  'Arrays': 55,
-  'Strings': 15,
-  'Linked Lists': 10,
-  'Stack': 10,
-  'Queue': 5,
-  'Trees': 5,
-  'Graphs': 0,
-  'Dynamic Programming': 0,
+export const TOPIC_CURRICULUM_TOTALS: Record<DSATopic, number> = DSA_TOPICS.reduce((acc, topic) => {
+  acc[topic] = PROBLEMS_BANK_100.filter(p => p.topic === topic).length;
+  return acc;
+}, {} as Record<DSATopic, number>);
+
+export const DIFFICULTY_TOTALS = {
+  easy: PROBLEMS_BANK_100.filter(p => p.difficulty === 'Easy').length,
+  medium: PROBLEMS_BANK_100.filter(p => p.difficulty === 'Medium').length,
+  hard: PROBLEMS_BANK_100.filter(p => p.difficulty === 'Hard').length,
 };
+
+export const ACTIVE_TOPICS_COUNT = Object.values(TOPIC_CURRICULUM_TOTALS).filter(val => val > 0).length;
 
 export const TOTAL_CURRICULUM_PROBLEMS = 100;
 
@@ -118,7 +123,7 @@ export const ALL_MENTORS: Mentor[] = [
   }
 ];
 
-export const ALL_STUDENTS: Student[] = [
+export const ALL_STUDENTS: any[] = [
   {
     "id": "student-1",
     "rollNo": "23F81A0502",
@@ -133,65 +138,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -214,65 +172,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -295,65 +206,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -376,65 +240,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -457,65 +274,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -538,65 +308,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -619,65 +342,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -700,65 +376,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -781,65 +410,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -862,65 +444,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -943,65 +478,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -1024,65 +512,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -1105,65 +546,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -1186,65 +580,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -1267,65 +614,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -1348,65 +648,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -1429,65 +682,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -1510,65 +716,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -1591,65 +750,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -1672,65 +784,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -1753,65 +818,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -1834,65 +852,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -1915,65 +886,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -1996,65 +920,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -2077,65 +954,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -2158,65 +988,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -2239,65 +1022,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -2320,65 +1056,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -2401,65 +1090,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -2482,65 +1124,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -2563,65 +1158,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -2644,65 +1192,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -2725,65 +1226,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -2806,65 +1260,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -2887,65 +1294,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -2968,65 +1328,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -3049,65 +1362,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -3130,65 +1396,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -3211,65 +1430,18 @@ export const ALL_STUDENTS: Student[] = [
     "progress": 0,
     "solved": 0,
     "attempted": 0,
-    "pending": 100,
+    pending: TOTAL_CURRICULUM_PROBLEMS,
     "streak": 0,
     "longestStreak": 0,
     "status": "Active",
-    "topicProgress": {
-      "Arrays": {
-        "solved": 0,
-        "total": 55,
-        "percentage": 0
-      },
-      "Strings": {
-        "solved": 0,
-        "total": 15,
-        "percentage": 0
-      },
-      "Linked Lists": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Stack": {
-        "solved": 0,
-        "total": 10,
-        "percentage": 0
-      },
-      "Queue": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Trees": {
-        "solved": 0,
-        "total": 5,
-        "percentage": 0
-      },
-      "Graphs": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      },
-      "Dynamic Programming": {
-        "solved": 0,
-        "total": 0,
-        "percentage": 0
-      }
-    },
+    topicProgress: DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as any),
     "difficultyStats": {
-      "easy": {
-        "solved": 0,
-        "total": 70
-      },
-      "medium": {
-        "solved": 0,
-        "total": 28
-      },
-      "hard": {
-        "solved": 0,
-        "total": 2
-      }
+      "easy": { "solved": 0, "total": DIFFICULTY_TOTALS.easy },
+      "medium": { "solved": 0, "total": DIFFICULTY_TOTALS.medium },
+      "hard": { "solved": 0, "total": DIFFICULTY_TOTALS.hard }
     },
     "recentActivities": [],
     "submissionsHistory": [],
@@ -3280,7 +1452,7 @@ export const ALL_STUDENTS: Student[] = [
   }
 ];
 
-export const ALL_TEAMS: Team[] = [
+export const ALL_TEAMS: any[] = [
   {
     "id": "team-1",
     "teamNumber": "Team 01",
@@ -3301,16 +1473,7 @@ export const ALL_TEAMS: Team[] = [
     "totalAttempted": 0,
     "avgStreak": 0,
     "status": "Active",
-    "topicPerformance": {
-      "Arrays": 0,
-      "Strings": 0,
-      "Linked Lists": 0,
-      "Stack": 0,
-      "Queue": 0,
-      "Trees": 0,
-      "Graphs": 0,
-      "Dynamic Programming": 0
-    },
+    topicPerformance: DSA_TOPICS.reduce((acc, t) => { acc[t] = 0; return acc; }, {} as Record<string, number>),
     "rank": 1
   },
   {
@@ -3332,16 +1495,7 @@ export const ALL_TEAMS: Team[] = [
     "totalAttempted": 0,
     "avgStreak": 0,
     "status": "Active",
-    "topicPerformance": {
-      "Arrays": 0,
-      "Strings": 0,
-      "Linked Lists": 0,
-      "Stack": 0,
-      "Queue": 0,
-      "Trees": 0,
-      "Graphs": 0,
-      "Dynamic Programming": 0
-    },
+    topicPerformance: DSA_TOPICS.reduce((acc, t) => { acc[t] = 0; return acc; }, {} as Record<string, number>),
     "rank": 2
   },
   {
@@ -3363,16 +1517,7 @@ export const ALL_TEAMS: Team[] = [
     "totalAttempted": 0,
     "avgStreak": 0,
     "status": "Active",
-    "topicPerformance": {
-      "Arrays": 0,
-      "Strings": 0,
-      "Linked Lists": 0,
-      "Stack": 0,
-      "Queue": 0,
-      "Trees": 0,
-      "Graphs": 0,
-      "Dynamic Programming": 0
-    },
+    topicPerformance: DSA_TOPICS.reduce((acc, t) => { acc[t] = 0; return acc; }, {} as Record<string, number>),
     "rank": 3
   },
   {
@@ -3395,16 +1540,7 @@ export const ALL_TEAMS: Team[] = [
     "totalAttempted": 0,
     "avgStreak": 0,
     "status": "Active",
-    "topicPerformance": {
-      "Arrays": 0,
-      "Strings": 0,
-      "Linked Lists": 0,
-      "Stack": 0,
-      "Queue": 0,
-      "Trees": 0,
-      "Graphs": 0,
-      "Dynamic Programming": 0
-    },
+    topicPerformance: DSA_TOPICS.reduce((acc, t) => { acc[t] = 0; return acc; }, {} as Record<string, number>),
     "rank": 4
   },
   {
@@ -3427,16 +1563,7 @@ export const ALL_TEAMS: Team[] = [
     "totalAttempted": 0,
     "avgStreak": 0,
     "status": "Active",
-    "topicPerformance": {
-      "Arrays": 0,
-      "Strings": 0,
-      "Linked Lists": 0,
-      "Stack": 0,
-      "Queue": 0,
-      "Trees": 0,
-      "Graphs": 0,
-      "Dynamic Programming": 0
-    },
+    topicPerformance: DSA_TOPICS.reduce((acc, t) => { acc[t] = 0; return acc; }, {} as Record<string, number>),
     "rank": 5
   },
   {
@@ -3458,16 +1585,7 @@ export const ALL_TEAMS: Team[] = [
     "totalAttempted": 0,
     "avgStreak": 0,
     "status": "Active",
-    "topicPerformance": {
-      "Arrays": 0,
-      "Strings": 0,
-      "Linked Lists": 0,
-      "Stack": 0,
-      "Queue": 0,
-      "Trees": 0,
-      "Graphs": 0,
-      "Dynamic Programming": 0
-    },
+    topicPerformance: DSA_TOPICS.reduce((acc, t) => { acc[t] = 0; return acc; }, {} as Record<string, number>),
     "rank": 6
   },
   {
@@ -3491,16 +1609,7 @@ export const ALL_TEAMS: Team[] = [
     "totalAttempted": 0,
     "avgStreak": 0,
     "status": "Active",
-    "topicPerformance": {
-      "Arrays": 0,
-      "Strings": 0,
-      "Linked Lists": 0,
-      "Stack": 0,
-      "Queue": 0,
-      "Trees": 0,
-      "Graphs": 0,
-      "Dynamic Programming": 0
-    },
+    topicPerformance: DSA_TOPICS.reduce((acc, t) => { acc[t] = 0; return acc; }, {} as Record<string, number>),
     "rank": 7
   },
   {
@@ -3524,16 +1633,7 @@ export const ALL_TEAMS: Team[] = [
     "totalAttempted": 0,
     "avgStreak": 0,
     "status": "Active",
-    "topicPerformance": {
-      "Arrays": 0,
-      "Strings": 0,
-      "Linked Lists": 0,
-      "Stack": 0,
-      "Queue": 0,
-      "Trees": 0,
-      "Graphs": 0,
-      "Dynamic Programming": 0
-    },
+    topicPerformance: DSA_TOPICS.reduce((acc, t) => { acc[t] = 0; return acc; }, {} as Record<string, number>),
     "rank": 8
   }
 ];

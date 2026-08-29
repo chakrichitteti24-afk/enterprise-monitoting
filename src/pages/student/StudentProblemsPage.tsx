@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { PROBLEMS_BANK, DSA_TOPICS } from '../../data/mockData';
+import { PROBLEMS_BANK, DSA_TOPICS, TOTAL_CURRICULUM_PROBLEMS } from '../../data/mockData';
 import { DAILY_TOPIC_THEMES, TOTAL_CURRICULUM_DAYS } from '../../data/dsaCurriculum100';
 import { Problem } from '../../types';
 import { HackerRankArena } from '../../components/coding/HackerRankArena';
@@ -38,8 +38,7 @@ export const StudentProblemsPage: React.FC = () => {
   }, [searchQuery, selectedDay, selectedTopic, selectedDifficulty]);
 
   const verifiedCount = PROBLEMS_BANK.filter((p) => verifiedProblemIds.has(p.id)).length;
-  // 34 = real backend curriculum size — consistent with AuthContext and backend DB
-  const overallProgressPct = Math.round((verifiedCount / 34) * 100);
+  const overallProgressPct = Math.round((verifiedCount / Math.max(1, PROBLEMS_BANK.length)) * 100);
 
   // Navigation indices for active problem in IDE
   const currentIdx = activeProblem ? filteredProblems.findIndex(p => p.id === activeProblem.id) : -1;
@@ -74,8 +73,8 @@ export const StudentProblemsPage: React.FC = () => {
                 <span>🟢 Easy Practice Test Cases (Beginner Friendly)</span>
               </span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              100 Placement DSA Practice Challenges
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              {TOTAL_CURRICULUM_PROBLEMS} Placement DSA Practice Challenges
             </h1>
             <p className="text-xs md:text-sm text-slate-500 mt-1">
               Solve problems in the full split-pane IDE with beginner-friendly easy test cases, live compiler, custom stdin, and step-by-step hints.
@@ -150,7 +149,7 @@ export const StudentProblemsPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search 100 placement problems by title or keyword..."
+              placeholder={`Search ${TOTAL_CURRICULUM_PROBLEMS} placement problems by title or keyword...`}
               className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 font-medium"
             />
           </div>

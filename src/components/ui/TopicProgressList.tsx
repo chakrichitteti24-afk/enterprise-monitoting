@@ -1,6 +1,6 @@
 import React from 'react';
 import { DSATopic } from '../../types';
-import { DSA_TOPICS } from '../../data/mockData';
+import { DSA_TOPICS, TOPIC_CURRICULUM_TOTALS } from '../../data/mockData';
 import { ProgressBar } from './ProgressBar';
 
 interface TopicProgressListProps {
@@ -17,7 +17,10 @@ export const TopicProgressList: React.FC<TopicProgressListProps> = ({
   return (
     <div className={compact ? 'space-y-2.5' : 'grid grid-cols-1 md:grid-cols-2 gap-3'}>
       {DSA_TOPICS.map((topic) => {
-        const data = topicProgress[topic] || { solved: 0, total: 10, percentage: 0 };
+        const currTotal = TOPIC_CURRICULUM_TOTALS[topic] ?? 0;
+        const data = topicProgress[topic] || { solved: 0, total: currTotal, percentage: 0 };
+        // Skip topics that have 0 problems in the current placement foundation bank
+        if (currTotal === 0 && data.solved === 0) return null;
         const isMastered = data.percentage >= 80;
         const isStarted = data.percentage > 0;
 

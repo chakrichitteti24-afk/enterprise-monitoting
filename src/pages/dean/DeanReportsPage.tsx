@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { BentoCard } from '../../components/ui/BentoCard';
 import { FileText, Printer, Download, CheckCircle2, Shield, Calendar } from 'lucide-react';
-import { DSA_TOPICS } from '../../data/mockData';
+import { DSA_TOPICS, TOPIC_CURRICULUM_TOTALS } from '../../data/mockData';
 
 export const DeanReportsPage: React.FC = () => {
   const { students, teams, mentors } = useAuth();
@@ -106,6 +106,9 @@ export const DeanReportsPage: React.FC = () => {
             </thead>
             <tbody>
               {DSA_TOPICS.map((topic) => {
+                const topicTotal = TOPIC_CURRICULUM_TOTALS[topic] ?? 0;
+                // Skip topics not yet included in the current placement foundation bank
+                if (topicTotal === 0) return null;
                 const avg = Math.round(
                   students.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / Math.max(1, students.length)
                 );
@@ -113,7 +116,7 @@ export const DeanReportsPage: React.FC = () => {
                   <tr key={topic}>
                     <td className="p-2 border border-slate-200 font-medium">{topic}</td>
                     <td className="p-2 border border-slate-200 text-center font-mono">
-                      {topic === 'Dynamic Programming' ? 6 : topic === 'Queue' ? 2 : topic === 'Strings' || topic === 'Linked Lists' || topic === 'Stack' || topic === 'Graphs' ? 4 : 5}
+                      {topicTotal}
                     </td>
                     <td className="p-2 border border-slate-200 text-center font-bold">{avg}%</td>
                     <td className="p-2 border border-slate-200 text-right">

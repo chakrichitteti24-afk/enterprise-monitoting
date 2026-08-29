@@ -5,7 +5,7 @@ import { ProgressRing } from '../../components/ui/ProgressRing';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { TopicProgressList } from '../../components/ui/TopicProgressList';
 import { TrendingUp, BookOpen, Target, Sparkles } from 'lucide-react';
-import { DSA_TOPICS } from '../../data/mockData';
+import { DSA_TOPICS, TOTAL_CURRICULUM_PROBLEMS, ACTIVE_TOPICS_COUNT } from '../../data/mockData';
 
 export const StudentProgressPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -13,8 +13,7 @@ export const StudentProgressPage: React.FC = () => {
 
   if (!student) return null;
 
-  // Use 34 to match backend curriculum instead of summing fallback stats (which sum to 100)
-  const totalCurriculum = 34;
+  const totalCurriculum = TOTAL_CURRICULUM_PROBLEMS;
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -26,7 +25,7 @@ export const StudentProgressPage: React.FC = () => {
         </div>
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">My DSA Progress & Roadmap</h1>
         <p className="text-xs md:text-sm text-slate-500 mt-1">
-          Track individual mastery across all 8 modules prescribed by GKCE Department of Computer Science.
+          Track individual mastery across all {ACTIVE_TOPICS_COUNT} modules prescribed by GKCE Department of Computer Science.
         </p>
       </div>
 
@@ -105,7 +104,7 @@ export const StudentProgressPage: React.FC = () => {
         {/* 8 Topics Grid Full */}
         <div className="col-span-1 md:col-span-3">
           <BentoCard
-            title="Comprehensive 8-Module Syllabus Progress"
+            title={`Comprehensive ${ACTIVE_TOPICS_COUNT}-Module Syllabus Progress`}
             subtitle="Autonomous Academic Syllabus breakdown"
             icon={<BookOpen className="w-4 h-4 text-blue-600" />}
           >

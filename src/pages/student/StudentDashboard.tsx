@@ -6,7 +6,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { StreakBadge } from '../../components/ui/StreakBadge';
 import { TopicProgressList } from '../../components/ui/TopicProgressList';
 import { UserAvatar } from '../../components/ui/UserAvatar';
-import { TOTAL_CURRICULUM_PROBLEMS } from '../../data/mockData';
+import { TOTAL_CURRICULUM_PROBLEMS, ACTIVE_TOPICS_COUNT } from '../../data/mockData';
 import { motion } from 'framer-motion';
 import {
   User,
@@ -195,7 +195,7 @@ export const StudentDashboard: React.FC = () => {
             <div className="text-center mt-3">
               <div className="text-sm font-bold text-slate-900">{student.progress}% DSA Progress</div>
               <div className="text-[11px] text-slate-500 mt-0.5">
-                {student.solved} of 34 core problems mastered
+                {student.solved} of {TOTAL_CURRICULUM_PROBLEMS} placement curriculum problems mastered
               </div>
             </div>
           </div>
@@ -261,7 +261,7 @@ export const StudentDashboard: React.FC = () => {
               <div className="text-[11px] text-slate-400 border-t border-slate-200 pt-1.5 flex items-center justify-between">
                 <span>Consistency Level</span>
                 <span className="font-bold text-emerald-600">
-                  {student.streak >= 10 ? 'High' : student.streak >= 5 ? 'Moderate' : 'Active'} ({Math.min(100, Math.round((student.streak / Math.max(1, student.longestStreak)) * 100))}%)
+                  {student.streak === 0 ? 'Not Started' : student.streak >= 10 ? 'High' : student.streak >= 5 ? 'Moderate' : 'Building'} ({student.streak > 0 ? Math.min(100, Math.round((student.streak / Math.max(1, student.longestStreak)) * 100)) : 0}%)
                 </span>
               </div>
             </div>
@@ -271,7 +271,7 @@ export const StudentDashboard: React.FC = () => {
         {/* 5. Topics Card (1 col on mobile, 2 cols on sm+) */}
         <BentoCard
           title="DSA Topics Breakdown"
-          subtitle="8 Core Curriculum Domains"
+          subtitle={`${ACTIVE_TOPICS_COUNT} Core Curriculum Domains`}
           icon={<BookOpen className="w-4 h-4 text-indigo-600" />}
           action={
             <button
@@ -315,8 +315,8 @@ export const StudentDashboard: React.FC = () => {
                   className="p-3 sm:p-3.5 rounded-2xl border border-slate-100 bg-slate-50/70 hover:bg-slate-100/70 transition-colors flex items-center justify-between gap-3"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="w-4 h-4" />
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${act.status === 'Attempted' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                      {act.status === 'Attempted' ? <Clock className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs font-bold text-slate-900 truncate">
@@ -329,7 +329,9 @@ export const StudentDashboard: React.FC = () => {
                   </div>
                   <div className="text-right shrink-0">
                     <span className="text-xs font-semibold text-slate-700 block">{act.timeAgo}</span>
-                    <span className="text-[10px] text-emerald-600 font-bold block">Passed Test Cases</span>
+                    <span className={`text-[10px] font-bold block ${act.status === 'Attempted' ? 'text-amber-600' : 'text-emerald-600'}`}>
+                      {act.status === 'Attempted' ? 'Attempted' : 'Passed Test Cases'}
+                    </span>
                   </div>
                 </div>
               ))

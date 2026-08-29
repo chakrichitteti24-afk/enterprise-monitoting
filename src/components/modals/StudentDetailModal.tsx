@@ -5,11 +5,13 @@ import { StreakBadge } from '../ui/StreakBadge';
 import { ProgressRing } from '../ui/ProgressRing';
 import { TopicProgressList } from '../ui/TopicProgressList';
 import { UserAvatar } from '../ui/UserAvatar';
+import { ACTIVE_TOPICS_COUNT } from '../../data/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
   User,
   CheckCircle2,
+  Clock,
   Send,
   Lock,
   ArrowLeft,
@@ -169,7 +171,7 @@ export const StudentDetailModal: React.FC = () => {
                   {(
                     [
                       { id: 'overview', label: 'Overview' },
-                      { id: 'topics', label: 'DSA Topics (8)' },
+                      { id: 'topics', label: `DSA Topics (${ACTIVE_TOPICS_COUNT})` },
                       { id: 'activity', label: 'Submissions' },
                       ...(role === 'DEAN' || role === 'MENTOR'
                         ? [{ id: 'notes', label: `Mentor Notes (${selectedStudent.mentorFeedbackNotes?.length || 0})` }]
@@ -281,6 +283,27 @@ export const StudentDetailModal: React.FC = () => {
                         </div>
                       </div>
 
+                      {/* GitHub DSA Repo Link — visible to Mentor & Dean */}
+                      {(role === 'MENTOR' || role === 'DEAN') && selectedStudent.githubRepoLink && (
+                        <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center shrink-0 text-xs font-bold">
+                            GH
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">DSA Solutions Repo</div>
+                            <a
+                              href={selectedStudent.githubRepoLink.startsWith('http') ? selectedStudent.githubRepoLink : `https://${selectedStudent.githubRepoLink}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-semibold text-blue-700 hover:underline truncate block"
+                            >
+                              {selectedStudent.githubRepoLink}
+                            </a>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold shrink-0">Submitted</span>
+                        </div>
+                      )}
+
                       {/* Quick DSA Topics Preview */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-xs">
@@ -289,7 +312,7 @@ export const StudentDetailModal: React.FC = () => {
                             onClick={() => setActiveTab('topics')}
                             className="text-blue-600 hover:underline font-semibold"
                           >
-                            All 8 topics →
+                            All {ACTIVE_TOPICS_COUNT} topics →
                           </button>
                         </div>
                         <TopicProgressList topicProgress={selectedStudent.topicProgress} />
@@ -321,8 +344,8 @@ export const StudentDetailModal: React.FC = () => {
                               className="p-3 rounded-2xl border border-slate-100 bg-slate-50/70 flex items-center justify-between gap-3"
                             >
                               <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                                  <CheckCircle2 className="w-4 h-4" />
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${act.status === 'Attempted' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                  {act.status === 'Attempted' ? <Clock className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
                                 </div>
                                 <div className="min-w-0">
                                   <div className="text-xs font-bold text-slate-900 truncate">{act.problemTitle}</div>
@@ -332,7 +355,10 @@ export const StudentDetailModal: React.FC = () => {
                                 </div>
                               </div>
                               <div className="text-right shrink-0">
-                                <span className="text-[11px] font-semibold text-slate-600">{act.timeAgo}</span>
+                                <span className="text-[11px] font-semibold text-slate-600 block">{act.timeAgo}</span>
+                                <span className={`text-[9px] font-bold block mt-0.5 ${act.status === 'Attempted' ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                  {act.status === 'Attempted' ? 'Attempted' : 'Verified Correct'}
+                                </span>
                               </div>
                             </div>
                           ))

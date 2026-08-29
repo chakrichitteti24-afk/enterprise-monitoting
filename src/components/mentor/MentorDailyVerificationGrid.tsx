@@ -8,6 +8,7 @@ import {
   TOTAL_CURRICULUM_DAYS,
   PROBLEMS_PER_DAY,
 } from '../../data/dsaCurriculum100';
+import { TOTAL_CURRICULUM_PROBLEMS } from '../../data/mockData';
 import { Problem, Student } from '../../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -145,9 +146,9 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
           <div className="flex items-center justify-between text-xs text-slate-500 font-semibold px-1">
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
-              <span>Select Curriculum Day (20 Days &times; 5 Problems):</span>
+              <span>Select Curriculum Day ({TOTAL_CURRICULUM_DAYS} Days &times; {PROBLEMS_PER_DAY} Problems):</span>
             </span>
-            <span className="text-[11px] text-indigo-600 font-mono">100 Total Problems</span>
+            <span className="text-[11px] text-indigo-600 font-mono">{TOTAL_CURRICULUM_PROBLEMS} Total Problems</span>
           </div>
 
           <div className="flex items-center gap-1.5 overflow-x-auto pb-2 pt-1 no-scrollbar -mx-1 px-1 touch-scroll-x">

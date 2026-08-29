@@ -9,6 +9,10 @@ import {
   DEAN_USER,
   DEFAULT_MENTOR_USER,
   DEFAULT_STUDENT_USER,
+  TOTAL_CURRICULUM_PROBLEMS,
+  DSA_TOPICS,
+  TOPIC_CURRICULUM_TOTALS,
+  DIFFICULTY_TOTALS
 } from '../data/mockData';
 import {
   getStoredToken,
@@ -69,6 +73,7 @@ interface AuthContextType {
   updateStudent: (studentId: string, updates: Partial<Student>) => Promise<void>;
   removeStudent: (studentId: string) => Promise<void>;
   updateAvatar: (newAvatarUrl: string) => Promise<void>;
+  updateGithubLink: (repoLink: string) => Promise<void>;
   solveProblem: (problem: Problem) => Promise<boolean>;
   toggleMentorProblemVerification: (studentId: string, problemId: string, verified: boolean) => void;
   batchVerifyDayProblems: (studentId: string, dayNumber: number, verified: boolean) => void;
@@ -199,14 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         avgStreak: 0,
         status: 'Active',
         topicPerformance: {
-          Arrays: 0,
-          Strings: 0,
-          'Linked Lists': 0,
-          Stack: 0,
-          Queue: 0,
-          Trees: 0,
-          Graphs: 0,
-          'Dynamic Programming': 0,
+          ...(Object.fromEntries(DSA_TOPICS.map(t => [t, 0])) as any),
         },
         rank: teams.length + 1,
       };
@@ -332,20 +330,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         streak: 0,
         longestStreak: 0,
         status: studentStatus,
-        topicProgress: {
-          Arrays: { solved: 0, total: 5, percentage: 0 },
-          Strings: { solved: 0, total: 4, percentage: 0 },
-          'Linked Lists': { solved: 0, total: 4, percentage: 0 },
-          Stack: { solved: 0, total: 4, percentage: 0 },
-          Queue: { solved: 0, total: 2, percentage: 0 },
-          Trees: { solved: 0, total: 5, percentage: 0 },
-          Graphs: { solved: 0, total: 4, percentage: 0 },
-          'Dynamic Programming': { solved: 0, total: 6, percentage: 0 },
-        },
+        topicProgress: {} as any,
         difficultyStats: {
-          easy: { solved: 0, total: 11 },
-          medium: { solved: 0, total: 14 },
-          hard: { solved: 0, total: 9 },
+          easy: { solved: 0, total: DIFFICULTY_TOTALS.easy },
+          medium: { solved: 0, total: DIFFICULTY_TOTALS.medium },
+          hard: { solved: 0, total: DIFFICULTY_TOTALS.hard },
         },
         recentActivities: [],
         submissionsHistory: [],
@@ -457,6 +446,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (err) {
       console.error('Error updating avatar:', err);
+      throw err;
+    }
+  };
+
+  const updateGithubLink = async (repoLink: string) => {
+    try {
+      const trimmed = repoLink.trim();
+      setCurrentUser(prev => {
+        const updated = { ...prev };
+        if (updated.studentData) {
+          updated.studentData = { ...updated.studentData, githubRepoLink: trimmed };
+        }
+        return updated;
+      });
+      if (currentUser.studentData) {
+        const sId = currentUser.studentData.id;
+        setStudents(prev =>
+          prev.map(s => (s.id === sId || s.rollNo === currentUser.studentData?.rollNo ? { ...s, githubRepoLink: trimmed } : s))
+        );
+      }
+      // Persist to localStorage so it survives refresh
+      try {
+        const key = `gkce_github_link_${currentUser.studentData?.rollNo || currentUser.id}`;
+        if (trimmed) {
+          localStorage.setItem(key, trimmed);
+        } else {
+          localStorage.removeItem(key);
+        }
+      } catch {}
+    } catch (err) {
+      console.error('Error updating github link:', err);
       throw err;
     }
   };
@@ -642,26 +662,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const existing = existingStudents?.find(
       (e) => `student-${s.id}` === e.id || e.rollNo === s.roll_number
     );
-    const topicProgress: Record<string, { solved: number; total: number; percentage: number }> = {
-      Arrays: { solved: 0, total: 55, percentage: 0 },
-      Strings: { solved: 0, total: 15, percentage: 0 },
-      'Linked Lists': { solved: 0, total: 10, percentage: 0 },
-      Stack: { solved: 0, total: 10, percentage: 0 },
-      Queue: { solved: 0, total: 5, percentage: 0 },
-      Trees: { solved: 0, total: 5, percentage: 0 },
-      Graphs: { solved: 0, total: 0, percentage: 0 },
-      'Dynamic Programming': { solved: 0, total: 0, percentage: 0 },
-    };
+    const topicProgress: Record<string, { solved: number; total: number; percentage: number }> = DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as Record<string, { solved: number; total: number; percentage: number }>);
     // If backend returned detailed progress with topic breakdown, use it
     if (s.progress?.topic_progress) {
       for (const [topic, data] of Object.entries(s.progress.topic_progress as Record<string, any>)) {
         const friendlyTopic = topic.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-        const mapped: Record<string, string> = {
-          'Arrays': 'Arrays', 'Strings': 'Strings', 'Linked Lists': 'Linked Lists',
-          'Stack': 'Stack', 'Queue': 'Queue', 'Trees': 'Trees',
-          'Graphs': 'Graphs', 'Dynamic Programming': 'Dynamic Programming',
-          'Linked_lists': 'Linked Lists', 'Dynamic_programming': 'Dynamic Programming',
-        };
+        const mapped: Record<string, string> = Object.fromEntries(DSA_TOPICS.map(t => [t, t]));
         const key = mapped[friendlyTopic] || friendlyTopic;
         if (topicProgress[key]) {
           topicProgress[key] = {
@@ -699,15 +708,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       progress: progressPct,
       solved,
       attempted,
-      pending: prog.pending ?? Math.max(0, 34 - solved),
+      pending: Math.max(0, TOTAL_CURRICULUM_PROBLEMS - solved),
       streak,
       longestStreak,
       status: (statusMap[s.status] || 'Active') as any,
       topicProgress: topicProgress as any,
       difficultyStats: {
-        easy: { solved: prog.easy_solved ?? 0, total: prog.difficulty_stats?.easy?.total ?? 70 },
-        medium: { solved: prog.medium_solved ?? 0, total: prog.difficulty_stats?.medium?.total ?? 28 },
-        hard: { solved: prog.hard_solved ?? 0, total: prog.difficulty_stats?.hard?.total ?? 2 },
+        easy: { solved: prog.easy_solved ?? 0, total: prog.difficulty_stats?.easy?.total ?? DIFFICULTY_TOTALS.easy },
+        medium: { solved: prog.medium_solved ?? 0, total: prog.difficulty_stats?.medium?.total ?? DIFFICULTY_TOTALS.medium },
+        hard: { solved: prog.hard_solved ?? 0, total: prog.difficulty_stats?.hard?.total ?? DIFFICULTY_TOTALS.hard },
       },
       recentActivities: existing?.recentActivities || [],
       submissionsHistory: existing?.submissionsHistory || [],
@@ -742,8 +751,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       avgStreak: Math.round(t.average_streak ?? 0),
       status: (statusMap[t.status] || 'Active') as any,
       topicPerformance: (existing?.topicPerformance || {
-        Arrays: 0, Strings: 0, 'Linked Lists': 0, Stack: 0,
-        Queue: 0, Trees: 0, Graphs: 0, 'Dynamic Programming': 0,
+        ...(Object.fromEntries(DSA_TOPICS.map(t => [t, 0])) as any),
       }) as any,
       rank: t.rank ?? 1,
     };
@@ -1078,8 +1086,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const newSolved = targetStudent.solved + 1;
     const newAttempted = Math.max(targetStudent.attempted + 1, newSolved);
-    const newPending = Math.max(0, 34 - newSolved);
-    const newProgress = Math.min(100, Math.round((newSolved / 34) * 100));
+    const newPending = Math.max(0, TOTAL_CURRICULUM_PROBLEMS - newSolved);
+    const newProgress = Math.min(100, Math.round((newSolved / TOTAL_CURRICULUM_PROBLEMS) * 100));
     const newStreak = targetStudent.streak + 1;
     const newLongestStreak = Math.max(targetStudent.longestStreak, newStreak);
     const newLevel = newProgress >= 85 ? 'Mastery' : newProgress >= 65 ? 'Advanced' : newProgress >= 40 ? 'Intermediate' : 'Beginner';
@@ -1135,12 +1143,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           const tPerf: Record<string, number> = {};
           const topicCaps: Record<string, number> = {
-            Arrays: 5, Strings: 4, 'Linked Lists': 4, Stack: 4, Queue: 2, Trees: 5, Graphs: 4, 'Dynamic Programming': 6,
+            ...TOPIC_CURRICULUM_TOTALS,
           };
           for (const top of Object.keys(updatedTopicProgress)) {
-            const totalTopicCap = (topicCaps[top] || 1) * teamSts.length;
-            const solvedTopic = teamSts.reduce((acc, s) => acc + (s.topicProgress[top as DSATopic]?.solved || 0), 0);
-            tPerf[top] = Math.min(100, Math.round((solvedTopic / Math.max(1, totalTopicCap)) * 100));
+            const cap = topicCaps[top] || 0;
+            if (cap > 0) {
+              const totalTopicCap = cap * teamSts.length;
+              const solvedTopic = teamSts.reduce((acc, s) => acc + (s.topicProgress[top as DSATopic]?.solved || 0), 0);
+              tPerf[top] = Math.min(100, Math.round((solvedTopic / Math.max(1, totalTopicCap)) * 100));
+            } else {
+              tPerf[top] = 0;
+            }
           }
 
           return {
@@ -1175,34 +1188,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Recalculate student metrics from verifiedProblemIds
-  // NOTE: The backend curriculum has 34 problems (dsa_problems table).
-  // Frontend PROBLEMS_BANK_100 has 100 problems but only 34 are tracked for verification.
-  // To stay consistent with the backend's overall_percentage, we divide by 34.
-  const CURRICULUM_TOTAL = 34;
+  const CURRICULUM_TOTAL = 100;
   const recalculateStudentMetrics = (student: Student, verifiedIds: string[]): Student => {
     const verifiedSet = new Set(verifiedIds);
     const verifiedProblems = PROBLEMS_BANK_100.filter(p => verifiedSet.has(p.id));
     const solvedCount = verifiedProblems.length;
-    // Match backend: progress = min(100, round(solved / 34 * 100))
+    // Progress out of 100 curriculum problems
     const progress = Math.min(100, Math.round((solvedCount / CURRICULUM_TOTAL) * 100));
     const pending = Math.max(0, CURRICULUM_TOTAL - solvedCount);
     const attempted = Math.max(student.attempted || 0, solvedCount);
 
-    const topicProgress: Record<DSATopic, { solved: number; total: number; percentage: number }> = {
-      Arrays: { solved: 0, total: 55, percentage: 0 },
-      Strings: { solved: 0, total: 15, percentage: 0 },
-      'Linked Lists': { solved: 0, total: 10, percentage: 0 },
-      Stack: { solved: 0, total: 10, percentage: 0 },
-      Queue: { solved: 0, total: 5, percentage: 0 },
-      Trees: { solved: 0, total: 5, percentage: 0 },
-      Graphs: { solved: 0, total: 0, percentage: 0 },
-      'Dynamic Programming': { solved: 0, total: 0, percentage: 0 },
-    };
+    const topicProgress: Record<DSATopic, { solved: number; total: number; percentage: number }> = DSA_TOPICS.reduce((acc, topic) => {
+      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+      return acc;
+    }, {} as Record<DSATopic, { solved: number; total: number; percentage: number }>);
 
     const difficultyStats = {
-      easy: { solved: 0, total: 70 },
-      medium: { solved: 0, total: 28 },
-      hard: { solved: 0, total: 2 },
+      easy: { solved: 0, total: DIFFICULTY_TOTALS.easy },
+      medium: { solved: 0, total: DIFFICULTY_TOTALS.medium },
+      hard: { solved: 0, total: DIFFICULTY_TOTALS.hard },
     };
 
     for (const prob of verifiedProblems) {
@@ -1221,7 +1225,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const dsaLevel = progress >= 85 ? 'Mastery' : progress >= 65 ? 'Advanced' : progress >= 40 ? 'Intermediate' : 'Beginner';
-    const streak = solvedCount > 0 ? Math.max(1, Math.min(20, Math.ceil(solvedCount / 3))) : 0;
+    // Preserve real streak from DB — do NOT synthesize from solved count (that is fake data)
+    const streak = solvedCount > 0 ? (student.streak || 0) : 0;
 
     return {
       ...student,
@@ -1251,7 +1256,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           const tPerf: Record<string, number> = {};
           const topicCaps: Record<string, number> = {
-            Arrays: 55, Strings: 15, 'Linked Lists': 10, Stack: 10, Queue: 5, Trees: 5, Graphs: 0, 'Dynamic Programming': 0,
+            ...TOPIC_CURRICULUM_TOTALS,
           };
           for (const top of Object.keys(topicCaps)) {
             const cap = topicCaps[top];
@@ -1325,7 +1330,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                 const tPerf: Record<string, number> = {};
                 const topicCaps: Record<string, number> = {
-                  Arrays: 55, Strings: 15, 'Linked Lists': 10, Stack: 10, Queue: 5, Trees: 5, Graphs: 0, 'Dynamic Programming': 0,
+                  ...TOPIC_CURRICULUM_TOTALS,
                 };
                 for (const top of Object.keys(topicCaps)) {
                   const cap = topicCaps[top];
@@ -1711,6 +1716,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateStudent,
         removeStudent,
         updateAvatar,
+        updateGithubLink,
         solveProblem,
         toggleMentorProblemVerification,
         batchVerifyDayProblems,

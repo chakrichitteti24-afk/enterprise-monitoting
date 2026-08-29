@@ -105,7 +105,7 @@ export async function executeRealCode(
         }`;
 
       return {
-        status: backendRes.status || (isAccepted ? 'ACCEPTED' : 'WRONG_ANSWER'),
+        status: (backendRes.status || (isAccepted ? 'ACCEPTED' : 'WRONG_ANSWER')) as 'ACCEPTED' | 'WRONG_ANSWER' | 'COMPILATION_ERROR' | 'RUNTIME_ERROR' | 'TIME_LIMIT_EXCEEDED',
         passedCount,
         totalCount: testCases.length,
         executionTimeMs: backendRes.execution_time_ms || Date.now() - startTime,

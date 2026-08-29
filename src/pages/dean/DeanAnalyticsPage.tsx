@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { BentoCard } from '../../components/ui/BentoCard';
 import { ProgressRing } from '../../components/ui/ProgressRing';
 import { ProgressBar } from '../../components/ui/ProgressBar';
-import { DSA_TOPICS } from '../../data/mockData';
+import { DSA_TOPICS, TOPIC_CURRICULUM_TOTALS, ACTIVE_TOPICS_COUNT } from '../../data/mockData';
 import { BarChart3, TrendingUp, Target } from 'lucide-react';
 
 export const DeanAnalyticsPage: React.FC = () => {
@@ -13,7 +13,7 @@ export const DeanAnalyticsPage: React.FC = () => {
   const avgProgress = Math.round(students.reduce((acc, s) => acc + s.progress, 0) / Math.max(1, students.length));
 
   // Topic Averages across students
-  const topicAverages = DSA_TOPICS.map((topic) => {
+  const topicAverages = DSA_TOPICS.filter(t => (TOPIC_CURRICULUM_TOTALS[t] ?? 0) > 0).map((topic) => {
     const avg = Math.round(
       students.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / Math.max(1, students.length)
     );
@@ -125,9 +125,9 @@ export const DeanAnalyticsPage: React.FC = () => {
         </BentoCard>
       </div>
 
-      {/* 8 DSA Topics Macro Benchmark */}
+      {/* DSA Topics Macro Benchmark */}
       <BentoCard
-        title={`8 DSA Topics Macro Mastery (${students.length} Students)`}
+        title={`${ACTIVE_TOPICS_COUNT} DSA Topics Macro Mastery (${students.length} Students)`}
         subtitle="Institution-wide syllabus completion rate"
         icon={<Target className="w-4 h-4 text-blue-600" />}
       >

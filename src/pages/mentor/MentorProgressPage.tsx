@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { BentoCard } from '../../components/ui/BentoCard';
 import { UserAvatar } from '../../components/ui/UserAvatar';
-import { DSA_TOPICS } from '../../data/mockData';
+import { DSA_TOPICS, TOPIC_CURRICULUM_TOTALS, ACTIVE_TOPICS_COUNT, TOTAL_CURRICULUM_PROBLEMS } from '../../data/mockData';
 import { MentorDailyVerificationGrid } from '../../components/mentor/MentorDailyVerificationGrid';
 import { TrendingUp, BookOpen, CheckSquare, BarChart3, Users } from 'lucide-react';
 
@@ -58,7 +58,7 @@ export const MentorProgressPage: React.FC = () => {
             {displayedTeamName} Curriculum & Task Verification
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Sign off daily student tasks (100 placement questions, 5/day) and inspect comprehensive topic mastery.
+            Sign off daily student tasks ({TOTAL_CURRICULUM_PROBLEMS} placement questions, 5/day) and inspect comprehensive topic mastery.
           </p>
         </div>
 
@@ -135,13 +135,13 @@ export const MentorProgressPage: React.FC = () => {
       {activeSubTab === 'topic-matrix' && (
         <BentoCard
           title="Student vs Topic Mastery Matrix"
-          subtitle="Live completion percentage per topic across 100 curriculum problems"
+          subtitle={`Live completion percentage per topic across ${TOTAL_CURRICULUM_PROBLEMS} curriculum problems`}
           icon={<BookOpen className="w-4 h-4 text-blue-600" />}
         >
           {/* Mobile Swipe Indicator */}
           <div className="sm:hidden px-3 py-1.5 bg-blue-50/70 rounded-xl border border-blue-100/60 flex items-center justify-between text-[11px] text-blue-700 font-semibold mb-2">
-            <span>👈 Swipe horizontally to view all 8 topics 👉</span>
-            <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-blue-200">8 Topics</span>
+            <span>👈 Swipe horizontally to view all {ACTIVE_TOPICS_COUNT} topics 👉</span>
+            <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-blue-200">{ACTIVE_TOPICS_COUNT} Topics</span>
           </div>
 
           <div className="overflow-x-auto pt-1 touch-scroll-x custom-scrollbar">
@@ -149,7 +149,7 @@ export const MentorProgressPage: React.FC = () => {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                   <th className="py-3 px-3 sm:px-4 sticky left-0 bg-slate-50 z-10 sticky-col-shadow w-36 sm:w-48">Student</th>
-                  {DSA_TOPICS.map((topic) => (
+                  {DSA_TOPICS.filter(t => (TOPIC_CURRICULUM_TOTALS[t] ?? 0) > 0).map((topic) => (
                     <th key={topic} className="py-3 px-2 sm:px-3 text-center min-w-[75px] sm:min-w-[90px]">
                       {topic}
                     </th>
@@ -180,7 +180,7 @@ export const MentorProgressPage: React.FC = () => {
                       </div>
                     </td>
 
-                    {DSA_TOPICS.map((topic) => {
+                    {DSA_TOPICS.filter(t => (TOPIC_CURRICULUM_TOTALS[t] ?? 0) > 0).map((topic) => {
                       const perc = st.topicProgress[topic]?.percentage || 0;
                       return (
                         <td key={topic} className="py-3 px-2 sm:px-3 text-center">

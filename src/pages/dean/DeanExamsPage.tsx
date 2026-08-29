@@ -84,7 +84,7 @@ export const DeanExamsPage: React.FC = () => {
   const allCompletedSubmissions = completedExams.flatMap(e => e.submissions || []);
   const avgScore = allCompletedSubmissions.length > 0
     ? Math.round(allCompletedSubmissions.reduce((sum, s) => sum + s.score, 0) / allCompletedSubmissions.length)
-    : 78;
+    : 0;
 
   // Filter 100 Questions in the modal
   const filteredProblemsBank = useMemo(() => {
@@ -133,7 +133,7 @@ export const DeanExamsPage: React.FC = () => {
       return;
     }
     if (preset === 'TIER3_HARD') {
-      const hard = PROBLEMS_BANK_100.filter(p => p.difficulty === 'Hard' || p.topic === 'Trees' || p.topic === 'Graphs' || p.topic === 'Dynamic Programming').slice(0, 20);
+      const hard = PROBLEMS_BANK_100.filter(p => p.difficulty === 'Hard' || p.topic === 'Hashing' || p.topic === 'Two Pointers').slice(0, 20);
       setSelectedProblemIds(hard.map(p => p.id));
       setTopicFocus('Tier 3: Hard Trees, Graphs & Dynamic Programming (Weeks 7+)');
       setDurationMins(120);
@@ -312,8 +312,12 @@ export const DeanExamsPage: React.FC = () => {
 
         <div className="p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
           <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Average Exam Score</div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-blue-700 mt-1">{avgScore} / 100</div>
-          <div className="text-xs text-blue-600 font-semibold mt-1">Institutional baseline</div>
+          <div className="text-2xl sm:text-3xl font-extrabold text-blue-700 mt-1">
+            {allCompletedSubmissions.length > 0 ? `${avgScore} / 100` : 'N/A'}
+          </div>
+          <div className="text-xs text-blue-600 font-semibold mt-1">
+            {allCompletedSubmissions.length > 0 ? 'Across completed exams' : 'No evaluations yet'}
+          </div>
         </div>
 
         <div className="p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs">

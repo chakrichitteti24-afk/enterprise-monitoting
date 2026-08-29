@@ -1,14 +1,17 @@
 export type UserRole = 'STUDENT' | 'MENTOR' | 'DEAN';
 
 export type DSATopic =
+  | 'Basics'
+  | 'Numbers'
   | 'Arrays'
   | 'Strings'
+  | 'Searching'
+  | 'Sorting'
+  | 'Hashing'
+  | 'Two Pointers'
   | 'Linked Lists'
-  | 'Stack'
-  | 'Queue'
-  | 'Trees'
-  | 'Graphs'
-  | 'Dynamic Programming';
+  | 'Stack & Queue'
+  | 'Mixed Placement';
 
 export type StudentStatus = 'Active' | 'Needs Attention' | 'Inactive';
 export type DSALevel = 'Beginner' | 'Intermediate' | 'Advanced' | 'Mastery';
@@ -55,6 +58,7 @@ export interface Student {
   verifiedProblemIds?: string[]; // IDs of problems signed off / ticked by faculty mentor
   leetcodeUsername?: string;
   githubUsername?: string;
+  githubRepoLink?: string; // student-submitted GitHub repo/solution link
 }
 
 export interface Team {
