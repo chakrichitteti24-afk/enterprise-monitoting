@@ -38,7 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '', onItemClick })
     switch (role) {
       case 'DEAN': {
         const deanAvgProgress = students.length > 0
-          ? Math.round(students.reduce((acc, s) => acc + s.progress, 0) / students.length)
+          ? Number((students.reduce((acc, s) => acc + s.progress, 0) / students.length).toFixed(1))
           : 0;
         return [
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: undefined },
@@ -64,7 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '', onItemClick })
           s => activeMentorTeams.some(t => t.id === s.teamId || t.teamNumber === s.teamNumber)
         );
         const myTeamAvg = myTeamStudents.length > 0
-          ? Math.round(myTeamStudents.reduce((acc, s) => acc + s.progress, 0) / myTeamStudents.length)
+          ? Number((myTeamStudents.reduce((acc, s) => acc + s.progress, 0) / myTeamStudents.length).toFixed(1))
           : 0;
         const teamBadge = activeMentorTeams.length > 1
           ? `${activeMentorTeams.length} Teams`

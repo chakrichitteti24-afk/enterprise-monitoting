@@ -8,7 +8,7 @@ export const DeanReportsPage: React.FC = () => {
   const { students, teams, mentors } = useAuth();
   const [reportType, setReportType] = useState<'executive' | 'teams' | 'students'>('executive');
 
-  const overallProgress = Math.round(students.reduce((acc, s) => acc + s.progress, 0) / Math.max(1, students.length));
+  const overallProgress = Number((students.reduce((acc, s) => acc + s.progress, 0) / Math.max(1, students.length)).toFixed(1));
   const totalSolved = students.reduce((acc, s) => acc + s.solved, 0);
 
   const handlePrint = () => {
@@ -109,9 +109,9 @@ export const DeanReportsPage: React.FC = () => {
                 const topicTotal = TOPIC_CURRICULUM_TOTALS[topic] ?? 0;
                 // Skip topics not yet included in the current placement foundation bank
                 if (topicTotal === 0) return null;
-                const avg = Math.round(
+                const avg = Number((
                   students.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / Math.max(1, students.length)
-                );
+                ).toFixed(1));
                 return (
                   <tr key={topic}>
                     <td className="p-2 border border-slate-200 font-medium">{topic}</td>

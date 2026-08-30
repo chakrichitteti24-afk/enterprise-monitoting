@@ -28,7 +28,7 @@ export const DeanDashboard: React.FC = () => {
   const totalStudents = students.length; // 100
   const totalTeams = teams.length; // 20
   const totalMentors = mentors.length; // 20
-  const overallProgress = Math.round(students.reduce((sum, s) => sum + s.progress, 0) / Math.max(1, students.length)); // ~76%
+  const overallProgress = Number((students.reduce((sum, s) => sum + s.progress, 0) / Math.max(1, students.length)).toFixed(1)); // ~76%
 
   const filteredTeams = teams.filter((t) => {
     const matchesStatus = teamStatusFilter === 'All' || t.status === teamStatusFilter;

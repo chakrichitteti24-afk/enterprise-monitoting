@@ -47,7 +47,7 @@ export const MentorExamsPage: React.FC = () => {
 
   const evaluatedSubs = teamSubmissions.filter(ts => ts.submission && ts.submission.status === 'EVALUATED');
   const teamAvgScore = evaluatedSubs.length > 0
-    ? Math.round(evaluatedSubs.reduce((sum, ts) => sum + (ts.submission?.score || 0), 0) / evaluatedSubs.length)
+    ? Number((evaluatedSubs.reduce((sum, ts) => sum + (ts.submission?.score || 0), 0) / evaluatedSubs.length).toFixed(1))
     : 0;
   const teamHighestScore = evaluatedSubs.length > 0
     ? Math.max(...evaluatedSubs.map(ts => ts.submission?.score || 0))
@@ -191,7 +191,7 @@ export const MentorExamsPage: React.FC = () => {
                 </div>
               </div>
               <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
-                {teamAvgScore > 0 ? `${Math.round(teamAvgScore)}%` : '--'}
+                {teamAvgScore > 0 ? `${Number((teamAvgScore).toFixed(1))}%` : '--'}
               </div>
             </div>
           </div>

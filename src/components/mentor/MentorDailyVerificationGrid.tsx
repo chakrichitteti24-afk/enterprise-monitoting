@@ -78,7 +78,7 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
 
   const dayCompletionPct =
     totalPossibleChecks > 0
-      ? Math.round((verifiedChecksCount / totalPossibleChecks) * 100)
+      ? Number(((verifiedChecksCount / totalPossibleChecks) * 100).toFixed(1))
       : 0;
 
   const handleCellToggle = (student: Student, problem: Problem) => {

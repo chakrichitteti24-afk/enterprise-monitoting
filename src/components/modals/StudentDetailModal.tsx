@@ -235,7 +235,7 @@ export const StudentDetailModal: React.FC = () => {
                           <div className="text-[10px] text-slate-400 border-t border-slate-200/60 pt-1.5 flex justify-between">
                             <span>Accuracy Rate</span>
                             <span className="font-bold text-emerald-700">
-                              {Math.round((selectedStudent.solved / Math.max(1, selectedStudent.attempted)) * 100)}%
+                              {Number(((selectedStudent.solved / Math.max(1, selectedStudent.attempted)) * 100).toFixed(1))}%
                             </span>
                           </div>
                         </div>

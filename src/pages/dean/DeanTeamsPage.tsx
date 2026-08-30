@@ -276,7 +276,7 @@ export const DeanTeamsPage: React.FC = () => {
 
                   <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
                     <span>Solved: <strong className="text-slate-800">{t.totalSolved}</strong></span>
-                    <StreakBadge streak={Math.round(t.avgStreak)} size="sm" />
+                    <StreakBadge streak={Number((t.avgStreak).toFixed(1))} size="sm" />
                   </div>
                 </div>
               </div>
@@ -342,7 +342,7 @@ export const DeanTeamsPage: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 font-bold text-slate-900">{t.totalSolved}</td>
                     <td className="py-3.5 px-4">
-                      <StreakBadge streak={Math.round(t.avgStreak)} size="sm" />
+                      <StreakBadge streak={Number((t.avgStreak).toFixed(1))} size="sm" />
                     </td>
                     <td className="py-3.5 px-4">
                       <StatusBadge status={t.status} size="sm" />

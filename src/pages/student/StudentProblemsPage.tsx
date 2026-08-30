@@ -38,7 +38,7 @@ export const StudentProblemsPage: React.FC = () => {
   }, [searchQuery, selectedDay, selectedTopic, selectedDifficulty]);
 
   const verifiedCount = PROBLEMS_BANK.filter((p) => verifiedProblemIds.has(p.id)).length;
-  const overallProgressPct = Math.round((verifiedCount / Math.max(1, PROBLEMS_BANK.length)) * 100);
+  const overallProgressPct = Number(((verifiedCount / Math.max(1, PROBLEMS_BANK.length)) * 100).toFixed(1));
 
   // Navigation indices for active problem in IDE
   const currentIdx = activeProblem ? filteredProblems.findIndex(p => p.id === activeProblem.id) : -1;

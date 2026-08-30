@@ -52,11 +52,11 @@ export const MentorDashboard: React.FC = () => {
   );
 
   const avgProgress = teamStudents.length > 0
-    ? Math.round(teamStudents.reduce((a, b) => a + b.progress, 0) / teamStudents.length)
-    : Math.round(displayedTeams.reduce((a, b) => a + b.avgProgress, 0) / Math.max(1, displayedTeams.length));
+    ? Number((teamStudents.reduce((a, b) => a + b.progress, 0) / teamStudents.length).toFixed(1))
+    : Number((displayedTeams.reduce((a, b) => a + b.avgProgress, 0) / Math.max(1, displayedTeams.length)).toFixed(1));
   const totalProblemsSolved = teamStudents.reduce((sum, st) => sum + st.solved, 0);
   const avgStreak = teamStudents.length > 0
-    ? Math.round((teamStudents.reduce((sum, st) => sum + st.streak, 0) / teamStudents.length) * 10) / 10
+    ? Number(((teamStudents.reduce((sum, st) => sum + st.streak, 0) / teamStudents.length) * 10).toFixed(1)) / 10
     : 0;
 
   const handleStudentClick = (student: Student) => {
@@ -213,7 +213,7 @@ export const MentorDashboard: React.FC = () => {
                 {teamStudents.filter(s => s.status === 'Active').length} / {teamStudents.length}
               </div>
               <div className="text-[10px] text-slate-400 font-medium mt-1">
-                {teamStudents.length > 0 ? Math.round((teamStudents.filter(s => s.status === 'Active').length / teamStudents.length) * 100) : 0}% active rate
+                {teamStudents.length > 0 ? Number(((teamStudents.filter(s => s.status === 'Active').length / teamStudents.length) * 100).toFixed(1)) : 0}% active rate
               </div>
             </div>
           </div>
@@ -232,7 +232,7 @@ export const MentorDashboard: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {DSA_TOPICS.filter(t => (TOPIC_CURRICULUM_TOTALS[t] ?? 0) > 0).map((topic) => {
                 const perc = teamStudents.length > 0
-                  ? Math.round(teamStudents.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / teamStudents.length)
+                  ? Number((teamStudents.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / teamStudents.length).toFixed(1))
                   : (displayedTeams[0]?.topicPerformance?.[topic] || 0);
                 return (
                   <div key={topic} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">

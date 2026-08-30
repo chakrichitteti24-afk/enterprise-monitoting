@@ -228,7 +228,7 @@ export const StudentDashboard: React.FC = () => {
               <div className="flex items-center justify-between text-slate-600">
                 <span>Accuracy Rate</span>
                 <span className="font-bold text-slate-900">
-                  {Math.round((student.solved / Math.max(1, student.attempted)) * 100)}%
+                  {Number(((student.solved / Math.max(1, student.attempted)) * 100).toFixed(1))}%
                 </span>
               </div>
               <div className="flex items-center justify-between text-slate-600">
@@ -261,7 +261,7 @@ export const StudentDashboard: React.FC = () => {
               <div className="text-[11px] text-slate-400 border-t border-slate-200 pt-1.5 flex items-center justify-between">
                 <span>Consistency Level</span>
                 <span className="font-bold text-emerald-600">
-                  {student.streak === 0 ? 'Not Started' : student.streak >= 10 ? 'High' : student.streak >= 5 ? 'Moderate' : 'Building'} ({student.streak > 0 ? Math.min(100, Math.round((student.streak / Math.max(1, student.longestStreak)) * 100)) : 0}%)
+                  {student.streak === 0 ? 'Not Started' : student.streak >= 10 ? 'High' : student.streak >= 5 ? 'Moderate' : 'Building'} ({student.streak > 0 ? Math.min(100, Number(((student.streak / Math.max(1, student.longestStreak)) * 100).toFixed(1))) : 0}%)
                 </span>
               </div>
             </div>

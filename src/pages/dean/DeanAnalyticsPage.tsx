@@ -3,20 +3,20 @@ import { useAuth } from '../../context/AuthContext';
 import { BentoCard } from '../../components/ui/BentoCard';
 import { ProgressRing } from '../../components/ui/ProgressRing';
 import { ProgressBar } from '../../components/ui/ProgressBar';
-import { DSA_TOPICS, TOPIC_CURRICULUM_TOTALS, ACTIVE_TOPICS_COUNT } from '../../data/mockData';
+import { DSA_TOPICS, TOPIC_CURRICULUM_TOTALS, ACTIVE_TOPICS_COUNT, DIFFICULTY_TOTALS } from '../../data/mockData';
 import { BarChart3, TrendingUp, Target } from 'lucide-react';
 
 export const DeanAnalyticsPage: React.FC = () => {
   const { students, teams } = useAuth();
 
   const totalProblemsSolved = students.reduce((acc, s) => acc + s.solved, 0);
-  const avgProgress = Math.round(students.reduce((acc, s) => acc + s.progress, 0) / Math.max(1, students.length));
+  const avgProgress = Number((students.reduce((acc, s) => acc + s.progress, 0) / Math.max(1, students.length)).toFixed(1));
 
   // Topic Averages across students
   const topicAverages = DSA_TOPICS.filter(t => (TOPIC_CURRICULUM_TOTALS[t] ?? 0) > 0).map((topic) => {
-    const avg = Math.round(
+    const avg = Number((
       students.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / Math.max(1, students.length)
-    );
+    ).toFixed(1));
     const totalSolvedInTopic = students.reduce((sum, st) => sum + (st.topicProgress[topic]?.solved || 0), 0);
     return {
       topic,
@@ -96,30 +96,30 @@ export const DeanAnalyticsPage: React.FC = () => {
         </BentoCard>
 
         {/* Difficulty Distribution Across All Students */}
-        <BentoCard title="Difficulty Solves Aggregate" subtitle="Total solutions by tier" className="col-span-1">
+        <BentoCard title="Difficulty Solves (Student Average)" subtitle="Average solutions per student" className="col-span-1">
           <div className="space-y-3 pt-2">
             <div>
               <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
                 <span>Easy Solves</span>
-                <span className="font-bold text-emerald-700">{easyTotalSolved} / {totalPossibleEasy}</span>
+                <span className="font-bold text-emerald-700">{Number((easyTotalSolved / Math.max(1, students.length)).toFixed(1))} / {DIFFICULTY_TOTALS.easy}</span>
               </div>
-              <ProgressBar percentage={(easyTotalSolved / totalPossibleEasy) * 100} color="emerald" height="xs" />
+              <ProgressBar percentage={(Number((easyTotalSolved / Math.max(1, students.length)).toFixed(1)) / Math.max(1, DIFFICULTY_TOTALS.easy)) * 100} color="emerald" height="xs" />
             </div>
 
             <div>
               <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
                 <span>Medium Solves</span>
-                <span className="font-bold text-amber-700">{mediumTotalSolved} / {totalPossibleMedium}</span>
+                <span className="font-bold text-amber-700">{Number((mediumTotalSolved / Math.max(1, students.length)).toFixed(1))} / {DIFFICULTY_TOTALS.medium}</span>
               </div>
-              <ProgressBar percentage={(mediumTotalSolved / totalPossibleMedium) * 100} color="amber" height="xs" />
+              <ProgressBar percentage={(Number((mediumTotalSolved / Math.max(1, students.length)).toFixed(1)) / Math.max(1, DIFFICULTY_TOTALS.medium)) * 100} color="amber" height="xs" />
             </div>
 
             <div>
               <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
                 <span>Hard Solves</span>
-                <span className="font-bold text-rose-700">{hardTotalSolved} / {totalPossibleHard}</span>
+                <span className="font-bold text-rose-700">{Number((hardTotalSolved / Math.max(1, students.length)).toFixed(1))} / {DIFFICULTY_TOTALS.hard}</span>
               </div>
-              <ProgressBar percentage={(hardTotalSolved / totalPossibleHard) * 100} color="slate" height="xs" />
+              <ProgressBar percentage={(Number((hardTotalSolved / Math.max(1, students.length)).toFixed(1)) / Math.max(1, DIFFICULTY_TOTALS.hard)) * 100} color="slate" height="xs" />
             </div>
           </div>
         </BentoCard>

@@ -83,7 +83,7 @@ export const DeanExamsPage: React.FC = () => {
   const completedExams = exams.filter(e => e.status === 'COMPLETED' && e.submissions && e.submissions.length > 0);
   const allCompletedSubmissions = completedExams.flatMap(e => e.submissions || []);
   const avgScore = allCompletedSubmissions.length > 0
-    ? Math.round(allCompletedSubmissions.reduce((sum, s) => sum + s.score, 0) / allCompletedSubmissions.length)
+    ? Number((allCompletedSubmissions.reduce((sum, s) => sum + s.score, 0) / allCompletedSubmissions.length).toFixed(1))
     : 0;
 
   // Filter 100 Questions in the modal
@@ -163,7 +163,7 @@ export const DeanExamsPage: React.FC = () => {
       return;
     }
 
-    const marksPerQuestion = Math.max(1, Math.round(totalMarks / selectedProblemIds.length));
+    const marksPerQuestion = Math.max(1, Number((totalMarks / selectedProblemIds.length).toFixed(1)));
 
     // Convert selected problem IDs from the 100 curriculum bank into ExamQuestion objects with week-tier test cases
     const selectedProblems = selectedProblemIds
@@ -663,7 +663,7 @@ export const DeanExamsPage: React.FC = () => {
                       <div className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
                         <span>2. Select Questions from 100 Curriculum Bank</span>
                         <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-mono text-[11px] font-bold">
-                          {selectedProblemIds.length} Selected ({selectedProblemIds.length > 0 ? Math.round(totalMarks / selectedProblemIds.length) : 0} pts/ea)
+                          {selectedProblemIds.length} Selected ({selectedProblemIds.length > 0 ? Number((totalMarks / selectedProblemIds.length).toFixed(1)) : 0} pts/ea)
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 mt-0.5">

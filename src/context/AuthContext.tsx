@@ -684,7 +684,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const prog = s.progress || {};
     const solved = prog.problems_solved ?? s.problems_solved ?? 0;
     const attempted = prog.problems_attempted ?? s.problems_attempted ?? 0;
-    const progressPct = Math.round(prog.overall_percentage ?? s.progress_percentage ?? 0);
+    const progressPct = Number((prog.overall_percentage ?? s.progress_percentage ?? 0).toFixed(1));
     const streak = prog.current_streak ?? s.current_streak ?? 0;
     const longestStreak = prog.longest_streak ?? s.longest_streak ?? 0;
     const dsaLevelMap: Record<string, string> = {
@@ -745,10 +745,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       mentorDepartment: t.mentor_department || existing?.mentorDepartment || 'CSE',
       mentorAvatar: t.mentor_avatar || existing?.mentorAvatar,
       studentIds: existing?.studentIds || [],
-      avgProgress: Math.round(t.average_progress ?? 0),
+      avgProgress: Number((t.average_progress ?? 0).toFixed(1)),
       totalSolved: t.total_problems_solved ?? 0,
       totalAttempted: t.total_attempted ?? 0,
-      avgStreak: Math.round(t.average_streak ?? 0),
+      avgStreak: Number((t.average_streak ?? 0).toFixed(1)),
       status: (statusMap[t.status] || 'Active') as any,
       topicPerformance: (existing?.topicPerformance || {
         ...(Object.fromEntries(DSA_TOPICS.map(t => [t, 0])) as any),
@@ -1062,7 +1062,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const topic = problem.topic as DSATopic;
     const currentTopicData = targetStudent.topicProgress[topic] || { solved: 0, total: 5, percentage: 0 };
     const newTopicSolved = Math.min(currentTopicData.total, currentTopicData.solved + 1);
-    const newTopicPct = Math.round((newTopicSolved / currentTopicData.total) * 100);
+    const newTopicPct = Number(((newTopicSolved / currentTopicData.total) * 100).toFixed(1));
 
     const updatedTopicProgress = {
       ...targetStudent.topicProgress,
@@ -1087,7 +1087,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newSolved = targetStudent.solved + 1;
     const newAttempted = Math.max(targetStudent.attempted + 1, newSolved);
     const newPending = Math.max(0, TOTAL_CURRICULUM_PROBLEMS - newSolved);
-    const newProgress = Math.min(100, Math.round((newSolved / TOTAL_CURRICULUM_PROBLEMS) * 100));
+    const newProgress = Math.min(100, Number(((newSolved / TOTAL_CURRICULUM_PROBLEMS) * 100).toFixed(1)));
     const newStreak = targetStudent.streak + 1;
     const newLongestStreak = Math.max(targetStudent.longestStreak, newStreak);
     const newLevel = newProgress >= 85 ? 'Mastery' : newProgress >= 65 ? 'Advanced' : newProgress >= 40 ? 'Intermediate' : 'Beginner';
@@ -1138,8 +1138,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber);
           const tSolved = teamSts.reduce((acc, s) => acc + s.solved, 0);
           const tAttempted = teamSts.reduce((acc, s) => acc + s.attempted, 0);
-          const tAvgProg = teamSts.length > 0 ? Math.round(teamSts.reduce((acc, s) => acc + s.progress, 0) / teamSts.length) : 0;
-          const tAvgStreak = teamSts.length > 0 ? Math.round(teamSts.reduce((acc, s) => acc + s.streak, 0) / teamSts.length) : 0;
+          const tAvgProg = teamSts.length > 0 ? Number((teamSts.reduce((acc, s) => acc + s.progress, 0) / teamSts.length).toFixed(1)) : 0;
+          const tAvgStreak = teamSts.length > 0 ? Number((teamSts.reduce((acc, s) => acc + s.streak, 0) / teamSts.length).toFixed(1)) : 0;
 
           const tPerf: Record<string, number> = {};
           const topicCaps: Record<string, number> = {
@@ -1150,7 +1150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (cap > 0) {
               const totalTopicCap = cap * teamSts.length;
               const solvedTopic = teamSts.reduce((acc, s) => acc + (s.topicProgress[top as DSATopic]?.solved || 0), 0);
-              tPerf[top] = Math.min(100, Math.round((solvedTopic / Math.max(1, totalTopicCap)) * 100));
+              tPerf[top] = Math.min(100, Number(((solvedTopic / Math.max(1, totalTopicCap)) * 100).toFixed(1)));
             } else {
               tPerf[top] = 0;
             }
@@ -1188,13 +1188,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Recalculate student metrics from verifiedProblemIds
-  const CURRICULUM_TOTAL = 100;
+  const CURRICULUM_TOTAL = TOTAL_CURRICULUM_PROBLEMS;
   const recalculateStudentMetrics = (student: Student, verifiedIds: string[]): Student => {
     const verifiedSet = new Set(verifiedIds);
     const verifiedProblems = PROBLEMS_BANK_100.filter(p => verifiedSet.has(p.id));
     const solvedCount = verifiedProblems.length;
     // Progress out of 100 curriculum problems
-    const progress = Math.min(100, Math.round((solvedCount / CURRICULUM_TOTAL) * 100));
+    const progress = Math.min(100, Number(((solvedCount / CURRICULUM_TOTAL) * 100).toFixed(1)));
     const pending = Math.max(0, CURRICULUM_TOTAL - solvedCount);
     const attempted = Math.max(student.attempted || 0, solvedCount);
 
@@ -1221,7 +1221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     for (const topic of Object.keys(topicProgress) as DSATopic[]) {
       const tData = topicProgress[topic];
-      tData.percentage = tData.total > 0 ? Math.min(100, Math.round((tData.solved / tData.total) * 100)) : (tData.solved > 0 ? 100 : 0);
+      tData.percentage = tData.total > 0 ? Math.min(100, Number(((tData.solved / tData.total) * 100).toFixed(1))) : (tData.solved > 0 ? 100 : 0);
     }
 
     const dsaLevel = progress >= 85 ? 'Mastery' : progress >= 65 ? 'Advanced' : progress >= 40 ? 'Intermediate' : 'Beginner';
@@ -1251,8 +1251,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const teamSts = currentStudents.filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber);
           const tSolved = teamSts.reduce((acc, s) => acc + (s.solved || 0), 0);
           const tAttempted = teamSts.reduce((acc, s) => acc + (s.attempted || 0), 0);
-          const tAvgProg = teamSts.length > 0 ? Math.round(teamSts.reduce((acc, s) => acc + s.progress, 0) / teamSts.length) : 0;
-          const tAvgStreak = teamSts.length > 0 ? Math.round(teamSts.reduce((acc, s) => acc + s.streak, 0) / teamSts.length) : 0;
+          const tAvgProg = teamSts.length > 0 ? Number((teamSts.reduce((acc, s) => acc + s.progress, 0) / teamSts.length).toFixed(1)) : 0;
+          const tAvgStreak = teamSts.length > 0 ? Number((teamSts.reduce((acc, s) => acc + s.streak, 0) / teamSts.length).toFixed(1)) : 0;
 
           const tPerf: Record<string, number> = {};
           const topicCaps: Record<string, number> = {
@@ -1263,7 +1263,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (cap > 0) {
               const totalTopicCap = cap * teamSts.length;
               const solvedTopic = teamSts.reduce((acc, s) => acc + (s.topicProgress[top as DSATopic]?.solved || 0), 0);
-              tPerf[top] = Math.min(100, Math.round((solvedTopic / Math.max(1, totalTopicCap)) * 100));
+              tPerf[top] = Math.min(100, Number(((solvedTopic / Math.max(1, totalTopicCap)) * 100).toFixed(1)));
             } else {
               tPerf[top] = 0;
             }
@@ -1325,8 +1325,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const teamSts = updated.filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber);
                 const tSolved = teamSts.reduce((acc, s) => acc + (s.solved || 0), 0);
                 const tAttempted = teamSts.reduce((acc, s) => acc + (s.attempted || 0), 0);
-                const tAvgProg = teamSts.length > 0 ? Math.round(teamSts.reduce((acc, s) => acc + s.progress, 0) / teamSts.length) : 0;
-                const tAvgStreak = teamSts.length > 0 ? Math.round(teamSts.reduce((acc, s) => acc + s.streak, 0) / teamSts.length) : 0;
+                const tAvgProg = teamSts.length > 0 ? Number((teamSts.reduce((acc, s) => acc + s.progress, 0) / teamSts.length).toFixed(1)) : 0;
+                const tAvgStreak = teamSts.length > 0 ? Number((teamSts.reduce((acc, s) => acc + s.streak, 0) / teamSts.length).toFixed(1)) : 0;
 
                 const tPerf: Record<string, number> = {};
                 const topicCaps: Record<string, number> = {
@@ -1337,7 +1337,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   if (cap > 0) {
                     const totalTopicCap = cap * teamSts.length;
                     const solvedTopic = teamSts.reduce((acc, s) => acc + (s.topicProgress[top as DSATopic]?.solved || 0), 0);
-                    tPerf[top] = Math.min(100, Math.round((solvedTopic / Math.max(1, totalTopicCap)) * 100));
+                    tPerf[top] = Math.min(100, Number(((solvedTopic / Math.max(1, totalTopicCap)) * 100).toFixed(1)));
                   } else {
                     tPerf[top] = 0;
                   }
@@ -1612,7 +1612,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      const marksEarned = Math.round((passedTestCases / totalTestCases) * q.marks);
+      const marksEarned = Number(((passedTestCases / totalTestCases) * q.marks).toFixed(1));
       score += marksEarned;
       if (passedTestCases === totalTestCases) solvedCount += 1;
 
