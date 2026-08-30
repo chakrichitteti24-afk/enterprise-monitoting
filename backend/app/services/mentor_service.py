@@ -135,6 +135,7 @@ class MentorService:
             student_id=student_id,
             mentor_id=mentor_id,
             note=note_text.strip(),
+            created_at=datetime.now(timezone.utc),
         )
         self.db.add(note)
         self.db.commit()
