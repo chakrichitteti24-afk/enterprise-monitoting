@@ -147,6 +147,22 @@ class SubmissionRepository(BaseRepository[Submission]):
 
         progress.updated_at = datetime.now(timezone.utc)
 
+        # Update team metrics if student belongs to a team
+        student = self.db.get(Student, student_id)
+        if student and student.team_id:
+            from app.models.team import Team
+            team_students = self.db.query(Student).filter(Student.team_id == student.team_id).all()
+            if team_students:
+                team_student_ids = [s.id for s in team_students]
+                progresses = self.db.query(StudentProgress).filter(StudentProgress.student_id.in_(team_student_ids)).all()
+                if progresses:
+                    avg_prog = round(sum(p.overall_percentage for p in progresses) / len(team_students), 1)
+                    tot_solved = sum(p.problems_solved for p in progresses)
+                    team = self.db.query(Team).filter(Team.id == student.team_id).first()
+                    if team:
+                        team.average_progress = avg_prog
+                        team.total_problems_solved = tot_solved
+
         self.db.commit()
         self.db.refresh(submission)
         self.db.refresh(progress)

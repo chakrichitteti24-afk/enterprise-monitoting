@@ -181,14 +181,18 @@ def get_mentor_team_analytics(
 def add_mentor_note(
     student_id: int,
     note_in: MentorNoteCreate,
-    current_user: User = Depends(require_mentor),
+    current_user: User = Depends(require_roles(UserRole.MENTOR, UserRole.DEAN)),
     db: Session = Depends(get_db),
 ):
-    # Enforces strict backend team boundary verification
     check_student_access(student_id=student_id, current_user=current_user, db=db)
+    mentor_id = current_user.mentor_profile.id if current_user.mentor_profile else None
+    if not mentor_id:
+        from app.models.student import Student
+        st = db.query(Student).filter(Student.id == student_id).first()
+        mentor_id = st.team.mentor_id if st and st.team and st.team.mentor_id else 1
     mentor_service = MentorService(db)
     return mentor_service.add_student_feedback_note(
-        mentor_id=current_user.mentor_profile.id,
+        mentor_id=mentor_id,
         student_id=student_id,
         note_text=note_in.note,
     )
@@ -248,6 +252,12 @@ class BatchVerifySchema(BaseModel):
     day_number: Optional[int] = None
 
 
+class TeamVerifySchema(BaseModel):
+    team_identifier: str
+    problem_id: str
+    verified: bool
+
+
 @router.get("/verifications", summary="Get all verified problem completions")
 def get_all_verifications(
     current_user: User = Depends(require_roles(UserRole.STUDENT, UserRole.MENTOR, UserRole.DEAN)),
@@ -270,12 +280,10 @@ def get_all_verifications(
         if r.problem_id not in res[canonical_id]:
             res[canonical_id].append(r.problem_id)
             
-    # Include the reverse mapping for frontend compatibility 
-    # (some frontend clients might strictly look for student.id)
+    # Include both roll_number and student-<id> formats for complete frontend compatibility
     final_res: Dict[str, List[str]] = {}
     for canonical_id, problems in res.items():
         final_res[canonical_id] = problems
-        # Also copy to the student-<id> format if we know it
         for s in students:
             if s.roll_number == canonical_id:
                 final_res[f"student-{s.id}"] = problems
@@ -342,7 +350,7 @@ def _sync_student_progress_db(db: Session, student_id_or_roll: str):
 
     verified_count = len(ver_ids.union(sub_ids))
 
-    total_curriculum = 34.0
+    total_curriculum = 100.0
     prog_pct = min(100.0, round((verified_count / total_curriculum) * 100.0, 1))
     streak = max(1, verified_count // 5) if verified_count > 0 else 0
 
@@ -387,13 +395,29 @@ def toggle_problem_verification(
     current_user: User = Depends(require_roles(UserRole.MENTOR, UserRole.DEAN)),
     db: Session = Depends(get_db),
 ):
+    from app.models.student import Student
     student_id = payload.student_identifier.strip()
     problem_id = payload.problem_id.strip()
+
+    # Resolve canonical roll number if available
+    student = None
+    if student_id.isdigit():
+        student = db.query(Student).filter(Student.id == int(student_id)).first()
+    elif student_id.startswith("student-"):
+        try:
+            student = db.query(Student).filter(Student.id == int(student_id.split("-")[1])).first()
+        except ValueError:
+            pass
+    if not student:
+        student = db.query(Student).filter(Student.roll_number == student_id).first()
+
+    canonical_identifier = student.roll_number if student else student_id
+    possible_identifiers = list({student_id, canonical_identifier, f"student-{student.id}" if student else student_id})
 
     existing = (
         db.query(StudentVerifiedProblem)
         .filter(
-            StudentVerifiedProblem.student_identifier == student_id,
+            StudentVerifiedProblem.student_identifier.in_(possible_identifiers),
             StudentVerifiedProblem.problem_id == problem_id,
         )
         .first()
@@ -402,7 +426,7 @@ def toggle_problem_verification(
     if payload.verified:
         if not existing:
             new_record = StudentVerifiedProblem(
-                student_identifier=student_id,
+                student_identifier=canonical_identifier,
                 problem_id=problem_id,
                 day_number=payload.day_number,
             )
@@ -414,16 +438,16 @@ def toggle_problem_verification(
             db.commit()
 
     # Synchronize student progress and team metrics in database
-    _sync_student_progress_db(db, student_id)
+    _sync_student_progress_db(db, canonical_identifier)
 
     # Return updated list of verified problem IDs for this student
     verified_records = (
         db.query(StudentVerifiedProblem)
-        .filter(StudentVerifiedProblem.student_identifier == student_id)
+        .filter(StudentVerifiedProblem.student_identifier.in_(possible_identifiers))
         .all()
     )
     return {
-        "student_identifier": student_id,
+        "student_identifier": canonical_identifier,
         "verified_problem_ids": [r.problem_id for r in verified_records],
     }
 
@@ -434,14 +458,29 @@ def batch_verify_problems(
     current_user: User = Depends(require_roles(UserRole.MENTOR, UserRole.DEAN)),
     db: Session = Depends(get_db),
 ):
+    from app.models.student import Student
     student_id = payload.student_identifier.strip()
+
+    student = None
+    if student_id.isdigit():
+        student = db.query(Student).filter(Student.id == int(student_id)).first()
+    elif student_id.startswith("student-"):
+        try:
+            student = db.query(Student).filter(Student.id == int(student_id.split("-")[1])).first()
+        except ValueError:
+            pass
+    if not student:
+        student = db.query(Student).filter(Student.roll_number == student_id).first()
+
+    canonical_identifier = student.roll_number if student else student_id
+    possible_identifiers = list({student_id, canonical_identifier, f"student-{student.id}" if student else student_id})
 
     for pid in payload.problem_ids:
         pid = pid.strip()
         existing = (
             db.query(StudentVerifiedProblem)
             .filter(
-                StudentVerifiedProblem.student_identifier == student_id,
+                StudentVerifiedProblem.student_identifier.in_(possible_identifiers),
                 StudentVerifiedProblem.problem_id == pid,
             )
             .first()
@@ -449,7 +488,7 @@ def batch_verify_problems(
         if payload.verified:
             if not existing:
                 db.add(StudentVerifiedProblem(
-                    student_identifier=student_id,
+                    student_identifier=canonical_identifier,
                     problem_id=pid,
                     day_number=payload.day_number,
                 ))
@@ -460,15 +499,69 @@ def batch_verify_problems(
     db.commit()
 
     # Synchronize student progress and team metrics in database
-    _sync_student_progress_db(db, student_id)
+    _sync_student_progress_db(db, canonical_identifier)
 
     verified_records = (
         db.query(StudentVerifiedProblem)
-        .filter(StudentVerifiedProblem.student_identifier == student_id)
+        .filter(StudentVerifiedProblem.student_identifier.in_(possible_identifiers))
         .all()
     )
     return {
-        "student_identifier": student_id,
+        "student_identifier": canonical_identifier,
         "verified_problem_ids": [r.problem_id for r in verified_records],
+    }
+
+
+@router.post("/team-verify", summary="Verify problem for entire team")
+def verify_team_problem(
+    payload: TeamVerifySchema,
+    current_user: User = Depends(require_roles(UserRole.MENTOR, UserRole.DEAN)),
+    db: Session = Depends(get_db),
+):
+    from app.models.student import Student
+    from app.models.team import Team
+
+    t_id_str = payload.team_identifier.strip()
+    team = None
+    if t_id_str.isdigit():
+        team = db.query(Team).filter(Team.id == int(t_id_str)).first()
+    if not team and t_id_str.startswith("team-"):
+        try:
+            tid = int(t_id_str.split("-")[1])
+            team = db.query(Team).filter(Team.id == tid).first()
+        except ValueError:
+            pass
+    if not team:
+        team = db.query(Team).filter(Team.team_number == t_id_str).first()
+
+    students = team.students if team else []
+    for s in students:
+        possible_ids = [s.roll_number, f"student-{s.id}", str(s.id)]
+        existing = (
+            db.query(StudentVerifiedProblem)
+            .filter(
+                StudentVerifiedProblem.student_identifier.in_(possible_ids),
+                StudentVerifiedProblem.problem_id == payload.problem_id.strip(),
+            )
+            .first()
+        )
+        if payload.verified:
+            if not existing:
+                db.add(StudentVerifiedProblem(
+                    student_identifier=s.roll_number,
+                    problem_id=payload.problem_id.strip(),
+                ))
+        else:
+            if existing:
+                db.delete(existing)
+        _sync_student_progress_db(db, s.roll_number)
+
+    db.commit()
+    return {
+        "status": "success",
+        "team_identifier": payload.team_identifier,
+        "problem_id": payload.problem_id,
+        "verified": payload.verified,
+        "affected_students": len(students),
     }
 

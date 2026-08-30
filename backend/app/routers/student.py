@@ -153,3 +153,54 @@ def update_student_avatar(
     db.refresh(current_user)
     student_service = StudentService(db)
     return student_service.get_student_detail(current_user.student_profile.id)
+
+
+from app.schemas.student import StudentProfileUpdate
+
+
+@router.put(
+    "/me/github",
+    response_model=StudentDetailOut,
+    summary="Update student GitHub repo link",
+    description="Allows authenticated students to update their GitHub repository URL.",
+)
+def update_student_github(
+    payload: StudentProfileUpdate,
+    current_user: User = Depends(require_student),
+    db: Session = Depends(get_db),
+):
+    st = current_user.student_profile
+    if payload.github_url or payload.github_username:
+        st.github_username = (payload.github_url or payload.github_username or '').strip()
+    if payload.leetcode_username:
+        st.leetcode_username = payload.leetcode_username.strip()
+    if payload.avatar_url:
+        current_user.avatar_url = payload.avatar_url
+    db.commit()
+    db.refresh(st)
+    student_service = StudentService(db)
+    return student_service.get_student_detail(st.id)
+
+
+@router.put(
+    "/me/profile",
+    response_model=StudentDetailOut,
+    summary="Update student profile info (GitHub, LeetCode, Avatar)",
+    description="Allows authenticated students to update their GitHub repo link, LeetCode profile, and Avatar.",
+)
+def update_student_profile(
+    payload: StudentProfileUpdate,
+    current_user: User = Depends(require_student),
+    db: Session = Depends(get_db),
+):
+    st = current_user.student_profile
+    if payload.github_url or payload.github_username:
+        st.github_username = (payload.github_url or payload.github_username or '').strip()
+    if payload.leetcode_username:
+        st.leetcode_username = payload.leetcode_username.strip()
+    if payload.avatar_url:
+        current_user.avatar_url = payload.avatar_url
+    db.commit()
+    db.refresh(st)
+    student_service = StudentService(db)
+    return student_service.get_student_detail(st.id)

@@ -210,6 +210,32 @@ export async function updateStudentAvatarApi(avatarUrl: string) {
   });
 }
 
+export async function updateStudentProfileApi(payload: {
+  github_username?: string;
+  github_url?: string;
+  leetcode_username?: string;
+  avatar_url?: string;
+}) {
+  return apiRequest<any>('/student/me/profile', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateStudentGithubApi(repoLink: string) {
+  return apiRequest<any>('/student/me/github', {
+    method: 'PUT',
+    body: JSON.stringify({ github_url: repoLink, github_username: repoLink }),
+  });
+}
+
+export async function addMentorNoteApi(studentId: number, note: string) {
+  return apiRequest<any>(`/mentor/students/${studentId}/notes`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
+  });
+}
+
 export async function submitSolutionApi(payload: {
   problem_id: number;
   status: string;
@@ -285,6 +311,17 @@ export async function batchVerifyMentorApi(payload: {
   day_number?: number;
 }) {
   return apiRequest<{ student_identifier: string; verified_problem_ids: string[] }>('/mentor/batch-verify', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function verifyTeamProblemApi(payload: {
+  team_identifier: string;
+  problem_id: string;
+  verified: boolean;
+}) {
+  return apiRequest<any>('/mentor/team-verify', {
     method: 'POST',
     body: JSON.stringify(payload),
   });

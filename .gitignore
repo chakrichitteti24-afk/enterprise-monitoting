@@ -48,6 +48,5 @@ README_CREDENTIALS.md
 .DS_Store
 *.suo
 *.ntvs*
-*.njsproj
-*.sln
 *.sw?
+.agents/

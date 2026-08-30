@@ -514,6 +514,12 @@ class DeanService:
         if student_in.status:
             student.status = student_in.status
 
+        if student_in.github_username or student_in.github_url:
+            student.github_username = (student_in.github_url or student_in.github_username or '').strip()
+
+        if student_in.leetcode_username:
+            student.leetcode_username = student_in.leetcode_username.strip()
+
         self.db.commit()
         full_student = self.student_repo.get_by_id_with_relations(student.id) or student
         return self.student_service._build_student_out(full_student)
