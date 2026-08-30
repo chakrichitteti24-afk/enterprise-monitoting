@@ -295,8 +295,8 @@ def main():
 
         cur.execute(
             """
-            INSERT INTO users (name, email, password_hash, role, avatar_url)
-            VALUES (%s, %s, %s, %s, %s) RETURNING id;
+            INSERT INTO users (name, email, password_hash, role, avatar_url, is_active, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, TRUE, NOW(), NOW()) RETURNING id;
             """,
             ("Sudo Users", "root@gkce.edu.in", dean_hash, "DEAN", "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80")
         )
@@ -318,8 +318,8 @@ def main():
 
             cur.execute(
                 """
-                INSERT INTO users (name, email, password_hash, role, avatar_url)
-                VALUES (%s, %s, %s, %s, %s) RETURNING id;
+                INSERT INTO users (name, email, password_hash, role, avatar_url, is_active, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, TRUE, NOW(), NOW()) RETURNING id;
                 """,
                 (m_name, m_email, mentor_hash, "MENTOR", f"https://images.unsplash.com/photo-{1507003211186 + i * 17}?w=150&auto=format&fit=crop&q=80")
             )
@@ -327,8 +327,8 @@ def main():
 
             cur.execute(
                 """
-                INSERT INTO mentors (user_id, assigned_team_id, department, phone, experience_years)
-                VALUES (%s, %s, %s, %s, %s) RETURNING id;
+                INSERT INTO mentors (user_id, assigned_team_id, department, phone, experience_years, created_at)
+                VALUES (%s, %s, %s, %s, %s, NOW()) RETURNING id;
                 """,
                 (m_user_id, t_id, m_dept, f"+91 98480 {10000 + i}", m_exp)
             )
@@ -349,8 +349,8 @@ def main():
 
             cur.execute(
                 """
-                INSERT INTO users (name, email, password_hash, role, avatar_url)
-                VALUES (%s, %s, %s, %s, %s) RETURNING id;
+                INSERT INTO users (name, email, password_hash, role, avatar_url, is_active, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, TRUE, NOW(), NOW()) RETURNING id;
                 """,
                 (name, email, student_hash, "STUDENT", "https://images.unsplash.com/photo-1535713875002?w=150&auto=format&fit=crop&q=80")
             )

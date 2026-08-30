@@ -209,11 +209,6 @@ def seed(db_session: Session = None):
             t_name = TEAM_NAMES[i] if i < len(TEAM_NAMES) else f"Team {i+1:02d}"
             m_name, m_email, m_dept, m_exp = MENTORS_DATA[i]
 
-            team = Team(team_number=t_num_str, name=t_name)
-            db.add(team)
-            db.flush()
-            team_objs.append(team)
-
             m_user = User(
                 name=m_name,
                 email=m_email,
@@ -231,10 +226,15 @@ def seed(db_session: Session = None):
                 department=m_dept,
                 phone=f"+91 98480 {10000 + i + 1}",
                 experience_years=m_exp,
-                assigned_team_id=team.id,
             )
             db.add(m_profile)
+            db.flush()
             mentor_profiles.append(m_profile)
+
+            team = Team(team_number=t_num_str, name=t_name, mentor_id=m_profile.id)
+            db.add(team)
+            db.flush()
+            team_objs.append(team)
 
         db.flush()
 
