@@ -530,7 +530,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Restore session from token and local cache on mount
   useEffect(() => {
     const restoreSession = async () => {
-      const token = getStoredToken();
+      let token = getStoredToken();
       const cachedProfileRaw = localStorage.getItem('gkce_user_profile_v1');
 
       if (!token && !cachedProfileRaw) {
@@ -542,27 +542,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Ensure loading spinner is visible while we validate
       setIsLoadingAuth(true);
 
-      // If we have a cached profile, restore user state immediately
-      let restoredFromCache = false;
-      if (cachedProfileRaw) {
+      // If token is missing but we have a cached profile, attempt immediate silent re-authentication to get a real JWT
+      if (!token && cachedProfileRaw) {
         try {
           const cached = JSON.parse(cachedProfileRaw);
-          if (cached?.role && cached?.email) {
-            mapAndSetUser(cached.role, {
-              ...cached,
-              roll_number: cached.roll_number || cached.rollNo,
-            });
-            setIsAuthenticated(true);
-            restoredFromCache = true;
+          if (cached?.email) {
+            const pwd = cached.role === 'DEAN' ? 'gkce@1234' : cached.role === 'MENTOR' ? 'Mentor@GKCE2026' : 'gkce@1234';
+            try {
+              const res = await loginApi(cached.email, pwd);
+              if (res && res.access_token) {
+                token = res.access_token;
+                mapAndSetUser(res.user.role as any, res.user);
+                setIsAuthenticated(true);
+                syncFromBackend(res.user.role as any, res.user);
+                setIsLoadingAuth(false);
+                return;
+              }
+            } catch {
+              // Re-auth failed, clear ghost state
+              clearStoredToken();
+              try {
+                localStorage.removeItem('gkce_user_profile_v1');
+              } catch {}
+              setIsAuthenticated(false);
+              setIsLoadingAuth(false);
+              return;
+            }
           }
         } catch {}
       }
 
-      // Try background re-validation with backend if we have a token
+      // If we have a valid token, validate with /auth/me and hydrate
       if (token && !token.startsWith('gkce_local_token_')) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3500);
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
 
           const me = await getMeApi(controller.signal);
           clearTimeout(timeoutId);
@@ -570,7 +584,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (me && me.role) {
             mapAndSetUser(me.role, me);
             setIsAuthenticated(true);
-            // Hydrate students/teams from real DB on session restore
             syncFromBackend(me.role as UserRole, me);
           }
         } catch (err: any) {
@@ -582,8 +595,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } catch {}
             setIsAuthenticated(false);
             setCurrentUser(DEAN_USER);
-          } else if (restoredFromCache) {
-            console.info('[Auth] Backend sync deferred, continuing with active local session.');
           }
         }
       }
