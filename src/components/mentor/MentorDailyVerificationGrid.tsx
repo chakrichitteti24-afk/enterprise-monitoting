@@ -104,7 +104,14 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
     const isAllTeamDone = teamStudents.every((st) =>
       (st.verifiedProblemIds || []).includes(problem.id)
     );
-    batchVerifyTeamProblem(assignedTeamNumber, problem.id, !isAllTeamDone);
+    const distinctTeams = Array.from(new Set(teamStudents.map(s => s.teamNumber || s.teamId)));
+    if (distinctTeams.length > 0) {
+      distinctTeams.forEach(tNum => {
+        batchVerifyTeamProblem(tNum, problem.id, !isAllTeamDone);
+      });
+    } else {
+      batchVerifyTeamProblem(assignedTeamNumber, problem.id, !isAllTeamDone);
+    }
   };
 
   return (

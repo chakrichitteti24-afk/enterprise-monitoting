@@ -181,70 +181,95 @@ export const StudentProblemsPage: React.FC = () => {
       </div>
 
       {/* Problem Cards Grid — 1-col on mobile, 2-col on sm/lg, 3-col on 2xl+ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3 sm:gap-3.5 md:gap-4">
-        {filteredProblems.map((prob) => {
-          const isVerified = verifiedProblemIds.has(prob.id);
+      {filteredProblems.length === 0 ? (
+        <div className="bg-white/80 backdrop-blur-md rounded-3xl border border-slate-200/80 p-8 sm:p-12 text-center max-w-lg mx-auto shadow-xs space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto border border-blue-100 shadow-2xs">
+            <Search className="w-7 h-7" />
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="text-base font-bold text-slate-900">No Matching Problems Found</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              No problems match your current combination of search keyword, day, topic, or difficulty filter.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setSearchQuery('');
+              setSelectedDay('All');
+              setSelectedTopic('All');
+              setSelectedDifficulty('All');
+            }}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold transition-all shadow-xs"
+          >
+            Reset All Filters
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3 sm:gap-3.5 md:gap-4">
+          {filteredProblems.map((prob) => {
+            const isVerified = verifiedProblemIds.has(prob.id);
 
-          return (
-            <motion.div
-              key={prob.id}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setActiveProblem(prob)}
-              className="p-3.5 sm:p-4 md:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white active:border-blue-300 hover:border-blue-300 hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between group"
-              style={{ minHeight: 100 }}
-            >
-              <div>
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg shrink-0">
-                      Day {prob.dayNumber} &bull; Q{prob.dayQuestionNumber}
+            return (
+              <motion.div
+                key={prob.id}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setActiveProblem(prob)}
+                className="p-3.5 sm:p-4 md:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white active:border-blue-300 hover:border-blue-300 hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between group"
+                style={{ minHeight: 100 }}
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg shrink-0">
+                        Day {prob.dayNumber} &bull; Q{prob.dayQuestionNumber}
+                      </span>
+                      <h3 className="text-sm font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors truncate">
+                        {prob.title}
+                      </h3>
+                    </div>
+
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap ${
+                        prob.difficulty === 'Easy'
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/60'
+                          : prob.difficulty === 'Medium'
+                          ? 'bg-amber-50 text-amber-800 border border-amber-200/60'
+                          : 'bg-rose-50 text-rose-800 border border-rose-200/60'
+                      }`}
+                    >
+                      {prob.difficulty}
                     </span>
-                    <h3 className="text-sm font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors truncate">
-                      {prob.title}
-                    </h3>
                   </div>
 
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap ${
-                      prob.difficulty === 'Easy'
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/60'
-                        : prob.difficulty === 'Medium'
-                        ? 'bg-amber-50 text-amber-800 border border-amber-200/60'
-                        : 'bg-rose-50 text-rose-800 border border-rose-200/60'
-                    }`}
-                  >
-                    {prob.difficulty}
+                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                    {prob.description}
+                  </p>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                  <span className="px-2.5 py-0.5 rounded-full bg-slate-100 font-semibold text-slate-700 text-[11px]">
+                    {prob.topic}
                   </span>
+
+                  <div className="flex items-center gap-2">
+                    {isVerified ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Solved</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-200 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                        <Code2 className="w-3.5 h-3.5" />
+                        <span>Solve in IDE &rarr;</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
-
-                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                  {prob.description}
-                </p>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 font-semibold text-slate-700 text-[11px]">
-                  {prob.topic}
-                </span>
-
-                <div className="flex items-center gap-2">
-                  {isVerified ? (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Solved</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-200 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                      <Code2 className="w-3.5 h-3.5" />
-                      <span>Solve in IDE &rarr;</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
 
       {/* ------------------------------------------------------------- */}
       {/* HackerRank Fullscreen / Split-Pane IDE Coding Arena            */}

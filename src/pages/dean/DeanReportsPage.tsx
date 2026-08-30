@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { BentoCard } from '../../components/ui/BentoCard';
 import { FileText, Printer, Download, CheckCircle2, Shield, Calendar } from 'lucide-react';
-import { DSA_TOPICS, TOPIC_CURRICULUM_TOTALS } from '../../data/mockData';
+import { DSA_TOPICS, TOPIC_CURRICULUM_TOTALS, ACTIVE_TOPICS_COUNT } from '../../data/mockData';
 
 export const DeanReportsPage: React.FC = () => {
   const { students, teams, mentors } = useAuth();
@@ -92,7 +92,7 @@ export const DeanReportsPage: React.FC = () => {
         {/* Topic Mastery Breakdown Table */}
         <div className="space-y-3">
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
-            2. Curriculum Syllabus Mastery (8 Domains)
+            2. Curriculum Syllabus Mastery ({ACTIVE_TOPICS_COUNT} Domains)
           </h3>
           <div className="overflow-x-auto touch-scroll-x">
             <table className="w-full text-xs text-left border-collapse border border-slate-200 min-w-[500px]">

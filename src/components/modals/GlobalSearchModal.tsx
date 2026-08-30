@@ -40,10 +40,17 @@ export const GlobalSearchModal: React.FC = () => {
   // Filter students based on role
   const accessibleStudents = () => {
     if (role === 'DEAN') return students;
-    if (role === 'MENTOR')
-      return students.filter(
-        (s) => s.teamId === currentUser.teamId || s.teamNumber === currentUser.teamNumber
+    if (role === 'MENTOR') {
+      const myTeams = teams.filter(
+        t => t.mentorId === currentUser.id ||
+             t.mentorEmail?.toLowerCase() === currentUser.email?.toLowerCase() ||
+             t.mentorName?.toLowerCase() === currentUser.name?.toLowerCase() ||
+             t.teamNumber === currentUser.teamNumber ||
+             t.id === currentUser.teamId
       );
+      const activeTeams = myTeams.length > 0 ? myTeams : (teams.filter(t => t.teamNumber === 'Team 07') || [teams[0]]);
+      return students.filter(s => activeTeams.some(t => t.id === s.teamId || t.teamNumber === s.teamNumber));
+    }
     if (role === 'STUDENT')
       return students.filter(
         (s) => s.id === currentUser.studentData?.id || s.rollNo === currentUser.studentData?.rollNo
@@ -54,10 +61,16 @@ export const GlobalSearchModal: React.FC = () => {
   // Filter teams based on role
   const accessibleTeams = () => {
     if (role === 'DEAN') return teams;
-    if (role === 'MENTOR')
-      return teams.filter(
-        (t) => t.id === currentUser.teamId || t.teamNumber === currentUser.teamNumber
+    if (role === 'MENTOR') {
+      const myTeams = teams.filter(
+        t => t.mentorId === currentUser.id ||
+             t.mentorEmail?.toLowerCase() === currentUser.email?.toLowerCase() ||
+             t.mentorName?.toLowerCase() === currentUser.name?.toLowerCase() ||
+             t.teamNumber === currentUser.teamNumber ||
+             t.id === currentUser.teamId
       );
+      return myTeams.length > 0 ? myTeams : (teams.filter(t => t.teamNumber === 'Team 07') || [teams[0]]);
+    }
     return [];
   };
 

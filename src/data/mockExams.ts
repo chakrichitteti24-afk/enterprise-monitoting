@@ -1,5 +1,4 @@
-import { WeeklyExam, ExamQuestion, StudentExamSubmission, Problem } from '../types';
-import { ALL_STUDENTS } from './mockData';
+import { WeeklyExam, ExamQuestion, Problem } from '../types';
 import { PROBLEMS_BANK_100 } from './dsaCurriculum100';
 import { getProblemDossier } from '../utils/hackerRankData';
 
@@ -148,22 +147,20 @@ export const getShuffledQuestionsForStudent = (
  * Covering Basics, Number Logic, Arrays, Strings, Two Pointers, Linked Lists, Stack, Trees & DP.
  */
 export const ROOT_OFFICIAL_20_QUESTIONS: ExamQuestion[] = [
-  // 1. Math & Numbers (4 Problems)
-  ...PROBLEMS_BANK_100.filter(p => ['1', '6', '7', '10'].includes(p.id)),
-  // 2. Arrays & Operations (6 Problems)
-  ...PROBLEMS_BANK_100.filter(p => ['21', '22', '26', '31', '34', '36'].includes(p.id)),
-  // 3. Two Pointers & Subarrays (2 Problems)
-  ...PROBLEMS_BANK_100.filter(p => ['40', '41'].includes(p.id)),
-  // 4. Strings & Hashing (3 Problems)
-  ...PROBLEMS_BANK_100.filter(p => ['46', '47', '52'].includes(p.id)),
-  // 5. Linked Lists (2 Problems)
-  ...PROBLEMS_BANK_100.filter(p => ['61', '62'].includes(p.id)),
-  // 6. Stack & Linear DS (1 Problem)
-  ...PROBLEMS_BANK_100.filter(p => ['71'].includes(p.id)),
-  // 7. Trees & Recursion (1 Problem)
-  ...PROBLEMS_BANK_100.filter(p => ['81'].includes(p.id)),
-  // 8. Dynamic Programming (1 Problem)
-  ...PROBLEMS_BANK_100.filter(p => ['91'].includes(p.id)),
+  // 1. Math & Numbers (5 Problems)
+  ...PROBLEMS_BANK_100.filter(p => ['prob-1', 'prob-6', 'prob-7', 'prob-10', 'prob-16'].includes(p.id)),
+  // 2. Arrays & Operations (4 Problems)
+  ...PROBLEMS_BANK_100.filter(p => ['prob-21', 'prob-26', 'prob-31', 'prob-36'].includes(p.id)),
+  // 3. Strings & Processing (3 Problems)
+  ...PROBLEMS_BANK_100.filter(p => ['prob-41', 'prob-46', 'prob-51'].includes(p.id)),
+  // 4. Searching & Sorting (2 Problems)
+  ...PROBLEMS_BANK_100.filter(p => ['prob-56', 'prob-61'].includes(p.id)),
+  // 5. Hashing & Two Pointers (3 Problems)
+  ...PROBLEMS_BANK_100.filter(p => ['prob-66', 'prob-71', 'prob-76'].includes(p.id)),
+  // 6. Linked Lists (2 Problems)
+  ...PROBLEMS_BANK_100.filter(p => ['prob-81', 'prob-86'].includes(p.id)),
+  // 7. Stack & Queue & Mixed Placement (2 Problems)
+  ...PROBLEMS_BANK_100.filter(p => ['prob-91', 'prob-96'].includes(p.id)),
 ].slice(0, 20).map((prob, idx) => convertProblemToExamQuestion(prob, idx + 1, 5, 1));
 
 // Fallback if filter returns less than 20: fill up to 20 from bank

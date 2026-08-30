@@ -1,186 +1,283 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { BentoCard } from '../../components/ui/BentoCard';
-import { ProgressRing } from '../../components/ui/ProgressRing';
-import { ProgressBar } from '../../components/ui/ProgressBar';
-import { DSA_TOPICS, TOPIC_CURRICULUM_TOTALS, ACTIVE_TOPICS_COUNT, DIFFICULTY_TOTALS } from '../../data/mockData';
-import { BarChart3, TrendingUp, Target } from 'lucide-react';
+import { DSA_TOPICS, TOPIC_CURRICULUM_TOTALS, DIFFICULTY_TOTALS } from '../../data/mockData';
+import { BarChart3, PieChart as PieChartIcon, Activity, Layers, Target, Trophy, Flame } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  Legend
+} from 'recharts';
 
 export const DeanAnalyticsPage: React.FC = () => {
   const { students, teams } = useAuth();
 
-  const totalProblemsSolved = students.reduce((acc, s) => acc + s.solved, 0);
-  const avgProgress = Number((students.reduce((acc, s) => acc + s.progress, 0) / Math.max(1, students.length)).toFixed(1));
+  // 1. Topic Performance Data (All active curriculum topics)
+  const topicData = useMemo(() => {
+    return DSA_TOPICS.filter(t => (TOPIC_CURRICULUM_TOTALS[t] ?? 0) > 0).map(topic => {
+      const totalSolved = students.reduce((sum, s) => sum + (s.topicProgress[topic]?.solved || 0), 0);
+      const avgPercentage = students.length > 0
+        ? Number((students.reduce((sum, s) => sum + (s.topicProgress[topic]?.percentage || 0), 0) / students.length).toFixed(1))
+        : 0;
+      return {
+        name: topic,
+        TotalSolved: totalSolved,
+        AverageMastery: avgPercentage,
+        CurriculumCap: TOPIC_CURRICULUM_TOTALS[topic] || 0
+      };
+    });
+  }, [students]);
 
-  // Topic Averages across students
-  const topicAverages = DSA_TOPICS.filter(t => (TOPIC_CURRICULUM_TOTALS[t] ?? 0) > 0).map((topic) => {
-    const avg = Number((
-      students.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / Math.max(1, students.length)
-    ).toFixed(1));
-    const totalSolvedInTopic = students.reduce((sum, st) => sum + (st.topicProgress[topic]?.solved || 0), 0);
-    return {
-      topic,
-      percentage: avg,
-      solved: totalSolvedInTopic,
-    };
-  });
+  // 2. Status Distribution Data
+  const statusData = useMemo(() => {
+    const active = students.filter(s => s.status === 'Active').length;
+    const attention = students.filter(s => s.status === 'Needs Attention').length;
+    const inactive = students.filter(s => s.status === 'Inactive').length;
+    const data = [
+      { name: 'Active', value: active, color: '#10b981' },
+      { name: 'Needs Attention', value: attention, color: '#f59e0b' },
+      { name: 'Inactive', value: inactive, color: '#94a3b8' }
+    ].filter(d => d.value > 0);
 
-  // Difficulty aggregates across students
-  const easyTotalSolved = students.reduce((sum, st) => sum + st.difficultyStats.easy.solved, 0);
-  const mediumTotalSolved = students.reduce((sum, st) => sum + st.difficultyStats.medium.solved, 0);
-  const hardTotalSolved = students.reduce((sum, st) => sum + st.difficultyStats.hard.solved, 0);
+    return data.length > 0 ? data : [{ name: 'No Students', value: 1, color: '#cbd5e1' }];
+  }, [students]);
 
-  const totalPossibleEasy = students.reduce((sum, st) => sum + st.difficultyStats.easy.total, 0) || 1;
-  const totalPossibleMedium = students.reduce((sum, st) => sum + st.difficultyStats.medium.total, 0) || 1;
-  const totalPossibleHard = students.reduce((sum, st) => sum + st.difficultyStats.hard.total, 0) || 1;
+  // 3. Team Velocity Data
+  const teamVelocityData = useMemo(() => {
+    return teams.map(t => {
+      const teamSts = students.filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber);
+      const avgProg = teamSts.length > 0 ? Number((teamSts.reduce((sum, s) => sum + s.progress, 0) / teamSts.length).toFixed(1)) : 0;
+      return {
+        name: t.teamNumber,
+        Progress: avgProg,
+        Students: teamSts.length
+      };
+    });
+  }, [teams, students]);
 
-  const activeCount = students.filter((s) => s.status === 'Active').length;
-  const attentionCount = students.filter((s) => s.status === 'Needs Attention').length;
-  const inactiveCount = students.filter((s) => s.status === 'Inactive').length;
+  // 4. Difficulty Solves Comparison
+  const difficultyData = useMemo(() => {
+    const easySolved = students.reduce((sum, s) => sum + (s.difficultyStats?.easy?.solved || 0), 0);
+    const medSolved = students.reduce((sum, s) => sum + (s.difficultyStats?.medium?.solved || 0), 0);
+    const hardSolved = students.reduce((sum, s) => sum + (s.difficultyStats?.hard?.solved || 0), 0);
+    const totalPossibleEasy = Math.max(1, students.length * DIFFICULTY_TOTALS.easy);
+    const totalPossibleMed = Math.max(1, students.length * DIFFICULTY_TOTALS.medium);
+    const totalPossibleHard = Math.max(1, students.length * DIFFICULTY_TOTALS.hard);
+
+    return [
+      {
+        tier: 'Easy',
+        Solved: easySolved,
+        Capacity: totalPossibleEasy,
+        Percentage: Number(((easySolved / totalPossibleEasy) * 100).toFixed(1)),
+        fill: '#10b981'
+      },
+      {
+        tier: 'Medium',
+        Solved: medSolved,
+        Capacity: totalPossibleMed,
+        Percentage: Number(((medSolved / totalPossibleMed) * 100).toFixed(1)),
+        fill: '#f59e0b'
+      },
+      {
+        tier: 'Hard',
+        Solved: hardSolved,
+        Capacity: totalPossibleHard,
+        Percentage: Number(((hardSolved / totalPossibleHard) * 100).toFixed(1)),
+        fill: '#ef4444'
+      }
+    ];
+  }, [students]);
+
+  // 5. DSA Level Segmentation
+  const levelData = useMemo(() => {
+    const mastery = students.filter(s => s.dsaLevel === 'Mastery').length;
+    const advanced = students.filter(s => s.dsaLevel === 'Advanced').length;
+    const intermediate = students.filter(s => s.dsaLevel === 'Intermediate').length;
+    const beginner = students.filter(s => s.dsaLevel === 'Beginner').length;
+
+    return [
+      { name: 'Mastery (>=85%)', value: mastery, color: '#8b5cf6' },
+      { name: 'Advanced (65-84%)', value: advanced, color: '#3b82f6' },
+      { name: 'Intermediate (40-64%)', value: intermediate, color: '#06b6d4' },
+      { name: 'Beginner (<40%)', value: beginner, color: '#64748b' }
+    ].filter(d => d.value > 0);
+  }, [students]);
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      {/* Header */}
+      {/* Top Banner */}
       <div className="bg-white/85 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-blue-700 mb-1">
-            <BarChart3 className="w-4 h-4" />
-            <span>Institution-Wide Macro Analytics</span>
+            <PieChartIcon className="w-4 h-4" />
+            <span>Institution-Wide Visual Analytics</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">DSA Learning Analytics</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Macro Data Visualization</h1>
           <p className="text-xs md:text-sm text-slate-500 mt-1">
-            Verified performance insights, topic progress analytics, and cohort velocity across {students.length} students.
+            Visual breakdown of topic syllabus mastery, student engagement segmentation, and team velocity across {students.length} students.
           </p>
         </div>
       </div>
 
-      {/* Top 3 KPI Bento Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-        <BentoCard title="Cohort Completion Rate" subtitle={`${students.length} Student Average`} className="col-span-1">
-          <div className="flex flex-col items-center justify-center py-3 text-center">
-            <ProgressRing percentage={avgProgress} size={130} strokeWidth={10} color="#1d4ed8" />
-            <div className="mt-3">
-              <div className="text-sm font-bold text-slate-900">{avgProgress}% Batch Completion</div>
-              <div className="text-[11px] text-slate-400">{totalProblemsSolved} Total Problems Verified</div>
-            </div>
+      {/* Grid of Visualizations */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+        {/* Topic Mastery Bar Chart */}
+        <BentoCard
+          title="Topic Syllabus Mastery"
+          subtitle="Average completion rate (%) per DSA module"
+          icon={<BarChart3 className="w-4 h-4 text-blue-600" />}
+        >
+          <div className="h-[300px] w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={topicData} margin={{ top: 10, right: 10, left: -20, bottom: 45 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} tickMargin={10} angle={-40} textAnchor="end" />
+                <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 100]} />
+                <Tooltip
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
+                  formatter={(val: any) => [`${val}%`, 'Cohort Average']}
+                />
+                <Bar dataKey="AverageMastery" fill="#3b82f6" radius={[6, 6, 0, 0]} name="Average Mastery %" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </BentoCard>
 
-        {/* Status Distribution */}
-        <BentoCard title="Engagement Segmentation" subtitle="Active vs Risk Breakdown" className="col-span-1">
-          <div className="space-y-3 pt-2">
-            <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <span className="text-xs font-medium text-emerald-900">Active Students</span>
-              </div>
-              <span className="text-sm font-bold text-emerald-900">{activeCount} / {students.length}</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                <span className="text-xs font-medium text-amber-900">Needs Attention</span>
-              </div>
-              <span className="text-sm font-bold text-amber-900">{attentionCount} / {students.length}</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
-                <span className="text-xs font-medium text-slate-800">Inactive / Low Solve</span>
-              </div>
-              <span className="text-sm font-bold text-slate-900">{inactiveCount} / {students.length}</span>
-            </div>
+        {/* Difficulty Solves Tier Bar Chart */}
+        <BentoCard
+          title="Complexity Tier Distribution"
+          subtitle="Cohort completion % by problem difficulty tier"
+          icon={<Target className="w-4 h-4 text-emerald-600" />}
+        >
+          <div className="h-[300px] w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={difficultyData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="tier" tick={{ fontSize: 11, fontWeight: 'bold' }} tickMargin={10} />
+                <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 100]} />
+                <Tooltip
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
+                  formatter={(val: any) => [`${val}%`, 'Tier Completion']}
+                />
+                <Bar dataKey="Percentage" radius={[6, 6, 0, 0]} name="Completion %">
+                  {difficultyData.map((entry, index) => (
+                    <Cell key={`diff-cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </BentoCard>
 
-        {/* Difficulty Distribution Across All Students */}
-        <BentoCard title="Difficulty Solves (Student Average)" subtitle="Average solutions per student" className="col-span-1">
-          <div className="space-y-3 pt-2">
-            <div>
-              <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
-                <span>Easy Solves</span>
-                <span className="font-bold text-emerald-700">{Number((easyTotalSolved / Math.max(1, students.length)).toFixed(1))} / {DIFFICULTY_TOTALS.easy}</span>
-              </div>
-              <ProgressBar percentage={(Number((easyTotalSolved / Math.max(1, students.length)).toFixed(1)) / Math.max(1, DIFFICULTY_TOTALS.easy)) * 100} color="emerald" height="xs" />
-            </div>
+        {/* Cohort Status Distribution */}
+        <BentoCard
+          title="Engagement Segmentation"
+          subtitle="Active vs At-Risk Student Breakdown"
+          icon={<PieChartIcon className="w-4 h-4 text-amber-600" />}
+        >
+          <div className="h-[300px] w-full mt-4 flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={65}
+                  outerRadius={105}
+                  paddingAngle={4}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
+                  labelLine={false}
+                >
+                  {statusData.map((entry, index) => (
+                    <Cell key={`cell-status-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </BentoCard>
 
-            <div>
-              <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
-                <span>Medium Solves</span>
-                <span className="font-bold text-amber-700">{Number((mediumTotalSolved / Math.max(1, students.length)).toFixed(1))} / {DIFFICULTY_TOTALS.medium}</span>
-              </div>
-              <ProgressBar percentage={(Number((mediumTotalSolved / Math.max(1, students.length)).toFixed(1)) / Math.max(1, DIFFICULTY_TOTALS.medium)) * 100} color="amber" height="xs" />
-            </div>
+        {/* DSA Level Distribution */}
+        <BentoCard
+          title="DSA Skill Level Matrix"
+          subtitle="Mastery tier classification across cohort"
+          icon={<Trophy className="w-4 h-4 text-purple-600" />}
+        >
+          <div className="h-[300px] w-full mt-4 flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={levelData.length > 0 ? levelData : [{ name: 'Beginner', value: 1, color: '#64748b' }]}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={65}
+                  outerRadius={105}
+                  paddingAngle={4}
+                  dataKey="value"
+                  label={({ name, percent }) => `${(name || 'Tier').split(' ')[0]} (${((percent || 0) * 100).toFixed(0)}%)`}
+                  labelLine={false}
+                >
+                  {levelData.map((entry, index) => (
+                    <Cell key={`cell-level-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </BentoCard>
 
-            <div>
-              <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
-                <span>Hard Solves</span>
-                <span className="font-bold text-rose-700">{Number((hardTotalSolved / Math.max(1, students.length)).toFixed(1))} / {DIFFICULTY_TOTALS.hard}</span>
-              </div>
-              <ProgressBar percentage={(Number((hardTotalSolved / Math.max(1, students.length)).toFixed(1)) / Math.max(1, DIFFICULTY_TOTALS.hard)) * 100} color="slate" height="xs" />
-            </div>
+        {/* Team Velocity Comparison */}
+        <BentoCard
+          title="Mentored Cohort Velocity Comparison"
+          subtitle="Average progress trajectory across all institutional teams"
+          className="col-span-1 lg:col-span-2"
+          icon={<Activity className="w-4 h-4 text-indigo-600" />}
+        >
+          <div className="h-[300px] w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={teamVelocityData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} tickMargin={10} />
+                <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 100]} />
+                <Tooltip
+                  contentStyle={{ borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
+                  formatter={(val: any) => [`${val}%`, 'Team Avg Progress']}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px', marginTop: '10px' }} />
+                <Line
+                  type="monotone"
+                  dataKey="Progress"
+                  stroke="#6366f1"
+                  strokeWidth={3}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#6366f1' }}
+                  activeDot={{ r: 7 }}
+                  name="Avg Progress %"
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </BentoCard>
       </div>
-
-      {/* DSA Topics Macro Benchmark */}
-      <BentoCard
-        title={`${ACTIVE_TOPICS_COUNT} DSA Topics Macro Mastery (${students.length} Students)`}
-        subtitle="Institution-wide syllabus completion rate"
-        icon={<Target className="w-4 h-4 text-blue-600" />}
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-2">
-          {topicAverages.map((t) => (
-            <div key={t.topic} className="p-3.5 rounded-xl border border-slate-100 bg-slate-50">
-              <div className="flex justify-between items-center text-xs mb-1.5">
-                <span className="font-bold text-slate-800">{t.topic}</span>
-                <span className="font-bold text-blue-700">{t.percentage}%</span>
-              </div>
-              <ProgressBar
-                percentage={t.percentage}
-                height="xs"
-                color={t.percentage >= 80 ? 'emerald' : t.percentage >= 65 ? 'indigo' : 'amber'}
-              />
-              <div className="text-[10px] text-slate-400 mt-2 flex justify-between">
-                <span>Total Solves</span>
-                <span className="font-mono font-semibold text-slate-600">{t.solved}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </BentoCard>
-
-      {/* All Teams Ranked Comparison Chart */}
-      <BentoCard
-        title={`${teams.length} Teams Comparative Velocity Benchmark`}
-        subtitle="Ranked by average cohort progress %"
-        icon={<TrendingUp className="w-4 h-4 text-indigo-600" />}
-      >
-        <div className="space-y-2.5 pt-2">
-          {teams.map((tm) => (
-            <div key={tm.id} className="flex items-center gap-2 sm:gap-3 text-xs">
-              <span className="w-14 sm:w-16 font-bold text-slate-900 font-mono shrink-0 truncate">
-                {tm.teamNumber}
-              </span>
-              <span className="w-24 sm:w-32 text-slate-500 truncate shrink-0 hidden sm:block">
-                {tm.mentorName}
-              </span>
-              <div className="flex-1 min-w-0">
-                <ProgressBar
-                  percentage={tm.avgProgress}
-                  height="xs"
-                  color={tm.avgProgress >= 85 ? 'emerald' : tm.avgProgress >= 70 ? 'indigo' : 'amber'}
-                />
-              </div>
-              <span className="w-10 sm:w-12 text-right font-bold text-slate-900 shrink-0 font-mono">
-                {tm.avgProgress}%
-              </span>
-            </div>
-          ))}
-        </div>
-      </BentoCard>
     </div>
   );
 };

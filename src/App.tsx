@@ -27,6 +27,7 @@ import { DeanDashboard } from './pages/dean/DeanDashboard';
 import { DeanTeamsPage } from './pages/dean/DeanTeamsPage';
 import { DeanStudentsPage } from './pages/dean/DeanStudentsPage';
 import { DeanAnalyticsPage } from './pages/dean/DeanAnalyticsPage';
+import { DeanProgressPage } from './pages/dean/DeanProgressPage';
 import { DeanReportsPage } from './pages/dean/DeanReportsPage';
 import { DeanSettingsPage } from './pages/dean/DeanSettingsPage';
 import { DeanExamsPage } from './pages/dean/DeanExamsPage';
@@ -134,6 +135,7 @@ const MainLayout: React.FC = () => {
         case 'students':
           return <DeanStudentsPage />;
         case 'progress':
+          return <DeanProgressPage />;
         case 'analytics':
           return <DeanAnalyticsPage />;
         case 'reports':

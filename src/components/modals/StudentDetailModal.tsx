@@ -23,6 +23,7 @@ export const StudentDetailModal: React.FC = () => {
     setSelectedStudent,
     role,
     currentUser,
+    teams,
     addMentorFeedback,
   } = useAuth();
 
@@ -59,11 +60,23 @@ export const StudentDetailModal: React.FC = () => {
     setNewNote('');
   };
 
+  const myAssignedTeams = teams.filter(
+    (t) =>
+      t.mentorId === currentUser.id ||
+      t.mentorEmail?.toLowerCase() === currentUser.email?.toLowerCase() ||
+      t.mentorName?.toLowerCase() === currentUser.name?.toLowerCase() ||
+      t.teamNumber === currentUser.teamNumber ||
+      t.id === currentUser.teamId
+  );
+  const isMentorStudent = myAssignedTeams.some(
+    (t) => t.id === selectedStudent?.teamId || t.teamNumber === selectedStudent?.teamNumber
+  );
+
   // Strict role isolation check
   const isAuthorized =
     !selectedStudent ||
     role === 'DEAN' ||
-    (role === 'MENTOR' && (selectedStudent.teamId === currentUser.teamId || selectedStudent.teamNumber === currentUser.teamNumber)) ||
+    (role === 'MENTOR' && (isMentorStudent || selectedStudent.teamId === currentUser.teamId || selectedStudent.teamNumber === currentUser.teamNumber)) ||
     (role === 'STUDENT' && (selectedStudent.id === currentUser.studentData?.id || selectedStudent.rollNo === currentUser.studentData?.rollNo));
 
   return (

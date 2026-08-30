@@ -12,15 +12,29 @@ import {
   ChevronRight,
   ShieldCheck,
   X,
+  Layers,
 } from 'lucide-react';
 
 export const MentorExamsPage: React.FC = () => {
-  const { currentUser, exams, students, addMentorFeedback } = useAuth();
+  const { currentUser, exams, students, teams, addMentorFeedback } = useAuth();
 
-  const assignedTeamId = currentUser.teamId || 'team-7';
-  const assignedTeamNumber = currentUser.teamNumber || 'Team 07';
-  const teamStudents = students.filter(
-    s => s.teamId === assignedTeamId || s.teamNumber === assignedTeamNumber
+  const myTeams = teams.filter(
+    (t) =>
+      t.mentorId === currentUser.id ||
+      t.mentorEmail?.toLowerCase() === currentUser.email?.toLowerCase() ||
+      t.mentorName?.toLowerCase() === currentUser.name?.toLowerCase() ||
+      t.teamNumber === currentUser.teamNumber ||
+      t.id === currentUser.teamId
+  );
+  const activeTeams = myTeams.length > 0 ? myTeams : (teams.filter(t => t.teamNumber === 'Team 07') || [teams[0]]);
+  const [selectedCohort, setSelectedCohort] = useState<string>('ALL');
+
+  const displayedTeams = selectedCohort === 'ALL'
+    ? activeTeams
+    : activeTeams.filter(t => t.id === selectedCohort || t.teamNumber === selectedCohort);
+
+  const teamStudents = students.filter(s =>
+    displayedTeams.some(t => t.id === s.teamId || t.teamNumber === s.teamNumber)
   );
 
   const [selectedExamId, setSelectedExamId] = useState<string>(
@@ -82,7 +96,9 @@ export const MentorExamsPage: React.FC = () => {
             <span>Faculty Mentor Assessment Desk</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            {assignedTeamNumber} Weekly DSA Exams Performance
+            {selectedCohort === 'ALL'
+              ? (activeTeams.length > 1 ? `All Mentored Cohorts (${activeTeams.map(t => t.teamNumber).join(', ')})` : activeTeams[0]?.teamNumber)
+              : displayedTeams[0]?.teamNumber} Weekly DSA Exams Performance
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Review exam evaluations, test case passes, and student scorecards scheduled by Dean (Root).
@@ -94,6 +110,43 @@ export const MentorExamsPage: React.FC = () => {
           <span>Cohort of <strong>{teamStudents.length} Students</strong></span>
         </div>
       </div>
+
+      {/* Multi-Cohort Selector Tabs if Mentor has > 1 Team */}
+      {activeTeams.length > 1 && (
+        <div className="bg-white/80 backdrop-blur-md p-2 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs font-bold text-slate-500 px-3 flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Select Cohort:</span>
+          </span>
+          <button
+            onClick={() => setSelectedCohort('ALL')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              selectedCohort === 'ALL'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            }`}
+          >
+            All Teams ({activeTeams.length} Teams)
+          </button>
+          {activeTeams.map((t) => {
+            const count = students.filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber).length;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setSelectedCohort(t.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  selectedCohort === t.id
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+              >
+                <span>{t.teamNumber}</span>
+                <span className="text-[10px] opacity-75 font-mono">({count})</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Week Selector Carousel */}
       <div className="bg-white/90 backdrop-blur-xl p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
@@ -202,7 +255,7 @@ export const MentorExamsPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-indigo-600" />
                 <span className="font-bold text-slate-900 text-sm">
-                  {assignedTeamNumber} Student Submissions ({teamStudents.length} Students)
+                  {selectedCohort === 'ALL' ? (activeTeams.length > 1 ? 'All Cohorts' : activeTeams[0]?.teamNumber) : displayedTeams[0]?.teamNumber} Student Submissions ({teamStudents.length} Students)
                 </span>
               </div>
               <span className="text-xs text-slate-400 font-medium">Click any row to review code & evaluation</span>

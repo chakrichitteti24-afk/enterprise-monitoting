@@ -312,6 +312,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('Backend createStudent not reachable, using local state only', err);
       }
 
+      const initialTopicProgress: Record<DSATopic, { solved: number; total: number; percentage: number }> = DSA_TOPICS.reduce((acc, topic) => {
+        acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+        return acc;
+      }, {} as Record<DSATopic, { solved: number; total: number; percentage: number }>);
+
       const newS: Student = {
         id: createdStudentId,
         rollNo: roll,
@@ -326,11 +331,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         progress: 0,
         solved: 0,
         attempted: 0,
-        pending: 100,
+        pending: TOTAL_CURRICULUM_PROBLEMS,
         streak: 0,
         longestStreak: 0,
         status: studentStatus,
-        topicProgress: {} as any,
+        topicProgress: initialTopicProgress,
         difficultyStats: {
           easy: { solved: 0, total: DIFFICULTY_TOTALS.easy },
           medium: { solved: 0, total: DIFFICULTY_TOTALS.medium },
