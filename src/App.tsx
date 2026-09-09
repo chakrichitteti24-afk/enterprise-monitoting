@@ -220,8 +220,8 @@ const MainLayout: React.FC = () => {
 
       {/* Global Interactive Modals */}
       <GlobalSearchModal />
-      <StudentDetailModal />
       <TeamDetailModal />
+      <StudentDetailModal />
     </div>
   );
 };

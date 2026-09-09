@@ -230,6 +230,26 @@ def create_mentor_student(
     mentor_service = MentorService(db)
     return mentor_service.create_student(student_in)
 
+
+@router.delete(
+    "/students/{student_id}",
+    summary="De-enroll/delete student (Mentor only for assigned cohort)",
+    description="Deletes a student strictly from the mentor's assigned team.",
+)
+def delete_mentor_student(
+    student_id: int,
+    current_user: User = Depends(require_mentor),
+    db: Session = Depends(get_db),
+):
+    mentor = current_user.mentor_profile
+    if not mentor:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current user is not associated with a mentor profile.",
+        )
+    mentor_service = MentorService(db)
+    return mentor_service.delete_student(mentor.id, student_id)
+
 # ---------------------------------------------------------------------------
 # Problem Verification Endpoints (Mentor / Dean)
 # ---------------------------------------------------------------------------

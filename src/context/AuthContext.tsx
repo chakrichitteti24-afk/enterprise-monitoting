@@ -27,6 +27,7 @@ import {
   createStudentAsMentorApi,
   updateStudentApi,
   deleteStudentApi,
+  deleteStudentAsMentorApi,
   updateStudentAvatarApi,
   submitSolutionApi,
   getWeeklyExamsApi,
@@ -46,6 +47,8 @@ import {
   getDeanTeamsApi,
   getMentorTeamStudentsApi,
   getMentorTeamDetailApi,
+  createMentorApi,
+  deleteMentorApi,
 } from '../lib/api';
 
 interface AuthContextType {
@@ -70,6 +73,10 @@ interface AuthContextType {
   teams: Team[];
   mentors: Mentor[];
   addMentorFeedback: (studentId: string, note: string) => void;
+  addMentor: (mentorData: Partial<Mentor> & { password?: string }) => Promise<{
+    mentor: Mentor;
+    credentials: { name: string; email: string; password: string; teamNumber: string };
+  }>;
   addTeam: (teamData: Partial<Team>) => Promise<void>;
   updateTeam: (teamId: string, updates: Partial<Team>) => Promise<void>;
   removeTeam: (teamId: string) => Promise<void>;
@@ -143,7 +150,125 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Start with mock data; syncFromBackend() will overwrite with real DB data right after login
     return ALL_TEAMS;
   });
-  const [mentors] = useState<Mentor[]>(ALL_MENTORS);
+  const [mentors, setMentors] = useState<Mentor[]>(() => {
+    try {
+      const saved = localStorage.getItem('gkce_mentors_v2');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length >= ALL_MENTORS.length) return parsed;
+      }
+    } catch {}
+    return ALL_MENTORS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gkce_mentors_v2', JSON.stringify(mentors));
+    } catch {}
+  }, [mentors]);
+
+  const cleanMentorNameForEmail = (name: string): string => {
+    const clean = name.replace(/^(dr|prof|mrs|mr|ms)\.?\s+/i, '').replace(/[^a-zA-Z0-9\s]/g, ' ').trim();
+    const parts = clean.split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return `mentor.${Date.now()}`;
+    const joined = parts.join('').toLowerCase();
+    return joined.slice(0, 18);
+  };
+
+  const addMentor = async (mentorData: Partial<Mentor> & { password?: string }) => {
+    try {
+      const name = mentorData.name?.trim() || 'Faculty Mentor';
+      const autoEmailPrefix = cleanMentorNameForEmail(name);
+      const email = mentorData.email?.trim() || `${autoEmailPrefix}@gkce.edu.in`;
+      const password = mentorData.password?.trim() || 'Mentor@GKCE2026';
+      const dept = mentorData.department?.trim() || 'Computer Science & Engg';
+      const phone = mentorData.phone?.trim() || `+91 98480 ${10000 + mentors.length + 1}`;
+      const exp = mentorData.experienceYears || 8;
+      const avatar = mentorData.avatar || `https://images.unsplash.com/photo-${1507003211169 + (mentors.length + 1) * 17}?w=150&auto=format&fit=crop&q=80`;
+
+      let assignedTeamId = mentorData.assignedTeamId || '';
+      let assignedTeamNumber = mentorData.assignedTeamNumber || '';
+
+      // If an assigned team was selected, extract numeric ID and cohort name
+      let teamNumericId: number | undefined;
+      if (assignedTeamId && assignedTeamId !== 'unassigned') {
+        const matched = teams.find(t => t.id === assignedTeamId || t.teamNumber === assignedTeamNumber);
+        if (matched) {
+          assignedTeamNumber = matched.teamNumber;
+          const parsed = parseInt(matched.id.replace(/\D/g, ''), 10);
+          if (!isNaN(parsed)) teamNumericId = parsed;
+        }
+      }
+
+      let createdMentorId = `mentor-${Date.now()}`;
+
+      try {
+        const res = await createMentorApi({
+          name,
+          email,
+          department: dept,
+          phone,
+          experience_years: exp,
+          assigned_team_id: teamNumericId,
+          password,
+        });
+        if (res && res.id) {
+          createdMentorId = `mentor-${res.id}`;
+        }
+      } catch (err) {
+        console.warn('[addMentor] Backend createMentorApi not reachable or returned error, using local state:', err);
+      }
+
+      const newMentor: Mentor = {
+        id: createdMentorId,
+        name,
+        email,
+        department: dept,
+        phone,
+        avatar,
+        assignedTeamId: assignedTeamId || (assignedTeamNumber ? `team-${assignedTeamNumber.replace(/\D/g, '')}` : 'team-unassigned'),
+        assignedTeamNumber: assignedTeamNumber || 'Unassigned',
+        experienceYears: exp,
+      };
+
+      setMentors(prev => [...prev, newMentor]);
+
+      // Synchronize in-memory ALL_MENTORS array
+      if (!ALL_MENTORS.some(m => m.id === newMentor.id || m.email === newMentor.email)) {
+        ALL_MENTORS.push(newMentor);
+      }
+
+      // If assigned to a team, update team's mentor fields
+      if (assignedTeamId && assignedTeamId !== 'unassigned') {
+        setTeams(prev =>
+          prev.map(t =>
+            t.id === assignedTeamId || t.teamNumber === assignedTeamNumber
+              ? {
+                  ...t,
+                  mentorId: newMentor.id,
+                  mentorName: newMentor.name,
+                  mentorEmail: newMentor.email,
+                  mentorDepartment: newMentor.department,
+                }
+              : t
+          )
+        );
+      }
+
+      const credentials = {
+        name,
+        email,
+        password,
+        teamNumber: newMentor.assignedTeamNumber,
+      };
+
+      return { mentor: newMentor, credentials };
+    } catch (err) {
+      console.error('Error adding mentor:', err);
+      throw err;
+    }
+  };
+
   const [exams, setExams] = useState<WeeklyExam[]>(() => {
     // Purge all legacy exam caches (old hardcoded LIVE exam)
     localStorage.removeItem('gkce_weekly_exams');
@@ -413,7 +538,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const numId = parseInt(studentId.replace(/\D/g, ''), 10);
       if (!isNaN(numId)) {
         try {
-          await deleteStudentApi(numId);
+          if (currentUser.role === 'MENTOR') {
+            await deleteStudentAsMentorApi(numId);
+          } else {
+            await deleteStudentApi(numId);
+          }
         } catch (err) {
           console.warn('Backend deleteStudent not reachable, updating local state', err);
         }
@@ -1099,7 +1228,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           (normalizedEmail.includes('shabana') && m.email.toLowerCase().includes('shabana')) ||
           (normalizedEmail.includes('sudhakar') && m.email.toLowerCase().includes('sudhakar')) ||
           (normalizedEmail.includes('keerthana') && m.email.toLowerCase().includes('keerthana')) ||
-          (normalizedEmail.includes('manjusha') && m.email.toLowerCase().includes('manjusha'))
+          (normalizedEmail.includes('manjusha') && m.email.toLowerCase().includes('manjusha')) ||
+          (normalizedEmail.includes('tejaram') && m.email.toLowerCase().includes('tejaram')) ||
+          (normalizedEmail.includes('vishnu') && m.email.toLowerCase().includes('vishnu'))
       );
 
       if (matchedMentor && isMentorPasswordValid) {
@@ -1897,6 +2028,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         teams,
         mentors,
         addMentorFeedback,
+        addMentor,
         addTeam,
         updateTeam,
         removeTeam,

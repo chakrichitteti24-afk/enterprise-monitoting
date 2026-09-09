@@ -28,11 +28,14 @@ MENTORS_DATA = [
     ("K.KEERTHANA", "kkeerthana@gkce.edu.in", "Computer Science & Engg", 6),
     ("A.LUDWIKA", "ludwikha@gkce.edu.in", "Computer Science & Engg", 8),
     ("C.MANJUSHA", "manjusha@gkce.edu.in", "Computer Science & Engg", 10),
+    ("V.TEJARAM", "vtejaram@gkce.edu.in", "Computer Science & Engg", 8),
+    ("A.VISHNU VARDHAN", "avishnuvardhan@gkce.edu.in", "Computer Science & Engg", 8),
 ]
 
 TEAM_NAMES = [
     "Algorithm Aces", "Binary Bandits", "Dynamic Dynamos", "Graph Gurus",
-    "Stack Smashers", "Queue Queens", "Tree Titans", "Recursion Rangers"
+    "Stack Smashers", "Queue Queens", "Tree Titans", "Recursion Rangers",
+    "Bitwise Battlers", "Heap Heroes"
 ]
 
 REAL_GKCE_STUDENTS = [

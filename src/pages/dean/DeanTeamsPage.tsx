@@ -5,8 +5,9 @@ import { ProgressBar } from '../../components/ui/ProgressBar';
 import { StreakBadge } from '../../components/ui/StreakBadge';
 import { UserAvatar } from '../../components/ui/UserAvatar';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, Search, ChevronRight, LayoutGrid, List, Plus, Trash2, X, ShieldAlert } from 'lucide-react';
+import { Layers, Search, ChevronRight, LayoutGrid, List, Plus, Trash2, X, ShieldAlert, UserPlus } from 'lucide-react';
 import { Team } from '../../types';
+import { CreateMentorModal } from '../../components/modals/CreateMentorModal';
 
 export const DeanTeamsPage: React.FC = () => {
   const { teams, mentors, setSelectedTeam, addTeam, removeTeam, updateTeam } = useAuth();
@@ -17,6 +18,7 @@ export const DeanTeamsPage: React.FC = () => {
 
   // Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreateMentorOpen, setIsCreateMentorOpen] = useState(false);
   const [teamNumberInput, setTeamNumberInput] = useState('');
   const [teamNameInput, setTeamNameInput] = useState('');
   const [selectedMentorId, setSelectedMentorId] = useState('');
@@ -34,14 +36,14 @@ export const DeanTeamsPage: React.FC = () => {
 
   // Lock body scroll while modals are open
   React.useEffect(() => {
-    if (isCreateOpen || deleteConfirmTeam) {
+    if (isCreateOpen || isCreateMentorOpen || deleteConfirmTeam) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => {
         document.body.style.overflow = originalOverflow;
       };
     }
-  }, [isCreateOpen, deleteConfirmTeam]);
+  }, [isCreateOpen, isCreateMentorOpen, deleteConfirmTeam]);
 
   const filteredTeams = teams
     .filter((t) => {
@@ -135,6 +137,14 @@ export const DeanTeamsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsCreateMentorOpen(true)}
+            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all active:scale-98"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Create Mentor</span>
+          </button>
+
           <button
             onClick={openCreateModal}
             className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all active:scale-98"
@@ -508,6 +518,12 @@ export const DeanTeamsPage: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Modal: Create Faculty Mentor with Auto Credentials */}
+      <CreateMentorModal
+        isOpen={isCreateMentorOpen}
+        onClose={() => setIsCreateMentorOpen(false)}
+      />
     </div>
   );
 };

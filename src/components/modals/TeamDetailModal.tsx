@@ -7,7 +7,7 @@ import { ProgressBar } from '../ui/ProgressBar';
 import { UserAvatar } from '../ui/UserAvatar';
 import { DSA_TOPICS } from '../../data/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Users, Mail, Phone, ChevronRight, UserPlus, CheckCircle2 } from 'lucide-react';
+import { X, Users, Mail, Phone, ChevronRight, UserPlus, CheckCircle2, Trash2, ShieldAlert } from 'lucide-react';
 import { Student, DSALevel } from '../../types';
 
 export const TeamDetailModal: React.FC = () => {
@@ -18,7 +18,9 @@ export const TeamDetailModal: React.FC = () => {
     mentors,
     setSelectedStudent,
     role,
+    currentUser,
     addStudent,
+    removeStudent,
   } = useAuth();
 
   const [isEnrollOpen, setIsEnrollOpen] = useState(false);
@@ -28,6 +30,8 @@ export const TeamDetailModal: React.FC = () => {
   const [dsaLevelInput, setDsaLevelInput] = useState<DSALevel>('Beginner');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [deleteConfirmStudent, setDeleteConfirmStudent] = useState<Student | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Lock background body scroll while modal is open
   useEffect(() => {
@@ -56,6 +60,18 @@ export const TeamDetailModal: React.FC = () => {
         (m) => m.id === selectedTeam.mentorId || m.assignedTeamNumber === selectedTeam.teamNumber
       )
     : null;
+
+  const isMentorAssigned =
+    role === 'MENTOR' &&
+    Boolean(
+      selectedTeam &&
+        (selectedTeam.mentorId === currentUser.id ||
+          selectedTeam.mentorEmail?.toLowerCase() === currentUser.email?.toLowerCase() ||
+          selectedTeam.mentorName?.toLowerCase() === currentUser.name?.toLowerCase() ||
+          selectedTeam.teamNumber === currentUser.teamNumber ||
+          selectedTeam.id === currentUser.teamId)
+    );
+  const canManageTeam = role === 'DEAN' || isMentorAssigned;
 
   const handleOpenStudent = (st: Student) => {
     setSelectedStudent(st);
@@ -112,7 +128,7 @@ export const TeamDetailModal: React.FC = () => {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.96, opacity: 0, y: 12 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-2xl lg:max-w-3xl bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-10 max-h-[92vh] flex flex-col gpu-layer overscroll-contain"
+            className="relative w-full max-w-2xl lg:max-w-3xl bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-10 max-h-[92vh] flex flex-col overscroll-contain"
           >
             {/* Mobile Sheet Pull Indicator */}
             <div className="sm:hidden flex justify-center pt-2.5 pb-0.5 bg-slate-50/80">
@@ -319,7 +335,7 @@ export const TeamDetailModal: React.FC = () => {
                     <Users className="w-4 h-4 text-blue-600" />
                     <span>Assigned Students ({teamStudents.length})</span>
                   </h3>
-                  {role === 'DEAN' && !isEnrollOpen && (
+                  {canManageTeam && !isEnrollOpen && (
                     <button
                       onClick={() => {
                         const nextNum = 100 + students.length + 1;
@@ -366,13 +382,28 @@ export const TeamDetailModal: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                         <div className="text-right">
                           <div className="text-xs font-bold text-slate-900">{st.progress}%</div>
                           <div className="text-[10px] text-slate-400">{st.solved} solved</div>
                         </div>
 
                         <StreakBadge streak={st.streak} size="sm" />
+
+                        {canManageTeam && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteConfirmStudent(st);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors shrink-0"
+                            title={`De-enroll ${st.name}`}
+                            aria-label={`De-enroll ${st.name}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
 
                         <ChevronRight className="w-4 h-4 text-slate-400" />
                       </div>
@@ -421,6 +452,66 @@ export const TeamDetailModal: React.FC = () => {
               </motion.button>
             </div>
           </motion.div>
+
+          {/* Delete Confirmation Modal for Dean & Mentor */}
+          <AnimatePresence>
+            {deleteConfirmStudent && (
+              <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs"
+                  onClick={() => setDeleteConfirmStudent(null)}
+                />
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  className="relative bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 z-10 space-y-4"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+                    <ShieldAlert className="w-6 h-6" />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-base font-bold text-slate-900">De-enroll Student?</h3>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Are you sure you want to de-enroll <strong className="text-slate-800">{deleteConfirmStudent.name}</strong> ({deleteConfirmStudent.rollNo}) from {selectedTeam.teamNumber}?
+                    </p>
+                  </div>
+                  <div className="flex gap-2.5 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirmStudent(null)}
+                      className="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isDeleting}
+                      onClick={async () => {
+                        setIsDeleting(true);
+                        try {
+                          await removeStudent(deleteConfirmStudent.id);
+                          setSuccessMessage(`Student ${deleteConfirmStudent.name} de-enrolled from ${selectedTeam.teamNumber}`);
+                          setTimeout(() => setSuccessMessage(null), 4000);
+                          setDeleteConfirmStudent(null);
+                        } catch (err: any) {
+                          alert(err?.message || 'Failed to de-enroll student.');
+                        } finally {
+                          setIsDeleting(false);
+                        }
+                      }}
+                      className="flex-1 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-xs disabled:opacity-50"
+                    >
+                      {isDeleting ? 'Removing...' : 'Confirm De-enroll'}
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </AnimatePresence>

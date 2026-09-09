@@ -38,7 +38,7 @@ DEAN_PASSWORD = "gkce@1234"
 MENTOR_PASSWORD = "Mentor@GKCE2026"
 STUDENT_PASSWORD = "gkce@1234"
 
-# 8 Mentors metadata according to accurate schema
+# 10 Mentors metadata according to accurate schema
 MENTORS_DATA = [
     ("K.S.GAYATHRI", "ksgayathri@gkce.edu.in", "Computer Science & Engg", 8),
     ("SK SHABANA", "skshabana@gkce.edu.in", "Computer Science & Engg", 8),
@@ -48,11 +48,14 @@ MENTORS_DATA = [
     ("K.KEERTHANA", "kkeerthana@gkce.edu.in", "Computer Science & Engg", 6),
     ("A.LUDWIKA", "ludwikha@gkce.edu.in", "Computer Science & Engg", 8),
     ("C.MANJUSHA", "manjusha@gkce.edu.in", "Computer Science & Engg", 10),
+    ("V.TEJARAM", "vtejaram@gkce.edu.in", "Computer Science & Engg", 8),
+    ("A.VISHNU VARDHAN", "avishnuvardhan@gkce.edu.in", "Computer Science & Engg", 8),
 ]
 
 TEAM_NAMES = [
     "Algorithm Aces", "Binary Bandits", "Dynamic Dynamos", "Graph Gurus",
-    "Stack Smashers", "Queue Queens", "Tree Titans", "Recursion Rangers"
+    "Stack Smashers", "Queue Queens", "Tree Titans", "Recursion Rangers",
+    "Bitwise Battlers", "Heap Heroes"
 ]
 
 # 34 Standardized DSA Problems

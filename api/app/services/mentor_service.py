@@ -207,3 +207,29 @@ class MentorService:
         # Build output
         student_with_rel = self.student_repo.get_by_id_with_relations(student.id)
         return self.student_service._build_student_out(student_with_rel)
+
+    def delete_student(self, mentor_id: int, student_id: int) -> Dict[str, str]:
+        from fastapi import HTTPException, status
+        from app.models.user import User
+
+        mentor = self.mentor_repo.get_by_id_with_relations(mentor_id)
+        if not mentor or not mentor.assigned_teams:
+            raise PermissionDeniedException(detail="Forbidden: Mentor has no assigned teams.")
+
+        assigned_team_ids = [t.id for t in mentor.assigned_teams]
+        student = self.student_repo.get_by_id(student_id)
+        if not student:
+            raise ResourceNotFoundException("Student", str(student_id))
+
+        if student.team_id not in assigned_team_ids:
+            raise PermissionDeniedException(detail="Forbidden: You can only delete students enrolled in your assigned teams.")
+
+        user_id = student.user_id
+        self.db.delete(student)
+        if user_id:
+            user = self.db.query(User).filter(User.id == user_id).first()
+            if user:
+                self.db.delete(user)
+
+        self.db.commit()
+        return {"detail": f"Student {student_id} successfully removed by mentor."}

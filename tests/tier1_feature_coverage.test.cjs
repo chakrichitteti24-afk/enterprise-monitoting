@@ -281,8 +281,8 @@ suite.describe('3. Dynamic Pending Calculation & Metric Precision', () => {
 suite.describe('4. Dean Management Views & Workflows', () => {
   suite.it('4.1 Overview macro aggregates students, teams, and mentors rosters', () => {
     expect(ALL_STUDENTS.length).toBe(39);
-    expect(ALL_TEAMS.length).toBe(8);
-    expect(ALL_MENTORS.length).toBe(8);
+    expect(ALL_TEAMS.length).toBe(10);
+    expect(ALL_MENTORS.length).toBe(10);
   });
 
   suite.it('4.2 Team filtering supports status filter (Active / Needs Attention / Inactive)', () => {

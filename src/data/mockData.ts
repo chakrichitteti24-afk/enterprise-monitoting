@@ -120,6 +120,28 @@ export const ALL_MENTORS: Mentor[] = [
     "assignedTeamId": "team-8",
     "assignedTeamNumber": "Team 08",
     "experienceYears": 8
+  },
+  {
+    "id": "mentor-9",
+    "name": "V.TEJARAM",
+    "email": "vtejaram@gkce.edu.in",
+    "department": "Computer Science & Engg",
+    "phone": "+91 98480 10009",
+    "avatar": "https://images.unsplash.com/photo-1507003211322?w=150&auto=format&fit=crop&q=80",
+    "assignedTeamId": "team-9",
+    "assignedTeamNumber": "Team 09",
+    "experienceYears": 8
+  },
+  {
+    "id": "mentor-10",
+    "name": "A.VISHNU VARDHAN",
+    "email": "avishnuvardhan@gkce.edu.in",
+    "department": "Computer Science & Engg",
+    "phone": "+91 98480 10010",
+    "avatar": "https://images.unsplash.com/photo-1507003211339?w=150&auto=format&fit=crop&q=80",
+    "assignedTeamId": "team-10",
+    "assignedTeamNumber": "Team 10",
+    "experienceYears": 8
   }
 ];
 
@@ -1635,6 +1657,40 @@ export const ALL_TEAMS: any[] = [
     "status": "Active",
     topicPerformance: DSA_TOPICS.reduce((acc, t) => { acc[t] = 0; return acc; }, {} as Record<string, number>),
     "rank": 8
+  },
+  {
+    "id": "team-9",
+    "teamNumber": "Team 09",
+    "name": "Bitwise Battlers",
+    "mentorId": "mentor-9",
+    "mentorName": "V.TEJARAM",
+    "mentorEmail": "vtejaram@gkce.edu.in",
+    "mentorDepartment": "Computer Science & Engg",
+    "studentIds": [],
+    "avgProgress": 0,
+    "totalSolved": 0,
+    "totalAttempted": 0,
+    "avgStreak": 0,
+    "status": "Active",
+    topicPerformance: DSA_TOPICS.reduce((acc, t) => { acc[t] = 0; return acc; }, {} as Record<string, number>),
+    "rank": 9
+  },
+  {
+    "id": "team-10",
+    "teamNumber": "Team 10",
+    "name": "Heap Heroes",
+    "mentorId": "mentor-10",
+    "mentorName": "A.VISHNU VARDHAN",
+    "mentorEmail": "avishnuvardhan@gkce.edu.in",
+    "mentorDepartment": "Computer Science & Engg",
+    "studentIds": [],
+    "avgProgress": 0,
+    "totalSolved": 0,
+    "totalAttempted": 0,
+    "avgStreak": 0,
+    "status": "Active",
+    topicPerformance: DSA_TOPICS.reduce((acc, t) => { acc[t] = 0; return acc; }, {} as Record<string, number>),
+    "rank": 10
   }
 ];
 

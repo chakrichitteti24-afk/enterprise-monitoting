@@ -229,6 +229,12 @@ export async function deleteStudentApi(studentId: number) {
   });
 }
 
+export async function deleteStudentAsMentorApi(studentId: number) {
+  return apiRequest<{ detail: string }>(`/mentor/students/${studentId}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function createMentorApi(payload: {
   name: string;
   email: string;

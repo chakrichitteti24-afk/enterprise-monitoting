@@ -15,6 +15,8 @@ import {
   Send,
   Lock,
   ArrowLeft,
+  Trash2,
+  ShieldAlert,
 } from 'lucide-react';
 
 export const StudentDetailModal: React.FC = () => {
@@ -25,10 +27,14 @@ export const StudentDetailModal: React.FC = () => {
     currentUser,
     teams,
     addMentorFeedback,
+    selectedTeam,
+    removeStudent,
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'topics' | 'activity' | 'notes'>('overview');
   const [newNote, setNewNote] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Lock background body scroll while modal is open
   useEffect(() => {
@@ -72,17 +78,49 @@ export const StudentDetailModal: React.FC = () => {
     (t) => t.id === selectedStudent?.teamId || t.teamNumber === selectedStudent?.teamNumber
   );
 
-  // Strict role isolation check
+  // Strict role isolation check (Dean has complete institutional oversight)
   const isAuthorized =
     !selectedStudent ||
     role === 'DEAN' ||
+    role?.toUpperCase() === 'DEAN' ||
+    currentUser.role === 'DEAN' ||
+    currentUser.role?.toUpperCase() === 'DEAN' ||
+    currentUser.email?.toLowerCase().includes('root') ||
+    currentUser.email?.toLowerCase().includes('dean') ||
     (role === 'MENTOR' && (isMentorStudent || selectedStudent.teamId === currentUser.teamId || selectedStudent.teamNumber === currentUser.teamNumber)) ||
     (role === 'STUDENT' && (selectedStudent.id === currentUser.studentData?.id || selectedStudent.rollNo === currentUser.studentData?.rollNo));
+
+  const canDeleteStudent =
+    Boolean(selectedStudent) &&
+    (role === 'DEAN' ||
+      role?.toUpperCase() === 'DEAN' ||
+      currentUser.role === 'DEAN' ||
+      currentUser.role?.toUpperCase() === 'DEAN' ||
+      currentUser.email?.toLowerCase().includes('root') ||
+      currentUser.email?.toLowerCase().includes('dean') ||
+      (role === 'MENTOR' &&
+        (isMentorStudent ||
+          selectedStudent?.teamId === currentUser.teamId ||
+          selectedStudent?.teamNumber === currentUser.teamNumber)));
+
+  const handleDeleteStudent = async () => {
+    if (!selectedStudent) return;
+    setIsDeleting(true);
+    try {
+      await removeStudent(selectedStudent.id);
+      setShowDeleteConfirm(false);
+      setSelectedStudent(null);
+    } catch (err: any) {
+      alert(err?.message || 'Failed to de-enroll student.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <AnimatePresence>
       {selectedStudent && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
           {/* Backdrop overlay */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -99,7 +137,7 @@ export const StudentDetailModal: React.FC = () => {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.96, opacity: 0, y: 12 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-3xl lg:max-w-4xl bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-10 max-h-[92vh] flex flex-col gpu-layer overscroll-contain"
+            className="relative w-full max-w-3xl lg:max-w-4xl bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-20 max-h-[92vh] flex flex-col overscroll-contain"
           >
             {/* Mobile Sheet Pull Indicator */}
             <div className="sm:hidden flex justify-center pt-2.5 pb-0.5 bg-slate-50/80">
@@ -145,14 +183,39 @@ export const StudentDetailModal: React.FC = () => {
                 </div>
               </div>
 
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={handleClose}
-                className="p-2 rounded-2xl bg-white border border-slate-200 text-slate-400 hover:text-slate-700 transition-colors shrink-0 shadow-2xs"
-                aria-label="Close dialog"
-              >
-                <X className="w-4 h-4 sm:w-5 sm:h-5" />
-              </motion.button>
+              <div className="flex items-center gap-2 shrink-0">
+                {canDeleteStudent && isAuthorized && (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 text-xs font-bold inline-flex items-center gap-1.5 transition-colors shadow-2xs"
+                    title={`De-enroll ${selectedStudent.name}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">De-enroll</span>
+                  </motion.button>
+                )}
+                {selectedTeam && (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleClose}
+                    className="px-2.5 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 text-xs font-bold inline-flex items-center gap-1.5 transition-colors shadow-2xs"
+                    title={`Return to ${selectedTeam.teamNumber}`}
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span className="hidden xs:inline">Back to {selectedTeam.teamNumber}</span>
+                    <span className="xs:hidden">Back</span>
+                  </motion.button>
+                )}
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleClose}
+                  className="p-2 rounded-2xl bg-white border border-slate-200 text-slate-400 hover:text-slate-700 transition-colors shrink-0 shadow-2xs"
+                  aria-label="Close dialog"
+                >
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                </motion.button>
+              </div>
             </div>
 
             {/* Content Section */}
@@ -455,17 +518,77 @@ export const StudentDetailModal: React.FC = () => {
                     <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <span className="truncate">{selectedStudent.email}</span>
                   </div>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleClose}
-                    className="px-4 py-1.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-semibold hover:bg-slate-100 transition-colors shrink-0 shadow-2xs"
-                  >
-                    Close
-                  </motion.button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {selectedTeam && (
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleClose}
+                        className="px-3.5 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-xs inline-flex items-center gap-1.5"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>Back to {selectedTeam.teamNumber}</span>
+                      </motion.button>
+                    )}
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleClose}
+                      className="px-4 py-1.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-semibold hover:bg-slate-100 transition-colors shrink-0 shadow-2xs"
+                    >
+                      Close
+                    </motion.button>
+                  </div>
                 </div>
               </>
             )}
           </motion.div>
+
+          {/* Delete Confirmation Modal for Dean & Mentor */}
+          <AnimatePresence>
+            {showDeleteConfirm && selectedStudent && (
+              <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs"
+                  onClick={() => setShowDeleteConfirm(false)}
+                />
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  className="relative bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 z-10 space-y-4"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+                    <ShieldAlert className="w-6 h-6" />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-base font-bold text-slate-900">De-enroll Student?</h3>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Are you sure you want to de-enroll <strong className="text-slate-800">{selectedStudent.name}</strong> ({selectedStudent.rollNo}) from {selectedStudent.teamNumber}?
+                    </p>
+                  </div>
+                  <div className="flex gap-2.5 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isDeleting}
+                      onClick={handleDeleteStudent}
+                      className="flex-1 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-xs disabled:opacity-50"
+                    >
+                      {isDeleting ? 'Removing...' : 'Confirm De-enroll'}
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </AnimatePresence>

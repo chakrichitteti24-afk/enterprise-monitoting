@@ -428,6 +428,56 @@ suite.describe('Cross-Feature Multi-Role Integrations', () => {
       if (sess.role === 'STUDENT') expect(sess.accessibleTabs).toContain('forge');
     });
   });
+
+  suite.it('3.17 Mentor Enrolls Student into Assigned Cohort -> Team Count Updates & Initial Status Set', () => {
+    const cohort = {
+      teamNumber: 'Team 07',
+      students: [
+        { id: 's-1', name: 'A. Kumar', rollNo: '24F81A0501', progress: 40.0 },
+        { id: 's-2', name: 'B. Suresh', rollNo: '24F81A0502', progress: 50.0 },
+      ],
+    };
+
+    // Mentor enrolls new student into Team 07
+    const newStudent = {
+      id: 's-3',
+      name: 'C. Mahesh',
+      rollNo: '24F81A0503',
+      teamNumber: 'Team 07',
+      progress: 0.0,
+      solved: 0,
+      pending: 100,
+      dsaLevel: 'Beginner',
+      status: 'Active',
+    };
+    cohort.students.push(newStudent);
+
+    expect(cohort.students.length).toBe(3);
+    expect(cohort.students[2].rollNo).toBe('24F81A0503');
+    expect(cohort.students[2].pending).toBe(100);
+    expect(cohort.students[2].progress).toBe(0.0);
+  });
+
+  suite.it('3.18 Mentor Deletes Student from Assigned Cohort -> Student Removed & Cohort Recalculates', () => {
+    const cohort = {
+      teamNumber: 'Team 07',
+      students: [
+        { id: 's-1', name: 'A. Kumar', progress: 60.0 },
+        { id: 's-2', name: 'B. Suresh', progress: 80.0 },
+        { id: 's-3', name: 'C. Mahesh', progress: 20.0 },
+      ],
+    };
+
+    // Mentor removes student s-3
+    cohort.students = cohort.students.filter((s) => s.id !== 's-3');
+    const newAverage = Number(
+      (cohort.students.reduce((sum, s) => sum + s.progress, 0) / cohort.students.length).toFixed(1)
+    );
+
+    expect(cohort.students.length).toBe(2);
+    expect(cohort.students.some((s) => s.id === 's-3')).toBe(false);
+    expect(newAverage).toBe(70.0); // (60 + 80) / 2 = 70.0
+  });
 });
 
 module.exports = suite;

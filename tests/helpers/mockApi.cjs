@@ -241,6 +241,44 @@ class MockApiClient {
       };
     });
 
+    // Dean Student Delete
+    this.registerRoute('DELETE', '/dean/students/:id', (_, params) => {
+      const studentId = params ? params[0] : '1';
+      return {
+        status: 200,
+        data: { detail: `Student ${studentId} successfully de-enrolled.` },
+      };
+    });
+
+    // Mentor Student Create (Enroll)
+    this.registerRoute('POST', '/mentor/students', (body) => {
+      if (!body.name || !body.roll_number || !body.email) {
+        return { status: 400, data: { detail: 'name, roll_number and email required' } };
+      }
+      return {
+        status: 201,
+        data: {
+          id: Math.floor(Math.random() * 900) + 100,
+          name: body.name,
+          roll_number: body.roll_number,
+          email: body.email,
+          team_id: body.team_id || 1,
+          team_number: body.team_number || 'Team 01',
+          dsa_level: body.dsa_level || 'BEGINNER',
+          status: body.status || 'ACTIVE',
+        },
+      };
+    });
+
+    // Mentor Student Delete
+    this.registerRoute('DELETE', '/mentor/students/:id', (_, params) => {
+      const studentId = params ? params[0] : '1';
+      return {
+        status: 200,
+        data: { detail: `Student ${studentId} successfully removed by mentor.` },
+      };
+    });
+
     // Code Runner
     this.registerRoute('POST', '/code/run', (body) => {
       const { code, language, test_cases } = body;

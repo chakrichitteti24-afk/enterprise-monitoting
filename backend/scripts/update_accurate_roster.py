@@ -88,12 +88,23 @@ TEAMS_INPUT = [
       { "roll_no": "24F81A0508", "student_name": "E. ANUSHA" },
       { "roll_no": "24F81A0550", "student_name": "U. JANAKI" }
     ]
+  },
+  {
+    "team": "Team 9",
+    "mentor": "V.TEJARAM",
+    "students": []
+  },
+  {
+    "team": "Team 10",
+    "mentor": "A.VISHNU VARDHAN",
+    "students": []
   }
 ]
 
 TEAM_NAMES = [
     "Algorithm Aces", "Binary Bandits", "Dynamic Dynamos", "Graph Gurus",
-    "Stack Smashers", "Queue Queens", "Tree Titans", "Recursion Rangers"
+    "Stack Smashers", "Queue Queens", "Tree Titans", "Recursion Rangers",
+    "Bitwise Battlers", "Heap Heroes"
 ]
 
 MENTOR_EMAILS = {
@@ -104,7 +115,9 @@ MENTOR_EMAILS = {
     "K.SUDHAKAR": "ksudhakar@gkce.edu.in",
     "K.KEERTHANA": "kkeerthana@gkce.edu.in",
     "A.LUDWIKA": "ludwikha@gkce.edu.in",
-    "C.MANJUSHA": "manjusha@gkce.edu.in"
+    "C.MANJUSHA": "manjusha@gkce.edu.in",
+    "V.TEJARAM": "vtejaram@gkce.edu.in",
+    "A.VISHNU VARDHAN": "avishnuvardhan@gkce.edu.in"
 }
 
 def clean_student_name_for_email(name: str) -> str:
