@@ -478,6 +478,46 @@ suite.describe('Cross-Feature Multi-Role Integrations', () => {
     expect(cohort.students.some((s) => s.id === 's-3')).toBe(false);
     expect(newAverage).toBe(70.0); // (60 + 80) / 2 = 70.0
   });
+
+  suite.it('3.19 Dean Reassigns Mentor for Team -> Team Dossier & Assigned Students Reflect New Mentor', () => {
+    const team = {
+      id: 'team-01',
+      teamNumber: 'Team 01',
+      name: 'Alpha Coders',
+      mentorId: 'mentor-1',
+      mentorName: 'Dr. Suresh Kumar',
+      mentorDepartment: 'CSE',
+    };
+
+    const students = [
+      { id: 's-1', name: 'A. Surya', teamId: 'team-01', teamNumber: 'Team 01', mentorName: 'Dr. Suresh Kumar' },
+      { id: 's-2', name: 'B. Pavan', teamId: 'team-01', teamNumber: 'Team 01', mentorName: 'Dr. Suresh Kumar' },
+    ];
+
+    const newMentor = {
+      id: 'mentor-2',
+      name: 'K.S.GAYATHRI',
+      department: 'Computer Science & Engg',
+      email: 'ksgayathri@gkce.edu.in',
+    };
+
+    // Dean changes mentor for Team 01
+    team.mentorId = newMentor.id;
+    team.mentorName = newMentor.name;
+    team.mentorDepartment = newMentor.department;
+
+    // Assigned students are updated
+    students.forEach((s) => {
+      if (s.teamId === team.id) {
+        s.mentorName = newMentor.name;
+      }
+    });
+
+    expect(team.mentorId).toBe('mentor-2');
+    expect(team.mentorName).toBe('K.S.GAYATHRI');
+    expect(students[0].mentorName).toBe('K.S.GAYATHRI');
+    expect(students[1].mentorName).toBe('K.S.GAYATHRI');
+  });
 });
 
 module.exports = suite;

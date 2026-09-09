@@ -364,22 +364,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
+      const matchedMentor = mentors.find(m => m.id === updates.mentorId || m.name === updates.mentorName);
+      let updatedTeamNumber = '';
+
       setTeams(prev =>
         prev.map(t => {
           if (t.id === teamId) {
-            const matchedMentor = mentors.find(m => m.id === updates.mentorId || m.name === updates.mentorName);
+            updatedTeamNumber = t.teamNumber;
             return {
               ...t,
               ...updates,
-              mentorId: matchedMentor ? matchedMentor.id : t.mentorId,
-              mentorName: matchedMentor ? matchedMentor.name : t.mentorName,
+              mentorId: matchedMentor ? matchedMentor.id : (updates.mentorId || t.mentorId),
+              mentorName: matchedMentor ? matchedMentor.name : (updates.mentorName || t.mentorName),
               mentorEmail: matchedMentor ? matchedMentor.email : t.mentorEmail,
               mentorDepartment: matchedMentor ? matchedMentor.department : t.mentorDepartment,
+              mentorAvatar: matchedMentor ? matchedMentor.avatar : t.mentorAvatar,
             };
           }
           return t;
         })
       );
+
+      // Sync selectedTeam if open in modal
+      setSelectedTeam(prev => {
+        if (prev && (prev.id === teamId || prev.teamNumber === updatedTeamNumber)) {
+          return {
+            ...prev,
+            ...updates,
+            mentorId: matchedMentor ? matchedMentor.id : (updates.mentorId || prev.mentorId),
+            mentorName: matchedMentor ? matchedMentor.name : (updates.mentorName || prev.mentorName),
+            mentorEmail: matchedMentor ? matchedMentor.email : prev.mentorEmail,
+            mentorDepartment: matchedMentor ? matchedMentor.department : prev.mentorDepartment,
+            mentorAvatar: matchedMentor ? matchedMentor.avatar : prev.mentorAvatar,
+          };
+        }
+        return prev;
+      });
+
+      // Sync students assigned to this team
+      if (matchedMentor) {
+        setStudents(prev =>
+          prev.map(s => {
+            if (s.teamId === teamId || (updatedTeamNumber && s.teamNumber === updatedTeamNumber)) {
+              return {
+                ...s,
+                mentorId: matchedMentor.id,
+                mentorName: matchedMentor.name,
+              };
+            }
+            return s;
+          })
+        );
+      }
     } catch (err) {
       console.error('Error updating team:', err);
       throw err;

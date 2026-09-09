@@ -7,7 +7,7 @@ import { ProgressBar } from '../ui/ProgressBar';
 import { UserAvatar } from '../ui/UserAvatar';
 import { DSA_TOPICS } from '../../data/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Users, Mail, Phone, ChevronRight, UserPlus, CheckCircle2, Trash2, ShieldAlert } from 'lucide-react';
+import { X, Users, Mail, Phone, ChevronRight, UserPlus, CheckCircle2, Trash2, ShieldAlert, UserCog } from 'lucide-react';
 import { Student, DSALevel } from '../../types';
 
 export const TeamDetailModal: React.FC = () => {
@@ -21,6 +21,7 @@ export const TeamDetailModal: React.FC = () => {
     currentUser,
     addStudent,
     removeStudent,
+    updateTeam,
   } = useAuth();
 
   const [isEnrollOpen, setIsEnrollOpen] = useState(false);
@@ -32,6 +33,9 @@ export const TeamDetailModal: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteConfirmStudent, setDeleteConfirmStudent] = useState<Student | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isChangeMentorOpen, setIsChangeMentorOpen] = useState(false);
+  const [selectedMentorIdInput, setSelectedMentorIdInput] = useState('');
+  const [isSavingMentor, setIsSavingMentor] = useState(false);
 
   // Lock background body scroll while modal is open
   useEffect(() => {
@@ -105,6 +109,27 @@ export const TeamDetailModal: React.FC = () => {
       alert(err.message || 'Failed to enroll student. Check connection.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleChangeMentorInModal = async () => {
+    if (!selectedTeam || !selectedMentorIdInput) return;
+    const newMentor = mentors.find((m) => m.id === selectedMentorIdInput);
+    if (!newMentor) return;
+
+    setIsSavingMentor(true);
+    try {
+      await updateTeam(selectedTeam.id, {
+        mentorId: newMentor.id,
+        mentorName: newMentor.name,
+      });
+      setIsChangeMentorOpen(false);
+      setSuccessMessage(`Faculty Mentor for ${selectedTeam.teamNumber} reassigned to ${newMentor.name}!`);
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err: any) {
+      alert(err?.message || 'Failed to reassign mentor.');
+    } finally {
+      setIsSavingMentor(false);
     }
   };
 
@@ -200,22 +225,75 @@ export const TeamDetailModal: React.FC = () => {
                 {/* Mentor Information */}
                 <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 flex flex-col justify-between">
                   <div>
-                    <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
-                      Assigned Faculty Mentor
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <UserAvatar
-                        src={mentor?.avatar || selectedTeam.mentorAvatar}
-                        name={selectedTeam.mentorName}
-                        role="MENTOR"
-                        size="md"
-                        showBadge
-                      />
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-slate-900 truncate">{selectedTeam.mentorName}</div>
-                        <div className="text-[11px] text-slate-500 truncate">{selectedTeam.mentorDepartment}</div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                        Assigned Faculty Mentor
                       </div>
+                      {role === 'DEAN' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedMentorIdInput(selectedTeam.mentorId || mentors[0]?.id || '');
+                            setIsChangeMentorOpen(!isChangeMentorOpen);
+                          }}
+                          className="px-2 py-0.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-bold inline-flex items-center gap-1 transition-colors shadow-2xs"
+                          title="Reassign Faculty Mentor"
+                        >
+                          <UserCog className="w-3.5 h-3.5" />
+                          <span>{isChangeMentorOpen ? 'Cancel' : 'Change Mentor'}</span>
+                        </button>
+                      )}
                     </div>
+
+                    {!isChangeMentorOpen ? (
+                      <div className="flex items-center gap-3">
+                        <UserAvatar
+                          src={mentor?.avatar || selectedTeam.mentorAvatar}
+                          name={selectedTeam.mentorName}
+                          role="MENTOR"
+                          size="md"
+                          showBadge
+                        />
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-slate-900 truncate">{selectedTeam.mentorName}</div>
+                          <div className="text-[11px] text-slate-500 truncate">{selectedTeam.mentorDepartment}</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 py-1 bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-100">
+                        <label className="block text-[10px] font-bold text-indigo-950 uppercase tracking-wider">
+                          Reassign Faculty Mentor:
+                        </label>
+                        <select
+                          value={selectedMentorIdInput}
+                          onChange={(e) => setSelectedMentorIdInput(e.target.value)}
+                          className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden font-medium text-slate-800"
+                        >
+                          {mentors.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name} — {m.department}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="flex items-center justify-end gap-1.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setIsChangeMentorOpen(false)}
+                            className="px-2.5 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-200/60 rounded-lg"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isSavingMentor}
+                            onClick={handleChangeMentorInModal}
+                            className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold transition-all shadow-2xs disabled:opacity-50 inline-flex items-center gap-1"
+                          >
+                            {isSavingMentor ? 'Updating...' : 'Confirm Reassignment'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="mt-3 pt-2 border-t border-slate-200/60 space-y-1 text-[11px] text-slate-600">
                     <div className="flex items-center gap-1.5 truncate">

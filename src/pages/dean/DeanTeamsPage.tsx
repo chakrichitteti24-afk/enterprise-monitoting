@@ -5,7 +5,7 @@ import { ProgressBar } from '../../components/ui/ProgressBar';
 import { StreakBadge } from '../../components/ui/StreakBadge';
 import { UserAvatar } from '../../components/ui/UserAvatar';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, Search, ChevronRight, LayoutGrid, List, Plus, Trash2, X, ShieldAlert, UserPlus } from 'lucide-react';
+import { Layers, Search, ChevronRight, LayoutGrid, List, Plus, Trash2, X, ShieldAlert, UserPlus, UserCog, UserCheck, CheckCircle2 } from 'lucide-react';
 import { Team } from '../../types';
 import { CreateMentorModal } from '../../components/modals/CreateMentorModal';
 
@@ -25,6 +25,13 @@ export const DeanTeamsPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteConfirmTeam, setDeleteConfirmTeam] = useState<Team | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [lastCreatedTeamNumber, setLastCreatedTeamNumber] = useState<string | null>(null);
+
+  // Edit / Reassign Mentor Modal State
+  const [editMentorTeam, setEditMentorTeam] = useState<Team | null>(null);
+  const [selectedNewMentorId, setSelectedNewMentorId] = useState('');
+  const [editTeamName, setEditTeamName] = useState('');
+  const [isUpdatingMentor, setIsUpdatingMentor] = useState(false);
 
   const openCreateModal = () => {
     const nextNum = teams.length + 1;
@@ -34,16 +41,46 @@ export const DeanTeamsPage: React.FC = () => {
     setIsCreateOpen(true);
   };
 
+  const openEditMentorModal = (team: Team, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditMentorTeam(team);
+    setSelectedNewMentorId(team.mentorId || mentors[0]?.id || '');
+    setEditTeamName(team.name);
+  };
+
+  const handleSaveTeamMentor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editMentorTeam) return;
+
+    const matchedMentor = mentors.find((m) => m.id === selectedNewMentorId) || mentors[0];
+    setIsUpdatingMentor(true);
+    try {
+      await updateTeam(editMentorTeam.id, {
+        name: editTeamName.trim() || editMentorTeam.name,
+        mentorId: matchedMentor?.id,
+        mentorName: matchedMentor?.name,
+      });
+      setSuccessMessage(`Team ${editMentorTeam.teamNumber} reassigned to ${matchedMentor?.name}!`);
+      setTimeout(() => setSuccessMessage(null), 4000);
+      setEditMentorTeam(null);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Failed to update team mentor.');
+    } finally {
+      setIsUpdatingMentor(false);
+    }
+  };
+
   // Lock body scroll while modals are open
   React.useEffect(() => {
-    if (isCreateOpen || isCreateMentorOpen || deleteConfirmTeam) {
+    if (isCreateOpen || isCreateMentorOpen || deleteConfirmTeam || editMentorTeam) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => {
         document.body.style.overflow = originalOverflow;
       };
     }
-  }, [isCreateOpen, isCreateMentorOpen, deleteConfirmTeam]);
+  }, [isCreateOpen, isCreateMentorOpen, deleteConfirmTeam, editMentorTeam]);
 
   const filteredTeams = teams
     .filter((t) => {
@@ -77,9 +114,13 @@ export const DeanTeamsPage: React.FC = () => {
         mentorEmail: matchedMentor?.email,
         mentorDepartment: matchedMentor?.department,
       });
+      setLastCreatedTeamNumber(finalTeamNum);
       setIsCreateOpen(false);
-      setSuccessMessage(`Cohort "${finalTeamNum} - ${finalTeamName}" created successfully!`);
-      setTimeout(() => setSuccessMessage(null), 4000);
+      setSuccessMessage(`Cohort "${finalTeamNum} - ${finalTeamName}" created with Mentor ${matchedMentor?.name}!`);
+      setTimeout(() => {
+        setSuccessMessage(null);
+        setLastCreatedTeamNumber(null);
+      }, 7000);
       setTeamNumberInput('');
       setTeamNameInput('');
       setSelectedMentorId('');
@@ -113,7 +154,22 @@ export const DeanTeamsPage: React.FC = () => {
             exit={{ opacity: 0, y: -8 }}
             className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs"
           >
-            <span>✅ {successMessage}</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{successMessage}</span>
+              {lastCreatedTeamNumber && (
+                <button
+                  onClick={() => {
+                    const created = teams.find(t => t.teamNumber === lastCreatedTeamNumber);
+                    if (created) openEditMentorModal(created);
+                  }}
+                  className="ml-2 px-2.5 py-1 bg-white border border-emerald-300 text-indigo-700 hover:text-indigo-900 rounded-xl font-bold inline-flex items-center gap-1 shadow-2xs transition-colors"
+                >
+                  <UserCog className="w-3.5 h-3.5" />
+                  <span>Change Mentor</span>
+                </button>
+              )}
+            </div>
             <button onClick={() => setSuccessMessage(null)} className="text-emerald-600 hover:text-emerald-900 p-1">
               <X className="w-3.5 h-3.5" />
             </button>
@@ -246,6 +302,14 @@ export const DeanTeamsPage: React.FC = () => {
                   <div className="flex items-center gap-1.5">
                     <StatusBadge status={t.status} size="sm" />
                     <button
+                      onClick={(e) => openEditMentorModal(t, e)}
+                      className="p-1 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                      title="Change Faculty Mentor"
+                      aria-label="Change Faculty Mentor"
+                    >
+                      <UserCog className="w-3.5 h-3.5" />
+                    </button>
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setDeleteConfirmTeam(t);
@@ -359,6 +423,14 @@ export const DeanTeamsPage: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-6 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={(e) => openEditMentorModal(t, e)}
+                          className="px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold inline-flex items-center gap-1 transition-colors"
+                          title="Change Faculty Mentor"
+                        >
+                          <UserCog className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Change Mentor</span>
+                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -514,6 +586,124 @@ export const DeanTeamsPage: React.FC = () => {
                   Confirm Delete
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: Change / Reassign Faculty Mentor for Team */}
+      <AnimatePresence>
+        {editMentorTeam && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 space-y-4"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center">
+                    <UserCog className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">
+                      Reassign Mentor — {editMentorTeam.teamNumber}
+                    </h3>
+                    <div className="text-[11px] text-slate-400">Institutional Faculty Assignment</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setEditMentorTeam(null)}
+                  className="p-1 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Current Assignment Summary */}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Currently Assigned Mentor</div>
+                <div className="flex items-center gap-2.5 pt-1">
+                  <UserAvatar name={editMentorTeam.mentorName} role="MENTOR" size="sm" showBadge />
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900 truncate">{editMentorTeam.mentorName}</div>
+                    <div className="text-[11px] text-slate-500 truncate">{editMentorTeam.mentorDepartment} • {editMentorTeam.mentorEmail}</div>
+                  </div>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveTeamMentor} className="space-y-4 pt-1">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Cohort Display Name</label>
+                  <input
+                    type="text"
+                    value={editTeamName}
+                    onChange={(e) => setEditTeamName(e.target.value)}
+                    placeholder="e.g. Lateral CSE 2026"
+                    className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Select New Faculty Mentor <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={selectedNewMentorId}
+                    onChange={(e) => setSelectedNewMentorId(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden text-slate-800 font-medium"
+                  >
+                    {mentors.map((m) => {
+                      const assignedCount = teams.filter(tm => tm.mentorId === m.id || tm.mentorName === m.name).length;
+                      return (
+                        <option key={m.id} value={m.id}>
+                          {m.name} ({m.department}) — {assignedCount} {assignedCount === 1 ? 'Team' : 'Teams'}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Selected Mentor Detail Card */}
+                {(() => {
+                  const candidate = mentors.find(m => m.id === selectedNewMentorId) || mentors[0];
+                  if (!candidate) return null;
+                  return (
+                    <div className="p-3 bg-indigo-50/60 rounded-2xl border border-indigo-100 flex items-center gap-3">
+                      <UserAvatar name={candidate.name} src={candidate.avatar} role="MENTOR" size="md" showBadge />
+                      <div className="min-w-0 flex-1 text-xs">
+                        <div className="font-bold text-indigo-950 truncate">{candidate.name}</div>
+                        <div className="text-[11px] text-indigo-700 truncate">{candidate.department}</div>
+                        <div className="text-[10px] text-indigo-600/80 truncate mt-0.5">{candidate.email}</div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded-full border border-indigo-200">
+                          {candidate.experienceYears || 8}y Exp
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div className="flex gap-2 justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditMentorTeam(null)}
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUpdatingMentor}
+                    className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-xs disabled:opacity-50 inline-flex items-center gap-1.5"
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span>{isUpdatingMentor ? 'Reassigning...' : 'Confirm Reassignment'}</span>
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

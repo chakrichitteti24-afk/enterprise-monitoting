@@ -221,6 +221,21 @@ class MockApiClient {
       };
     });
 
+    // Dean Team Update (Change Mentor / Name)
+    this.registerRoute('PUT', '/dean/teams/:id', (body, params) => {
+      const teamId = params ? params[0] : '1';
+      return {
+        status: 200,
+        data: {
+          id: parseInt(teamId, 10),
+          team_number: `Team ${teamId}`,
+          name: body.name || `Cohort ${teamId}`,
+          mentor_id: body.mentor_id || 1,
+          mentor_name: body.mentor_name || 'Faculty Mentor',
+        },
+      };
+    });
+
     // Dean Student Create
     this.registerRoute('POST', '/dean/students', (body) => {
       if (!body.name || !body.roll_number || !body.email) {
