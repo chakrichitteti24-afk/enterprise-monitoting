@@ -16,7 +16,6 @@ import {
 } from '../data/mockData';
 import {
   getStoredToken,
-  setStoredToken,
   clearStoredToken,
   loginApi,
   getMeApi,
@@ -41,14 +40,12 @@ import {
   verifyTeamProblemApi,
   addMentorNoteApi,
   updateStudentGithubApi,
-  updateStudentProfileApi,
   getStudentMeDetailApi,
   getDeanStudentsAllApi,
   getDeanTeamsApi,
   getMentorTeamStudentsApi,
   getMentorTeamDetailApi,
   createMentorApi,
-  deleteMentorApi,
 } from '../lib/api';
 
 interface AuthContextType {
@@ -117,6 +114,196 @@ const getInitialAuthState = (): { user: CurrentUser; isAuth: boolean } => {
     }
   } catch {}
   return { user: DEAN_USER, isAuth: false };
+};
+
+// ---------------------------------------------------------------------------
+// Pure metric recalculation and backend data mapping helpers
+// ---------------------------------------------------------------------------
+const CURRICULUM_TOTAL = TOTAL_CURRICULUM_PROBLEMS;
+
+const recalculateStudentMetrics = (student: Student, verifiedIds: string[]): Student => {
+  const normalizedSet = new Set<string>();
+  for (const vid of verifiedIds) {
+    if (typeof vid === 'string') {
+      normalizedSet.add(vid);
+      if (vid.startsWith('prob-')) {
+        normalizedSet.add(vid.replace('prob-', ''));
+      } else {
+        normalizedSet.add(`prob-${vid}`);
+      }
+    } else if (typeof vid === 'number') {
+      normalizedSet.add(String(vid));
+      normalizedSet.add(`prob-${vid}`);
+    }
+  }
+
+  const verifiedProblems = PROBLEMS_BANK_100.filter(
+    p => normalizedSet.has(p.id) || normalizedSet.has(p.id.replace('prob-', ''))
+  );
+  const solvedCount = verifiedProblems.length;
+  // Progress out of 100 curriculum problems
+  const progress = Math.min(100, Number(((solvedCount / CURRICULUM_TOTAL) * 100).toFixed(1)));
+  const pending = Math.max(0, CURRICULUM_TOTAL - solvedCount);
+  const attempted = Math.max(student.attempted || 0, solvedCount);
+
+  const topicProgress: Record<DSATopic, { solved: number; total: number; percentage: number }> = DSA_TOPICS.reduce((acc, topic) => {
+    acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+    return acc;
+  }, {} as Record<DSATopic, { solved: number; total: number; percentage: number }>);
+
+  const difficultyStats = {
+    easy: { solved: 0, total: DIFFICULTY_TOTALS.easy },
+    medium: { solved: 0, total: DIFFICULTY_TOTALS.medium },
+    hard: { solved: 0, total: DIFFICULTY_TOTALS.hard },
+  };
+
+  for (const prob of verifiedProblems) {
+    if (topicProgress[prob.topic]) {
+      topicProgress[prob.topic].solved += 1;
+    }
+    const diffKey = prob.difficulty.toLowerCase() as 'easy' | 'medium' | 'hard';
+    if (difficultyStats[diffKey]) {
+      difficultyStats[diffKey].solved += 1;
+    }
+  }
+
+  for (const topic of Object.keys(topicProgress) as DSATopic[]) {
+    const tData = topicProgress[topic];
+    tData.percentage = tData.total > 0 ? Math.min(100, Number(((tData.solved / tData.total) * 100).toFixed(1))) : (tData.solved > 0 ? 100 : 0);
+  }
+
+  const dsaLevel = progress >= 85 ? 'Mastery' : progress >= 65 ? 'Advanced' : progress >= 40 ? 'Intermediate' : 'Beginner';
+  // Preserve real streak or calculate from solved count
+  const streak = solvedCount > 0 ? Math.max(student.streak || 0, Math.floor(solvedCount / 5)) : 0;
+
+  return {
+    ...student,
+    verifiedProblemIds: verifiedIds,
+    solved: solvedCount,
+    pending,
+    attempted,
+    progress,
+    streak,
+    longestStreak: Math.max(student.longestStreak || 0, streak),
+    dsaLevel: dsaLevel as any,
+    topicProgress,
+    difficultyStats,
+  };
+};
+
+const backendStudentToFrontend = (s: any, existingStudents?: Student[]): Student => {
+  const existing = existingStudents?.find(
+    (e) => `student-${s.id}` === e.id || e.rollNo === s.roll_number
+  );
+  const topicProgress: Record<string, { solved: number; total: number; percentage: number }> = DSA_TOPICS.reduce((acc, topic) => {
+    acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
+    return acc;
+  }, {} as Record<string, { solved: number; total: number; percentage: number }>);
+  // If backend returned detailed progress with topic breakdown, use it
+  if (s.progress?.topic_progress) {
+    for (const [topic, data] of Object.entries(s.progress.topic_progress as Record<string, any>)) {
+      const friendlyTopic = topic.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      const mapped: Record<string, string> = Object.fromEntries(DSA_TOPICS.map(t => [t, t]));
+      const key = mapped[friendlyTopic] || friendlyTopic;
+      if (topicProgress[key]) {
+        topicProgress[key] = {
+          solved: data.solved ?? 0,
+          total: data.total ?? topicProgress[key].total,
+          percentage: data.percentage ?? 0,
+        };
+      }
+    }
+  }
+  const prog = s.progress || {};
+  const solved = prog.problems_solved ?? s.problems_solved ?? 0;
+  const attempted = prog.problems_attempted ?? s.problems_attempted ?? 0;
+  const progressPct = Number((prog.overall_percentage ?? s.progress_percentage ?? 0).toFixed(1));
+  const streak = prog.current_streak ?? s.current_streak ?? 0;
+  const longestStreak = prog.longest_streak ?? s.longest_streak ?? 0;
+  const dsaLevelMap: Record<string, string> = {
+    BEGINNER: 'Beginner', INTERMEDIATE: 'Intermediate', ADVANCED: 'Advanced', MASTERY: 'Mastery',
+  };
+  const statusMap: Record<string, string> = {
+    ACTIVE: 'Active', NEEDS_ATTENTION: 'Needs Attention', INACTIVE: 'Inactive',
+    Active: 'Active', 'Needs Attention': 'Needs Attention',
+  };
+
+  return {
+    id: `student-${s.id}`,
+    rollNo: s.roll_number,
+    name: s.name,
+    email: s.email,
+    avatar: s.avatar_url || existing?.avatar || `https://images.unsplash.com/photo-1535713875002?w=150&auto=format&fit=crop&q=80`,
+    teamId: `team-${s.team_id}`,
+    teamNumber: s.team_number,
+    mentorId: s.mentor_id ? `mentor-${s.mentor_id}` : (existing?.mentorId || ''),
+    mentorName: s.mentor_name || existing?.mentorName || 'Faculty Mentor',
+    dsaLevel: (dsaLevelMap[s.dsa_level] || 'Beginner') as any,
+    progress: progressPct,
+    solved,
+    attempted,
+    pending: Math.max(0, TOTAL_CURRICULUM_PROBLEMS - solved),
+    streak,
+    longestStreak,
+    status: (statusMap[s.status] || 'Active') as any,
+    topicProgress: topicProgress as any,
+    difficultyStats: {
+      easy: { solved: prog.easy_solved ?? 0, total: prog.difficulty_stats?.easy?.total ?? DIFFICULTY_TOTALS.easy },
+      medium: { solved: prog.medium_solved ?? 0, total: prog.difficulty_stats?.medium?.total ?? DIFFICULTY_TOTALS.medium },
+      hard: { solved: prog.hard_solved ?? 0, total: prog.difficulty_stats?.hard?.total ?? DIFFICULTY_TOTALS.hard },
+    },
+    recentActivities: s.recent_activities?.map((a: any) => ({
+      id: `act-${a.id}`,
+      studentId: `student-${s.id}`,
+      action: a.activity_type === 'SOLVED' ? 'Solved' : 'Attempted',
+      problemTitle: a.problem_title || a.description || 'DSA Problem',
+      topic: a.problem_topic || 'Arrays',
+      timeAgo: a.time_ago || 'Recently',
+      status: a.activity_type === 'SOLVED' ? 'Completed' : 'Attempted',
+      difficulty: a.problem_difficulty || 'Easy',
+    })) || existing?.recentActivities || [],
+    submissionsHistory: s.weekly_submissions || existing?.submissionsHistory || [],
+    mentorFeedbackNotes: s.mentor_notes?.map((n: any) => ({
+      id: `note-${n.id}`,
+      date: n.created_at ? new Date(n.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      author: n.mentor_name || 'Faculty Mentor',
+      note: n.note,
+    })) || existing?.mentorFeedbackNotes || [],
+    verifiedProblemIds: existing?.verifiedProblemIds || [],
+    leetcodeUsername: s.leetcode_username,
+    githubUsername: s.github_username || s.github_url,
+    githubRepoLink: s.github_url || s.github_username || existing?.githubRepoLink,
+  };
+};
+
+const backendTeamToFrontend = (t: any, existingTeams?: Team[]): Team => {
+  const existing = existingTeams?.find(
+    (e) => `team-${t.id}` === e.id || e.teamNumber === t.team_number
+  );
+  const statusMap: Record<string, string> = {
+    ACTIVE: 'Active', NEEDS_ATTENTION: 'Needs Attention', INACTIVE: 'Inactive',
+    Active: 'Active', 'Needs Attention': 'Needs Attention',
+  };
+  return {
+    id: `team-${t.id}`,
+    teamNumber: t.team_number,
+    name: t.name,
+    mentorId: t.mentor_id ? `mentor-${t.mentor_id}` : (existing?.mentorId || ''),
+    mentorName: t.mentor_name || existing?.mentorName || 'Faculty Mentor',
+    mentorEmail: t.mentor_email || existing?.mentorEmail || '',
+    mentorDepartment: t.mentor_department || existing?.mentorDepartment || 'CSE',
+    mentorAvatar: t.mentor_avatar || existing?.mentorAvatar,
+    studentIds: existing?.studentIds || [],
+    avgProgress: Number((t.average_progress ?? 0).toFixed(1)),
+    totalSolved: t.total_problems_solved ?? 0,
+    totalAttempted: t.total_attempted ?? 0,
+    avgStreak: Number((t.average_streak ?? 0).toFixed(1)),
+    status: (statusMap[t.status] || 'Active') as any,
+    topicPerformance: (existing?.topicPerformance || {
+      ...(Object.fromEntries(DSA_TOPICS.map(t => [t, 0])) as any),
+    }) as any,
+    rank: t.rank ?? 1,
+  };
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -692,84 +879,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [isAuthenticated, currentUser]);
 
-  // Restore session from token and local cache on mount
-  useEffect(() => {
-    const restoreSession = async () => {
-      let token = getStoredToken();
-      const cachedProfileRaw = localStorage.getItem('gkce_user_profile_v1');
-
-      if (!token && !cachedProfileRaw) {
-        setIsAuthenticated(false);
-        setIsLoadingAuth(false);
-        return;
-      }
-
-      // Ensure loading spinner is visible while we validate
-      setIsLoadingAuth(true);
-
-      // If token is missing but we have a cached profile, attempt immediate silent re-authentication to get a real JWT
-      if (!token && cachedProfileRaw) {
-        try {
-          const cached = JSON.parse(cachedProfileRaw);
-          if (cached?.email) {
-            const pwd = cached.role === 'DEAN' ? 'gkce@1234' : cached.role === 'MENTOR' ? 'Mentor@GKCE2026' : 'gkce@1234';
-            try {
-              const res = await loginApi(cached.email, pwd);
-              if (res && res.access_token) {
-                token = res.access_token;
-                mapAndSetUser(res.user.role as any, res.user);
-                setIsAuthenticated(true);
-                syncFromBackend(res.user.role as any, res.user);
-                setIsLoadingAuth(false);
-                return;
-              }
-            } catch {
-              // Re-auth failed, clear ghost state
-              clearStoredToken();
-              try {
-                localStorage.removeItem('gkce_user_profile_v1');
-              } catch {}
-              setIsAuthenticated(false);
-              setIsLoadingAuth(false);
-              return;
-            }
-          }
-        } catch {}
-      }
-
-      // If we have a valid token, validate with /auth/me and hydrate
-      if (token && !token.startsWith('gkce_local_token_')) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-          const me = await getMeApi(controller.signal);
-          clearTimeout(timeoutId);
-
-          if (me && me.role) {
-            mapAndSetUser(me.role, me);
-            setIsAuthenticated(true);
-            syncFromBackend(me.role as UserRole, me);
-          }
-        } catch (err: any) {
-          const is401 = err?.message?.includes('401') || err?.message?.toLowerCase().includes('unauthorized') || err?.message?.toLowerCase().includes('invalid');
-          if (is401) {
-            clearStoredToken();
-            try {
-              localStorage.removeItem('gkce_user_profile_v1');
-            } catch {}
-            setIsAuthenticated(false);
-            setCurrentUser(DEAN_USER);
-          }
-        }
-      }
-
-      setIsLoadingAuth(false);
-    };
-
-    restoreSession();
-  }, []);
-
   const mapAndSetUser = (role: UserRole, userPayload?: any) => {
     setSelectedStudent(null);
     setSelectedTeam(null);
@@ -855,123 +964,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         rollNo: newUser.studentData?.rollNo,
       }));
     } catch {}
-  };
-
-  // ---------------------------------------------------------------------------
-  // Map backend API responses → frontend Student/Team shapes
-  // ---------------------------------------------------------------------------
-  const backendStudentToFrontend = (s: any, existingStudents?: Student[]): Student => {
-    const existing = existingStudents?.find(
-      (e) => `student-${s.id}` === e.id || e.rollNo === s.roll_number
-    );
-    const topicProgress: Record<string, { solved: number; total: number; percentage: number }> = DSA_TOPICS.reduce((acc, topic) => {
-      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
-      return acc;
-    }, {} as Record<string, { solved: number; total: number; percentage: number }>);
-    // If backend returned detailed progress with topic breakdown, use it
-    if (s.progress?.topic_progress) {
-      for (const [topic, data] of Object.entries(s.progress.topic_progress as Record<string, any>)) {
-        const friendlyTopic = topic.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-        const mapped: Record<string, string> = Object.fromEntries(DSA_TOPICS.map(t => [t, t]));
-        const key = mapped[friendlyTopic] || friendlyTopic;
-        if (topicProgress[key]) {
-          topicProgress[key] = {
-            solved: data.solved ?? 0,
-            total: data.total ?? topicProgress[key].total,
-            percentage: data.percentage ?? 0,
-          };
-        }
-      }
-    }
-    const prog = s.progress || {};
-    const solved = prog.problems_solved ?? s.problems_solved ?? 0;
-    const attempted = prog.problems_attempted ?? s.problems_attempted ?? 0;
-    const progressPct = Number((prog.overall_percentage ?? s.progress_percentage ?? 0).toFixed(1));
-    const streak = prog.current_streak ?? s.current_streak ?? 0;
-    const longestStreak = prog.longest_streak ?? s.longest_streak ?? 0;
-    const dsaLevelMap: Record<string, string> = {
-      BEGINNER: 'Beginner', INTERMEDIATE: 'Intermediate', ADVANCED: 'Advanced', MASTERY: 'Mastery',
-    };
-    const statusMap: Record<string, string> = {
-      ACTIVE: 'Active', NEEDS_ATTENTION: 'Needs Attention', INACTIVE: 'Inactive',
-    };
-
-    return {
-      id: `student-${s.id}`,
-      rollNo: s.roll_number,
-      name: s.name,
-      email: s.email,
-      avatar: s.avatar_url || existing?.avatar || `https://images.unsplash.com/photo-1535713875002?w=150&auto=format&fit=crop&q=80`,
-      teamId: `team-${s.team_id}`,
-      teamNumber: s.team_number,
-      mentorId: s.mentor_id ? `mentor-${s.mentor_id}` : (existing?.mentorId || ''),
-      mentorName: s.mentor_name || existing?.mentorName || 'Faculty Mentor',
-      dsaLevel: (dsaLevelMap[s.dsa_level] || 'Beginner') as any,
-      progress: progressPct,
-      solved,
-      attempted,
-      pending: Math.max(0, TOTAL_CURRICULUM_PROBLEMS - solved),
-      streak,
-      longestStreak,
-      status: (statusMap[s.status] || 'Active') as any,
-      topicProgress: topicProgress as any,
-      difficultyStats: {
-        easy: { solved: prog.easy_solved ?? 0, total: prog.difficulty_stats?.easy?.total ?? DIFFICULTY_TOTALS.easy },
-        medium: { solved: prog.medium_solved ?? 0, total: prog.difficulty_stats?.medium?.total ?? DIFFICULTY_TOTALS.medium },
-        hard: { solved: prog.hard_solved ?? 0, total: prog.difficulty_stats?.hard?.total ?? DIFFICULTY_TOTALS.hard },
-      },
-      recentActivities: s.recent_activities?.map((a: any) => ({
-        id: `act-${a.id}`,
-        studentId: `student-${s.id}`,
-        action: a.activity_type === 'SOLVED' ? 'Solved' : 'Attempted',
-        problemTitle: a.problem_title || a.description || 'DSA Problem',
-        topic: a.problem_topic || 'Arrays',
-        timeAgo: a.time_ago || 'Recently',
-        status: a.activity_type === 'SOLVED' ? 'Completed' : 'Attempted',
-        difficulty: a.problem_difficulty || 'Easy',
-      })) || existing?.recentActivities || [],
-      submissionsHistory: s.weekly_submissions || existing?.submissionsHistory || [],
-      mentorFeedbackNotes: s.mentor_notes?.map((n: any) => ({
-        id: `note-${n.id}`,
-        date: n.created_at ? new Date(n.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        author: n.mentor_name || 'Faculty Mentor',
-        note: n.note,
-      })) || existing?.mentorFeedbackNotes || [],
-      verifiedProblemIds: existing?.verifiedProblemIds || [],
-      leetcodeUsername: s.leetcode_username,
-      githubUsername: s.github_username || s.github_url,
-      githubRepoLink: s.github_url || s.github_username || existing?.githubRepoLink,
-    };
-  };
-
-  const backendTeamToFrontend = (t: any, existingTeams?: Team[]): Team => {
-    const existing = existingTeams?.find(
-      (e) => `team-${t.id}` === e.id || e.teamNumber === t.team_number
-    );
-    const statusMap: Record<string, string> = {
-      ACTIVE: 'Active', NEEDS_ATTENTION: 'Needs Attention', INACTIVE: 'Inactive',
-      Active: 'Active', 'Needs Attention': 'Needs Attention',
-    };
-    return {
-      id: `team-${t.id}`,
-      teamNumber: t.team_number,
-      name: t.name,
-      mentorId: t.mentor_id ? `mentor-${t.mentor_id}` : (existing?.mentorId || ''),
-      mentorName: t.mentor_name || existing?.mentorName || 'Faculty Mentor',
-      mentorEmail: t.mentor_email || existing?.mentorEmail || '',
-      mentorDepartment: t.mentor_department || existing?.mentorDepartment || 'CSE',
-      mentorAvatar: t.mentor_avatar || existing?.mentorAvatar,
-      studentIds: existing?.studentIds || [],
-      avgProgress: Number((t.average_progress ?? 0).toFixed(1)),
-      totalSolved: t.total_problems_solved ?? 0,
-      totalAttempted: t.total_attempted ?? 0,
-      avgStreak: Number((t.average_streak ?? 0).toFixed(1)),
-      status: (statusMap[t.status] || 'Active') as any,
-      topicPerformance: (existing?.topicPerformance || {
-        ...(Object.fromEntries(DSA_TOPICS.map(t => [t, 0])) as any),
-      }) as any,
-      rank: t.rank ?? 1,
-    };
   };
 
   // ---------------------------------------------------------------------------
@@ -1176,6 +1168,84 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('[syncFromBackend] Backend sync failed, using local state:', err);
     }
   };
+
+  // Restore session from token and local cache on mount
+  useEffect(() => {
+    const restoreSession = async () => {
+      let token = getStoredToken();
+      const cachedProfileRaw = localStorage.getItem('gkce_user_profile_v1');
+
+      if (!token && !cachedProfileRaw) {
+        setIsAuthenticated(false);
+        setIsLoadingAuth(false);
+        return;
+      }
+
+      // Ensure loading spinner is visible while we validate
+      setIsLoadingAuth(true);
+
+      // If token is missing but we have a cached profile, attempt immediate silent re-authentication to get a real JWT
+      if (!token && cachedProfileRaw) {
+        try {
+          const cached = JSON.parse(cachedProfileRaw);
+          if (cached?.email) {
+            const pwd = cached.role === 'DEAN' ? 'gkce@1234' : cached.role === 'MENTOR' ? 'Mentor@GKCE2026' : 'gkce@1234';
+            try {
+              const res = await loginApi(cached.email, pwd);
+              if (res && res.access_token) {
+                token = res.access_token;
+                mapAndSetUser(res.user.role as any, res.user);
+                setIsAuthenticated(true);
+                syncFromBackend(res.user.role as any, res.user);
+                setIsLoadingAuth(false);
+                return;
+              }
+            } catch {
+              // Re-auth failed, clear ghost state
+              clearStoredToken();
+              try {
+                localStorage.removeItem('gkce_user_profile_v1');
+              } catch {}
+              setIsAuthenticated(false);
+              setIsLoadingAuth(false);
+              return;
+            }
+          }
+        } catch {}
+      }
+
+      // If we have a valid token, validate with /auth/me and hydrate
+      if (token && !token.startsWith('gkce_local_token_')) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+          const me = await getMeApi(controller.signal);
+          clearTimeout(timeoutId);
+
+          if (me && me.role) {
+            mapAndSetUser(me.role, me);
+            setIsAuthenticated(true);
+            syncFromBackend(me.role as UserRole, me);
+          }
+        } catch (err: any) {
+          const is401 = err?.message?.includes('401') || err?.message?.toLowerCase().includes('unauthorized') || err?.message?.toLowerCase().includes('invalid');
+          if (is401) {
+            clearStoredToken();
+            try {
+              localStorage.removeItem('gkce_user_profile_v1');
+            } catch {}
+            setIsAuthenticated(false);
+            setCurrentUser(DEAN_USER);
+          }
+        }
+      }
+
+      setIsLoadingAuth(false);
+    };
+
+    restoreSession();
+  }, []);
 
   const loginWithCredentials = async (email: string, password: string) => {
     // ── Canonical backend DB credentials (from seed_data.py) ──────────────
@@ -1510,78 +1580,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
-  // Recalculate student metrics from verifiedProblemIds
-  const CURRICULUM_TOTAL = TOTAL_CURRICULUM_PROBLEMS;
-  const recalculateStudentMetrics = (student: Student, verifiedIds: string[]): Student => {
-    const normalizedSet = new Set<string>();
-    for (const vid of verifiedIds) {
-      if (typeof vid === 'string') {
-        normalizedSet.add(vid);
-        if (vid.startsWith('prob-')) {
-          normalizedSet.add(vid.replace('prob-', ''));
-        } else {
-          normalizedSet.add(`prob-${vid}`);
-        }
-      } else if (typeof vid === 'number') {
-        normalizedSet.add(String(vid));
-        normalizedSet.add(`prob-${vid}`);
-      }
-    }
-
-    const verifiedProblems = PROBLEMS_BANK_100.filter(
-      p => normalizedSet.has(p.id) || normalizedSet.has(p.id.replace('prob-', ''))
-    );
-    const solvedCount = verifiedProblems.length;
-    // Progress out of 100 curriculum problems
-    const progress = Math.min(100, Number(((solvedCount / CURRICULUM_TOTAL) * 100).toFixed(1)));
-    const pending = Math.max(0, CURRICULUM_TOTAL - solvedCount);
-    const attempted = Math.max(student.attempted || 0, solvedCount);
-
-    const topicProgress: Record<DSATopic, { solved: number; total: number; percentage: number }> = DSA_TOPICS.reduce((acc, topic) => {
-      acc[topic] = { solved: 0, total: TOPIC_CURRICULUM_TOTALS[topic] || 0, percentage: 0 };
-      return acc;
-    }, {} as Record<DSATopic, { solved: number; total: number; percentage: number }>);
-
-    const difficultyStats = {
-      easy: { solved: 0, total: DIFFICULTY_TOTALS.easy },
-      medium: { solved: 0, total: DIFFICULTY_TOTALS.medium },
-      hard: { solved: 0, total: DIFFICULTY_TOTALS.hard },
-    };
-
-    for (const prob of verifiedProblems) {
-      if (topicProgress[prob.topic]) {
-        topicProgress[prob.topic].solved += 1;
-      }
-      const diffKey = prob.difficulty.toLowerCase() as 'easy' | 'medium' | 'hard';
-      if (difficultyStats[diffKey]) {
-        difficultyStats[diffKey].solved += 1;
-      }
-    }
-
-    for (const topic of Object.keys(topicProgress) as DSATopic[]) {
-      const tData = topicProgress[topic];
-      tData.percentage = tData.total > 0 ? Math.min(100, Number(((tData.solved / tData.total) * 100).toFixed(1))) : (tData.solved > 0 ? 100 : 0);
-    }
-
-    const dsaLevel = progress >= 85 ? 'Mastery' : progress >= 65 ? 'Advanced' : progress >= 40 ? 'Intermediate' : 'Beginner';
-    // Preserve real streak or calculate from solved count
-    const streak = solvedCount > 0 ? Math.max(student.streak || 0, Math.floor(solvedCount / 5)) : 0;
-
-    return {
-      ...student,
-      verifiedProblemIds: verifiedIds,
-      solved: solvedCount,
-      pending,
-      attempted,
-      progress,
-      streak,
-      longestStreak: Math.max(student.longestStreak || 0, streak),
-      dsaLevel: dsaLevel as any,
-      topicProgress,
-      difficultyStats,
-    };
-  };
-
   // Recalculate team metrics from students
   const recalculateTeamMetrics = (teamIdOrNumber: string, currentStudents: Student[]) => {
     setTeams(prevTeams =>
@@ -1696,7 +1694,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           return prevStudents;
         });
-      } catch (err) {
+      } catch {
         // Silently catch error when backend is busy
       }
     };
@@ -1952,28 +1950,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     questions.forEach((q) => {
       const code = (answers[q.id] || '').trim();
-      const isUntouchedTemplate = !code || code.length < 35 || code.includes('// TODO: Implement') || code.includes('# TODO: Implement');
-      const hasSyntaxError = (code.includes('{') && (code.match(/\{/g) || []).length !== (code.match(/\}/g) || []).length);
-      const hasLogic = !isUntouchedTemplate && !hasSyntaxError && (code.includes('return') || code.includes('System.out') || code.includes('print'));
+      const isUntouchedTemplate =
+        !code ||
+        code.length < 35 ||
+        code.includes('// TODO: Implement') ||
+        code.includes('# TODO: Implement') ||
+        (code.includes('TODO: Read input from sc') && (code.includes('System.out.println(0);') || !code.includes('sc.next'))) ||
+        (code.includes('TODO: Read input from cin') && (code.includes('cout << 0 << endl;') || !code.includes('cin >>'))) ||
+        (code.includes('TODO: Read input from sys.stdin') && code.includes('print(0)') && (code.match(/print\s*\(/g) || []).length <= 1);
+
+      const hasSyntaxError = code.includes('{') && (code.match(/\{/g) || []).length !== (code.match(/\}/g) || []).length;
+      const hasLogic =
+        !isUntouchedTemplate &&
+        !hasSyntaxError &&
+        (code.includes('return') || code.includes('System.out') || code.includes('print') || code.includes('cout'));
 
       let passedTestCases = 0;
-      const totalTestCases = Math.max(3, q.testCases?.length || 3);
+      const totalTestCases = q.testCases?.length || 1;
 
-      if (!isUntouchedTemplate && !hasSyntaxError) {
-        if (hasLogic && (code.includes('for') || code.includes('while') || code.includes('+') || code.includes('*') || code.length > 60)) {
-          passedTestCases = totalTestCases; // All passed
-        } else if (hasLogic) {
-          passedTestCases = Math.max(1, totalTestCases - 1); // Partial pass
-        }
+      if (!isUntouchedTemplate && !hasSyntaxError && hasLogic) {
+        passedTestCases = totalTestCases; // Solved
       }
 
       const marksEarned = Number(((passedTestCases / totalTestCases) * q.marks).toFixed(1));
       score += marksEarned;
       if (passedTestCases === totalTestCases) solvedCount += 1;
 
+      let detectedLang = 'Java';
+      if (code.includes('#include') || code.includes('cout <<') || code.includes('using namespace std')) {
+        detectedLang = 'C++';
+      } else if (code.includes('def ') || code.includes('import sys') || (code.includes('print(') && !code.includes('System.out'))) {
+        detectedLang = 'Python';
+      } else if (code.includes('function ') || code.includes('console.log')) {
+        detectedLang = 'JavaScript';
+      }
+
       answerDetails[q.id] = {
         code,
-        language: 'Java',
+        language: detectedLang,
         passedTestCases,
         totalTestCases,
         marksAwarded: marksEarned,

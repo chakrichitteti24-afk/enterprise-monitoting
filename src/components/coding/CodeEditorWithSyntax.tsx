@@ -57,71 +57,77 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
   const highlightedHTML = useMemo(() => {
     if (!value) return '';
 
-    // 1. HTML entity escape
-    let escaped = value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    const escapeHtml = (text: string) =>
+      text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-    const tokens: string[] = [];
-    const addToken = (html: string) => {
-      tokens.push(html);
-      return `___GKCE_TOK_${tokens.length - 1}___`;
-    };
-
-    // 2. Comments (Single line & multi-line & python #)
-    escaped = escaped.replace(/(\/\/[^\n]*|\/\*[\s\S]*?\*\/|#[^\n]*)/g, (m) => {
-      return addToken(`<span style="color: #6a737d; font-style: italic;">${m}</span>`);
-    });
-
-    // 3. String literals ("..." or '...')
-    escaped = escaped.replace(/("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g, (m) => {
-      return addToken(`<span style="color: #98c379;">${m}</span>`);
-    });
-
-    // 4. Keywords
-    const keywords = [
+    const keywords = new Set([
       'class', 'public', 'private', 'protected', 'static', 'final', 'void', 'int', 'long', 'float', 'double',
-      'boolean', 'bool', 'char', 'string', 'if', 'else', 'for', 'while', 'do', 'return', 'def', 'import',
+      'boolean', 'bool', 'char', 'string', 'if', 'else', 'elif', 'for', 'while', 'do', 'return', 'def', 'import',
       'from', 'in', 'is', 'not', 'and', 'or', 'true', 'false', 'True', 'False', 'null', 'nullptr', 'None',
       'new', 'struct', 'auto', 'const', 'let', 'var', 'function', 'async', 'await', 'try', 'catch', 'finally',
-      'throw', 'throws', 'sizeof', 'typeof', 'include', 'namespace', 'using', 'std', 'this', 'self', 'extends', 'implements'
-    ];
-    const kwRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'g');
-    escaped = escaped.replace(kwRegex, (m) => {
-      return addToken(`<span style="color: #c678dd; font-weight: 600;">${m}</span>`);
-    });
+      'throw', 'throws', 'sizeof', 'typeof', 'include', 'namespace', 'using', 'std', 'this', 'self', 'extends',
+      'implements', 'pass', 'break', 'continue', 'yield', 'lambda', 'as', 'with', 'except', 'raise'
+    ]);
 
-    // 5. Types & Built-in Classes
-    const types = [
+    const types = new Set([
       'Solution', 'Scanner', 'System', 'String', 'Math', 'Vector', 'vector', 'List', 'ArrayList',
       'Map', 'HashMap', 'Set', 'HashSet', 'Stack', 'Queue', 'TreeNode', 'ListNode', 'Console',
-      'Integer', 'Boolean', 'Double', 'Long', 'Character', 'Object', 'Arrays', 'Collections', 'cin', 'cout', 'endl'
-    ];
-    const typeRegex = new RegExp(`\\b(${types.join('|')})\\b`, 'g');
-    escaped = escaped.replace(typeRegex, (m) => {
-      return addToken(`<span style="color: #e5c07b;">${m}</span>`);
-    });
+      'Integer', 'Boolean', 'Double', 'Long', 'Character', 'Object', 'Arrays', 'Collections',
+      'cin', 'cout', 'endl', 'print', 'input', 'range', 'len', 'str', 'dict', 'list', 'tuple'
+    ]);
 
-    // 6. Function / Method Invocations (word followed by '(')
-    escaped = escaped.replace(/\b([a-zA-Z_]\w*)(?=\s*\()/g, (m) => {
-      return addToken(`<span style="color: #61afef;">${m}</span>`);
-    });
+    // Master tokenizer regex:
+    // 1: Comments (//..., /*...*/, #...)
+    // 2: Strings ("...", '...', `...`)
+    // 3: Numbers (\d+(\.\d+)?)
+    // 4: Words / Identifiers ([a-zA-Z_]\w*)
+    const tokenRegex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/|#[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z_]\w*\b)/g;
 
-    // 7. Numbers
-    escaped = escaped.replace(/\b\d+(\.\d+)?\b/g, (m) => {
-      return addToken(`<span style="color: #d19a66;">${m}</span>`);
-    });
+    let result = '';
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
 
-    // 8. Restore protected tokens
-    escaped = escaped.replace(/___GKCE_TOK_(\d+)___/g, (_, id) => tokens[parseInt(id, 10)]);
+    while ((match = tokenRegex.exec(value)) !== null) {
+      if (match.index > lastIndex) {
+        result += escapeHtml(value.slice(lastIndex, match.index));
+      }
+
+      const [fullMatch, comment, str, num, word] = match;
+
+      if (comment !== undefined) {
+        result += `<span style="color: #6a737d; font-style: italic;">${escapeHtml(comment)}</span>`;
+      } else if (str !== undefined) {
+        result += `<span style="color: #98c379;">${escapeHtml(str)}</span>`;
+      } else if (num !== undefined) {
+        result += `<span style="color: #d19a66;">${escapeHtml(num)}</span>`;
+      } else if (word !== undefined) {
+        if (keywords.has(word)) {
+          result += `<span style="color: #c678dd; font-weight: 600;">${escapeHtml(word)}</span>`;
+        } else if (types.has(word)) {
+          result += `<span style="color: #e5c07b;">${escapeHtml(word)}</span>`;
+        } else {
+          const rest = value.slice(tokenRegex.lastIndex);
+          if (/^\s*\(/.test(rest)) {
+            result += `<span style="color: #61afef;">${escapeHtml(word)}</span>`;
+          } else {
+            result += escapeHtml(word);
+          }
+        }
+      }
+
+      lastIndex = tokenRegex.lastIndex;
+    }
+
+    if (lastIndex < value.length) {
+      result += escapeHtml(value.slice(lastIndex));
+    }
 
     // Ensure trailing newline renders properly
     if (value.endsWith('\n')) {
-      escaped += '<br/>';
+      result += '<br/>';
     }
 
-    return escaped;
+    return result;
   }, [value, language]);
 
   // Line count

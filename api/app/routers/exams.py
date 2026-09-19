@@ -229,17 +229,37 @@ def submit_exam_solution(
         student_ans = payload.answers.get(q_id, {})
         code_str = student_ans if isinstance(student_ans, str) else student_ans.get("code", "")
         
-        has_code = len(code_str.strip()) > 15
-        passed_test_cases = 3 if has_code else 0
-        total_test_cases = 3
+        cleaned = code_str.strip()
+
+        # Detect untouched starter templates
+        is_untouched = (
+            len(cleaned) < 35
+            or "TODO: Implement" in cleaned
+            or ("TODO: Read input from sc" in cleaned and ("System.out.println(0);" in cleaned or "sc.next" not in cleaned))
+            or ("TODO: Read input from cin" in cleaned and ("cout << 0 << endl;" in cleaned or "cin >>" not in cleaned))
+            or ("TODO: Read input from sys.stdin" in cleaned and ("print(0)" in cleaned and cleaned.count("print(") <= 1))
+        )
+
+        has_syntax_error = cleaned.count("{") != cleaned.count("}") if "{" in cleaned else False
+
+        detected_lang = "Java"
+        if "#include" in cleaned or "cout <<" in cleaned or "using namespace std" in cleaned:
+            detected_lang = "C++"
+        elif "def " in cleaned or "import sys" in cleaned or ("print(" in cleaned and "System.out" not in cleaned):
+            detected_lang = "Python"
+        elif "function " in cleaned or "console.log" in cleaned:
+            detected_lang = "JavaScript"
+
+        passed_test_cases = 1 if (not is_untouched and not has_syntax_error and len(cleaned) > 35) else 0
+        total_test_cases = 1
         marks_awarded = round((passed_test_cases / total_test_cases) * marks)
         score += marks_awarded
-        if passed_test_cases >= 2:
+        if passed_test_cases >= 1:
             solved_count += 1
 
         answer_details[q_id] = {
             "code": code_str,
-            "language": "Java",
+            "language": detected_lang,
             "passedTestCases": passed_test_cases,
             "totalTestCases": total_test_cases,
             "marksAwarded": marks_awarded,

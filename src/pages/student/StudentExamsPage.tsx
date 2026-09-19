@@ -31,7 +31,8 @@ export const StudentExamsPage: React.FC = () => {
   const [shuffledQuestions, setShuffledQuestions] = useState<ExamQuestion[]>([]);
   const [studentPaperSetCode, setStudentPaperSetCode] = useState<string>('SET-A');
   const [selectedQuestionIdx, setSelectedQuestionIdx] = useState<number>(0);
-  const [codeAnswers, setCodeAnswers] = useState<Record<string, string>>({});
+  const [codeAnswers, setCodeAnswers] = useState<Record<string, Record<'java' | 'cpp' | 'python', string>>>({});
+  const [questionLanguages, setQuestionLanguages] = useState<Record<string, 'java' | 'cpp' | 'python'>>({});
   const [testedQuestions, setTestedQuestions] = useState<Record<string, boolean>>({});
   const [selectedLanguage, setSelectedLanguage] = useState<'java' | 'cpp' | 'python'>('java');
   const [testOutput, setTestOutput] = useState<string | null>(null);
@@ -62,7 +63,12 @@ export const StudentExamsPage: React.FC = () => {
     if (!activeLiveExam) return;
     setIsSubmitting(true);
     try {
-      const result = await submitExamSolution(activeLiveExam.id, codeAnswers);
+      const flatAnswers: Record<string, string> = {};
+      shuffledQuestions.forEach(q => {
+        const lang = questionLanguages[q.id] || selectedLanguage;
+        flatAnswers[q.id] = codeAnswers[q.id]?.[lang] || getStarterCode(q, lang);
+      });
+      const result = await submitExamSolution(activeLiveExam.id, flatAnswers);
       setCompletedSubmissionResult(result);
       setActiveLiveExam(null);
       setShowSubmitConfirmModal(false);
@@ -71,7 +77,7 @@ export const StudentExamsPage: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [activeLiveExam, codeAnswers, submitExamSolution]);
+  }, [activeLiveExam, codeAnswers, questionLanguages, selectedLanguage, shuffledQuestions, submitExamSolution, getStarterCode]);
 
   // Lock body scroll while live exam or scorecard is open
   useEffect(() => {
@@ -117,12 +123,20 @@ export const StudentExamsPage: React.FC = () => {
     setTestOutput(null);
     setTestedQuestions({});
 
-    // Populate initial starter code for all shuffled questions
-    const initialCode: Record<string, string> = {};
+    // Populate initial starter code for each language across all shuffled questions
+    const initialCode: Record<string, Record<'java' | 'cpp' | 'python', string>> = {};
+    const initialLangs: Record<string, 'java' | 'cpp' | 'python'> = {};
     randomizedQs.forEach(q => {
-      initialCode[q.id] = getStarterCode(q, selectedLanguage);
+      initialCode[q.id] = {
+        java: getStarterCode(q, 'java'),
+        cpp: getStarterCode(q, 'cpp'),
+        python: getStarterCode(q, 'python'),
+      };
+      initialLangs[q.id] = 'java';
     });
     setCodeAnswers(initialCode);
+    setQuestionLanguages(initialLangs);
+    setSelectedLanguage('java');
   };
 
   const currentQuestion = shuffledQuestions[selectedQuestionIdx];
@@ -130,35 +144,54 @@ export const StudentExamsPage: React.FC = () => {
   const handleLanguageChange = (newLang: 'java' | 'cpp' | 'python') => {
     setSelectedLanguage(newLang);
     if (currentQuestion) {
-      const existing = (codeAnswers[currentQuestion.id] || '').trim();
-      if (!existing || existing.includes('// Solution for') || existing.includes('# Solution for') || existing.length < 35) {
-        setCodeAnswers(prev => ({
+      setQuestionLanguages(prev => ({
+        ...prev,
+        [currentQuestion.id]: newLang,
+      }));
+      setCodeAnswers(prev => {
+        const qAnswers = prev[currentQuestion.id] || {
+          java: getStarterCode(currentQuestion, 'java'),
+          cpp: getStarterCode(currentQuestion, 'cpp'),
+          python: getStarterCode(currentQuestion, 'python'),
+        };
+        return {
           ...prev,
-          [currentQuestion.id]: getStarterCode(currentQuestion, newLang),
-        }));
-      }
+          [currentQuestion.id]: {
+            ...qAnswers,
+            [newLang]: qAnswers[newLang] || getStarterCode(currentQuestion, newLang),
+          },
+        };
+      });
+    }
+  };
+
+  const handleSelectQuestion = (idx: number) => {
+    setTestOutput(null);
+    setSelectedQuestionIdx(idx);
+    const targetQ = shuffledQuestions[idx];
+    if (targetQ) {
+      const qLang = questionLanguages[targetQ.id] || selectedLanguage;
+      setSelectedLanguage(qLang);
     }
   };
 
   const handleRunTest = async () => {
     if (!currentQuestion) return;
-    setMobileExamTab('BENCH');
     setIsRunningTest(true);
-    const currentCode = (codeAnswers[currentQuestion.id] || '').trim();
+    const activeLang = questionLanguages[currentQuestion.id] || selectedLanguage;
+    const currentCode = (codeAnswers[currentQuestion.id]?.[activeLang] || getStarterCode(currentQuestion, activeLang)).trim();
 
-    const testCasesToRun = (currentQuestion.testCases && currentQuestion.testCases.length > 0)
-      ? currentQuestion.testCases.map((tc, i) => ({
-          id: i + 1,
-          input: tc.input || '5',
-          expectedOutput: tc.output || '15',
-          isHidden: tc.isHidden || false,
-        }))
-      : [
-          { id: 1, input: '5', expectedOutput: '15' },
-          { id: 2, input: '3', expectedOutput: '6' },
-        ];
+    const firstCase = currentQuestion.testCases?.[0] || { input: '5', output: '15' };
+    const testCasesToRun = [
+      {
+        id: 1,
+        input: firstCase.input || '5',
+        expectedOutput: firstCase.output || '15',
+        isHidden: false,
+      },
+    ];
 
-    const result = await executeRealCode(currentCode, selectedLanguage, testCasesToRun);
+    const result = await executeRealCode(currentCode, activeLang, testCasesToRun);
     setIsRunningTest(false);
 
     if (result.status === 'ACCEPTED') {
@@ -169,8 +202,13 @@ export const StudentExamsPage: React.FC = () => {
   };
 
   const answeredCount = useMemo(() => {
-    return shuffledQuestions.filter(q => (codeAnswers[q.id] || '').trim().length > 15).length;
-  }, [shuffledQuestions, codeAnswers]);
+    return shuffledQuestions.filter(q => {
+      const lang = questionLanguages[q.id] || selectedLanguage;
+      const code = (codeAnswers[q.id]?.[lang] || '').trim();
+      const starter = getStarterCode(q, lang).trim();
+      return code.length > 25 && code !== starter;
+    }).length;
+  }, [shuffledQuestions, codeAnswers, questionLanguages, selectedLanguage, getStarterCode]);
 
   const formatTimer = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -256,7 +294,7 @@ export const StudentExamsPage: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 items-stretch">
           {exams.map(exam => {
             const isLive = exam.status === 'LIVE';
             const isCompleted = exam.status === 'COMPLETED';
@@ -269,24 +307,24 @@ export const StudentExamsPage: React.FC = () => {
               <motion.div
                 key={exam.id}
                 whileHover={{ y: -2 }}
-                className={`bg-white rounded-3xl border p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-4 ${
+                className={`bg-white rounded-3xl border p-5 sm:p-6 shadow-xs flex flex-col justify-between h-full ${
                   isLive && !studentSubmission
                     ? 'border-emerald-300 ring-2 ring-emerald-500/20'
                     : 'border-slate-200/80'
                 }`}
               >
-                <div className="space-y-3">
+                <div className="flex-1 flex flex-col justify-between space-y-3">
                   {/* Header: Root Assessment badge & status */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-800 text-xs font-mono font-extrabold border border-blue-100">
+                      <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-800 text-xs font-mono font-extrabold border border-blue-100 shrink-0">
                         OFFICIAL ASSESSMENT {String(exam.weekNumber || 1).padStart(2, '0')}
                       </span>
                       {(() => {
                         const tier = getExamTier(exam.weekNumber || 1);
                         return (
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ${
                               tier.tier === 'EASY'
                                 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                                 : tier.tier === 'MEDIUM'
@@ -298,7 +336,7 @@ export const StudentExamsPage: React.FC = () => {
                           </span>
                         );
                       })()}
-                      <span className="text-xs font-semibold text-slate-500">{exam.topicFocus}</span>
+                      <span className="text-xs font-semibold text-slate-500 truncate max-w-[150px]">{exam.topicFocus}</span>
                     </div>
 
                     <span
@@ -320,10 +358,10 @@ export const StudentExamsPage: React.FC = () => {
                     <span>Curated & Authorized by: <strong className="text-slate-800">{exam.createdBy || 'Root (Dean / Sudo Admin)'}</strong></span>
                   </div>
 
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug line-clamp-1 min-h-[26px]">
                     {exam.title}
                   </h3>
-                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed min-h-[36px]">
                     {exam.description}
                   </p>
 
@@ -345,9 +383,9 @@ export const StudentExamsPage: React.FC = () => {
                 </div>
 
                 {/* Action Area */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between min-h-[48px]">
                   {studentSubmission ? (
-                    <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center justify-between w-full flex-wrap gap-2">
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-slate-500">Your Score:</span>
                         <span className="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 font-extrabold text-xs border border-emerald-200 font-mono">
@@ -359,20 +397,20 @@ export const StudentExamsPage: React.FC = () => {
                       </div>
                       <button
                         onClick={() => setViewScorecardSubmission({ exam, submission: studentSubmission })}
-                        className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors"
+                        className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
                       >
                         View Scorecard
                       </button>
                     </div>
                   ) : isLive ? (
-                    <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center justify-between w-full flex-wrap gap-2">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 animate-pulse">
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>Exam Live ({totalQ} Problems)</span>
                       </div>
                       <button
                         onClick={() => handleStartExam(exam)}
-                        className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-500/25 flex items-center gap-1.5 transition-all"
+                        className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-500/25 flex items-center gap-1.5 transition-all cursor-pointer"
                       >
                         <Play className="w-3.5 h-3.5 fill-white" />
                         <span>Start Exam (Shuffled Paper)</span>
@@ -406,37 +444,37 @@ export const StudentExamsPage: React.FC = () => {
               className="fixed inset-0 bg-slate-950/85 backdrop-blur-md"
             />
             <motion.div
-              initial={{ scale: 0.96, opacity: 0 }}
+              initial={{ scale: 0.97, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.96, opacity: 0 }}
-              className="relative w-full max-w-6xl bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 z-10 flex flex-col max-h-[96vh] overflow-hidden text-white"
+              exit={{ scale: 0.97, opacity: 0 }}
+              className="relative w-full max-w-[1550px] h-[94vh] max-h-[94vh] bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 z-10 flex flex-col overflow-hidden text-white"
             >
               {/* Top Arena Header */}
-              <div className="p-4 sm:p-5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 sm:gap-3 bg-slate-950/80">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center font-bold text-xs font-mono shrink-0">
+              <div className="px-4 sm:px-6 py-2.5 sm:py-3 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-950/90 shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center font-bold text-xs font-mono shrink-0 shadow-md shadow-blue-600/30">
                     W{String(activeLiveExam.weekNumber).padStart(2, '0')}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-sm sm:text-base font-bold text-white leading-tight">
+                      <h2 className="text-sm sm:text-base font-bold text-white truncate max-w-[280px] sm:max-w-[450px] md:max-w-none">
                         {activeLiveExam.title}
                       </h2>
                       {/* Paper Set Badge */}
-                      <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-mono font-bold flex items-center gap-1">
+                      <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-mono font-bold flex items-center gap-1 shrink-0">
                         <Shuffle className="w-3 h-3 text-indigo-400" />
                         <span>Paper: {studentPaperSetCode}</span>
                       </span>
                     </div>
-                    <div className="text-xs text-slate-400 mt-0.5">
-                      Student: <strong className="text-slate-200">{student?.name}</strong> &bull; Roll: <strong className="text-blue-400">{student?.rollNo}</strong> &bull; {answeredCount} of {shuffledQuestions.length} Answered
+                    <div className="text-xs text-slate-400 mt-0.5 truncate">
+                      Candidate: <strong className="text-slate-200">{student?.name}</strong> &bull; Roll: <strong className="text-blue-400 font-mono">{student?.rollNo}</strong> &bull; <span className="text-emerald-400 font-mono font-bold">{answeredCount} of {shuffledQuestions.length}</span> Answered
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                   {/* Timer Pill */}
-                  <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-300 font-mono font-bold text-xs sm:text-sm shrink-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-300 font-mono font-bold text-xs sm:text-sm shrink-0">
                     <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" />
                     <span>{formatTimer(timeLeftSeconds)}</span>
                   </div>
@@ -444,24 +482,24 @@ export const StudentExamsPage: React.FC = () => {
                   <button
                     onClick={() => setShowSubmitConfirmModal(true)}
                     disabled={isSubmitting}
-                    className="px-3 sm:px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-500/30 flex items-center gap-1 sm:gap-1.5 transition-all shrink-0"
+                    className="px-3.5 sm:px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-500/30 flex items-center gap-1.5 transition-all shrink-0 cursor-pointer"
                   >
                     <CheckCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span>Submit</span>
+                    <span>Submit Exam</span>
                   </button>
                 </div>
               </div>
 
               {/* Anti-Cheating Shuffling Info Strip */}
-              <div className="bg-indigo-950/40 border-b border-slate-800 px-4 py-2 text-xs flex items-center justify-between text-indigo-200">
-                <div className="flex items-center gap-2">
+              <div className="h-8 shrink-0 bg-indigo-950/40 border-b border-slate-800 px-4 sm:px-6 text-xs flex items-center justify-between text-indigo-200">
+                <div className="flex items-center gap-2 truncate">
                   <ShieldCheck className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                  <span>
-                    <strong>Anti-Cheating Shuffled Paper ({studentPaperSetCode}):</strong> Questions are sequenced uniquely for your roll number ({student?.rollNo}).
+                  <span className="truncate">
+                    <strong>Anti-Cheating Sequence ({studentPaperSetCode}):</strong> Questions are sequenced uniquely for roll no ({student?.rollNo}).
                   </span>
                 </div>
-                <span className="font-mono text-[10px] text-indigo-300 hidden sm:inline">
-                  {shuffledQuestions.length} Questions Total
+                <span className="font-mono text-[10px] text-indigo-300 hidden sm:inline shrink-0 ml-2">
+                  {shuffledQuestions.length} Questions Pool
                 </span>
               </div>
 
@@ -469,7 +507,7 @@ export const StudentExamsPage: React.FC = () => {
               <div className="md:hidden flex items-center bg-slate-900 border-b border-slate-800 p-1.5 gap-1 shrink-0 select-none text-xs">
                 <button
                   onClick={() => setMobileExamTab('QUESTION')}
-                  className={`flex-1 py-1.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all text-xs ${
+                  className={`flex-1 py-1.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all text-xs cursor-pointer ${
                     mobileExamTab === 'QUESTION'
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'text-slate-400 hover:text-slate-200 bg-slate-800/60'
@@ -480,71 +518,90 @@ export const StudentExamsPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setMobileExamTab('EDITOR')}
-                  className={`flex-1 py-1.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all text-xs ${
-                    mobileExamTab === 'EDITOR'
+                  className={`flex-1 py-1.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all text-xs cursor-pointer ${
+                    mobileExamTab === 'EDITOR' || mobileExamTab === 'BENCH'
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'text-slate-400 hover:text-slate-200 bg-slate-800/60'
                   }`}
                 >
                   <Code2 className="w-3.5 h-3.5" />
-                  <span>Editor</span>
-                </button>
-                <button
-                  onClick={() => setMobileExamTab('BENCH')}
-                  className={`flex-1 py-1.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all text-xs ${
-                    mobileExamTab === 'BENCH'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'text-slate-400 hover:text-slate-200 bg-slate-800/60'
-                  }`}
-                >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>Test Bench</span>
+                  <span>Editor & Test Bench</span>
                   {testOutput && <span className="w-2 h-2 rounded-full bg-emerald-400" />}
                 </button>
               </div>
 
               {/* Main Workspace Body */}
-              <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-                {/* Left Column: Question Palette & Problem Statement */}
+              <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
+                {/* Left Column: Problem & Question Palette */}
                 <div
-                  className={`w-full md:w-1/2 p-4 sm:p-5 overflow-y-auto border-r border-slate-800 space-y-4 ${
-                    mobileExamTab === 'QUESTION' ? 'flex flex-col flex-1' : 'hidden md:flex md:flex-col'
+                  className={`w-full md:w-1/2 flex flex-col h-full min-h-0 border-r border-slate-800 bg-slate-950/20 overflow-hidden ${
+                    mobileExamTab === 'QUESTION' ? 'flex flex-1' : 'hidden md:flex'
                   }`}
                 >
-                  {/* Question Palette Grid (Q1 to Q20) */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs text-slate-400">
-                      <span className="font-bold uppercase tracking-wider text-[10px]">
-                        Question Palette ({shuffledQuestions.length} Problems):
+                  {/* Left Column Top Sub-Header (Mirrors Right Column Language Header) */}
+                  <div className="h-11 shrink-0 px-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 font-semibold">
+                      <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                      <span className="text-white font-bold">
+                        Problem {selectedQuestionIdx + 1} of {shuffledQuestions.length}
                       </span>
-                      <span className="text-[11px] font-mono text-emerald-400">
-                        {answeredCount} / {shuffledQuestions.length} Answered
-                      </span>
+                      {currentQuestion && (
+                        <>
+                          <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-[10px] font-semibold hidden sm:inline">
+                            {currentQuestion.topic}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                              currentQuestion.difficulty === 'Easy'
+                                ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-500/30'
+                                : currentQuestion.difficulty === 'Medium'
+                                ? 'bg-amber-900/60 text-amber-300 border border-amber-500/30'
+                                : 'bg-rose-900/60 text-rose-300 border border-rose-500/30'
+                            }`}
+                          >
+                            {currentQuestion.difficulty}
+                          </span>
+                        </>
+                      )}
                     </div>
+                    {currentQuestion && (
+                      <span className="px-2 py-0.5 rounded-md bg-blue-900/40 border border-blue-500/30 text-blue-300 text-[11px] font-mono font-bold shrink-0">
+                        {currentQuestion.marks} Marks
+                      </span>
+                    )}
+                  </div>
 
-                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-2 bg-slate-950/60 rounded-2xl border border-slate-800">
+                  {/* Pinned Question Palette Ribbon (Always visible, doesn't scroll away) */}
+                  <div className="shrink-0 px-3 sm:px-4 py-2 bg-slate-950/60 border-b border-slate-800 flex items-center gap-2 overflow-x-auto custom-scrollbar">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider shrink-0">
+                      Palette:
+                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
                       {shuffledQuestions.map((q, idx) => {
                         const isCurrent = selectedQuestionIdx === idx;
-                        const isAnswered = (codeAnswers[q.id] || '').trim().length > 15;
+                        const qLang = questionLanguages[q.id] || selectedLanguage;
+                        const ansCode = (codeAnswers[q.id]?.[qLang] || '').trim();
+                        const starter = getStarterCode(q, qLang).trim();
+                        const isAnswered = ansCode.length > 25 && ansCode !== starter;
                         const isTested = testedQuestions[q.id];
 
                         return (
                           <button
                             key={q.id}
-                            onClick={() => setSelectedQuestionIdx(idx)}
-                            className={`w-9 h-8 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center relative ${
+                            onClick={() => handleSelectQuestion(idx)}
+                            className={`h-7 px-2.5 rounded-lg text-xs font-bold font-mono transition-all flex items-center gap-1 shrink-0 relative cursor-pointer ${
                               isCurrent
                                 ? 'bg-blue-600 text-white ring-2 ring-blue-400 shadow-md scale-105'
                                 : isTested
-                                ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-600/50'
+                                ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-600/50 hover:bg-emerald-900/80'
                                 : isAnswered
-                                ? 'bg-amber-950/80 text-amber-300 border border-amber-600/50'
-                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                ? 'bg-amber-950/80 text-amber-300 border border-amber-600/50 hover:bg-amber-900/80'
+                                : 'bg-slate-800/80 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
                             }`}
                           >
                             <span>Q{idx + 1}</span>
                             {isTested && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 absolute top-1 right-1" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
                             )}
                           </button>
                         );
@@ -552,68 +609,87 @@ export const StudentExamsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Current Problem Details */}
-                  {currentQuestion && (
-                    <div className="space-y-3 pt-2">
-                      <div className="flex items-start justify-between gap-2">
+                  {/* Scrollable Problem Statement & Test Case Benchmark */}
+                  <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4 custom-scrollbar">
+                    {currentQuestion ? (
+                      <>
                         <div>
-                          <div className="text-[10px] font-mono font-bold text-blue-400 uppercase">
-                            Problem {selectedQuestionIdx + 1} of {shuffledQuestions.length} &bull; {currentQuestion.marks} Marks
+                          <div className="text-[10px] font-mono font-bold text-blue-400 uppercase tracking-wider">
+                            DSA Assessment &bull; {currentQuestion.topic}
                           </div>
-                          <h3 className="text-base font-bold text-white mt-0.5">
+                          <h3 className="text-base sm:text-lg font-bold text-white mt-1">
                             {currentQuestion.title}
                           </h3>
                         </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-xs font-semibold">
-                            {currentQuestion.topic}
-                          </span>
-                          <span
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                              currentQuestion.difficulty === 'Easy'
-                                ? 'bg-emerald-900/60 text-emerald-300'
-                                : currentQuestion.difficulty === 'Medium'
-                                ? 'bg-amber-900/60 text-amber-300'
-                                : 'bg-rose-900/60 text-rose-300'
-                            }`}
-                          >
-                            {currentQuestion.difficulty}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 text-xs text-slate-300 leading-relaxed space-y-2">
-                        <div className="font-bold text-slate-100">Problem Statement:</div>
-                        <p>{currentQuestion.description}</p>
-                      </div>
-
-                      {/* Sample Test Cases */}
-                      <div className="space-y-2">
-                        <div className="text-xs font-bold text-slate-400 uppercase">Evaluation Benchmarks:</div>
-                        {currentQuestion.testCases?.map((tc, i) => (
-                          <div key={i} className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono space-y-1">
-                            <div className="text-slate-400">
-                              {tc.isHidden ? '🔒 Hidden Case' : `Test Case #${i + 1}`} Input: <span className="text-emerald-400">{tc.input}</span>
-                            </div>
-                            <div className="text-slate-400">
-                              Expected Output: <span className="text-blue-400">{tc.output}</span>
-                            </div>
+                        <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 text-xs text-slate-300 leading-relaxed space-y-2">
+                          <div className="font-bold text-slate-100 flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                            <span>Problem Statement</span>
                           </div>
-                        ))}
+                          <p className="whitespace-pre-line">{currentQuestion.description}</p>
+                        </div>
+
+                        {/* Single Evaluation Benchmark */}
+                        <div className="space-y-2">
+                          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                            Evaluation Benchmark (1 Test Case):
+                          </div>
+                          {currentQuestion.testCases?.slice(0, 1).map((tc, i) => (
+                            <div key={i} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono space-y-2 shadow-inner">
+                              <div>
+                                <div className="text-[10px] text-slate-500 uppercase font-bold">Standard Input:</div>
+                                <div className="text-emerald-400 bg-slate-900/80 px-2.5 py-1.5 rounded-lg mt-1 border border-slate-800">
+                                  {tc.input}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] text-slate-500 uppercase font-bold">Expected Output:</div>
+                                <div className="text-blue-400 bg-slate-900/80 px-2.5 py-1.5 rounded-lg mt-1 border border-slate-800">
+                                  {tc.output}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-12 text-slate-500 text-xs">
+                        Select a question from the palette above to view its details.
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+
+                  {/* Left Column Bottom Sub-Footer (Mirrors Right Column Footer) */}
+                  <div className="h-14 shrink-0 px-4 py-3 bg-slate-900/95 border-t border-slate-800 flex items-center justify-between text-xs z-20">
+                    <button
+                      onClick={() => handleSelectQuestion(Math.max(0, selectedQuestionIdx - 1))}
+                      disabled={selectedQuestionIdx === 0}
+                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold disabled:opacity-40 cursor-pointer transition-colors"
+                    >
+                      &larr; Prev Question
+                    </button>
+                    <span className="text-xs text-slate-400 font-mono hidden sm:inline">
+                      {selectedQuestionIdx + 1} of {shuffledQuestions.length}
+                    </span>
+                    <button
+                      onClick={() => handleSelectQuestion(Math.min(shuffledQuestions.length - 1, selectedQuestionIdx + 1))}
+                      disabled={selectedQuestionIdx === shuffledQuestions.length - 1}
+                      className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold disabled:opacity-40 cursor-pointer transition-colors"
+                    >
+                      Next Question &rarr;
+                    </button>
+                  </div>
                 </div>
 
                 {/* Right Column: Code Editor & Live Test Bench */}
                 <div
-                  className={`w-full md:w-1/2 p-4 sm:p-5 flex-col justify-between space-y-3 bg-slate-950/40 ${
+                  className={`w-full md:w-1/2 flex flex-col h-full min-h-0 overflow-hidden bg-slate-950/40 ${
                     mobileExamTab !== 'QUESTION' ? 'flex flex-1' : 'hidden md:flex'
                   }`}
                 >
-                  {/* Language Selector & Editor Header */}
-                  <div className={`flex items-center justify-between text-xs pb-2 border-b border-slate-800 ${mobileExamTab === 'BENCH' ? 'hidden md:flex' : 'flex'}`}>
+                  {/* Language Selector & Editor Header (Mirrors Left Column Top Sub-Header) */}
+                  <div className="h-11 shrink-0 px-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between text-xs">
                     <span className="text-slate-400 font-semibold flex items-center gap-1.5">
                       <Code2 className="w-3.5 h-3.5 text-blue-400" />
                       <span>Code Solution (Q{selectedQuestionIdx + 1})</span>
@@ -623,10 +699,10 @@ export const StudentExamsPage: React.FC = () => {
                         <button
                           key={lang}
                           onClick={() => handleLanguageChange(lang)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase transition-all ${
-                            selectedLanguage === lang
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase transition-all cursor-pointer ${
+                            (questionLanguages[currentQuestion?.id || ''] || selectedLanguage) === lang
+                              ? 'bg-blue-600 text-white shadow-xs'
+                              : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
                           }`}
                         >
                           {lang}
@@ -635,59 +711,86 @@ export const StudentExamsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Code Editor (VS Code Multi-Color Syntax Highlighting) */}
-                  <div className={`rounded-2xl border border-slate-700 overflow-hidden min-h-[300px] flex-col ${mobileExamTab === 'BENCH' ? 'hidden md:flex' : 'flex flex-1'}`}>
-                    <CodeEditorWithSyntax
-                      value={currentQuestion ? codeAnswers[currentQuestion.id] || '' : ''}
-                      onChange={val => {
-                        if (!currentQuestion) return;
-                        setCodeAnswers({
-                          ...codeAnswers,
-                          [currentQuestion.id]: val,
-                        });
-                      }}
-                      language={selectedLanguage as any}
-                      fontSize={13}
-                      placeholder="// Implement optimal logic for this problem..."
-                      minHeight="280px"
-                    />
+                  {/* Middle Scrollable Area: Code Editor & Live Test Bench */}
+                  <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 min-h-0 custom-scrollbar">
+                    {/* Code Editor */}
+                    <div className="rounded-2xl border border-slate-700 overflow-hidden shrink-0 shadow-inner">
+                      <CodeEditorWithSyntax
+                        value={
+                          currentQuestion
+                            ? (codeAnswers[currentQuestion.id]?.[questionLanguages[currentQuestion.id] || selectedLanguage] ??
+                               getStarterCode(currentQuestion, questionLanguages[currentQuestion.id] || selectedLanguage))
+                            : ''
+                        }
+                        onChange={val => {
+                          if (!currentQuestion) return;
+                          const activeLang = questionLanguages[currentQuestion.id] || selectedLanguage;
+                          setCodeAnswers(prev => ({
+                            ...prev,
+                            [currentQuestion.id]: {
+                              ...(prev[currentQuestion.id] || {
+                                java: getStarterCode(currentQuestion, 'java'),
+                                cpp: getStarterCode(currentQuestion, 'cpp'),
+                                python: getStarterCode(currentQuestion, 'python'),
+                              }),
+                              [activeLang]: val,
+                            },
+                          }));
+                        }}
+                        language={(questionLanguages[currentQuestion?.id || ''] || selectedLanguage) as any}
+                        fontSize={13}
+                        placeholder="// Implement optimal logic for this problem..."
+                        minHeight="290px"
+                      />
+                    </div>
+
+                    {/* Test Bench Output */}
+                    <div className="space-y-1.5 shrink-0">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                        <span>Evaluation Test Bench Logs</span>
+                        {testOutput && (
+                          <button
+                            onClick={() => setTestOutput(null)}
+                            className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                      {testOutput ? (
+                        <div className="p-3.5 rounded-2xl bg-[#050d1a] border border-slate-800 text-xs font-mono max-h-44 overflow-y-auto space-y-1 custom-scrollbar shadow-inner">
+                          {testOutput.split('\n').map((tLine, tIdx) => {
+                            const isPass = tLine.includes('PASSED') || tLine.includes('passed') || tLine.includes('✅') || tLine.includes('SUCCESS');
+                            const isFail = tLine.includes('FAILED') || tLine.includes('Error') || tLine.includes('ERROR') || tLine.includes('❌');
+                            const isMetric = tLine.includes('Runtime:') || tLine.includes('Memory:');
+                            return (
+                              <div
+                                key={tIdx}
+                                className={
+                                  isPass
+                                    ? 'text-emerald-300 font-semibold'
+                                    : isFail
+                                    ? 'text-rose-400 font-bold'
+                                    : isMetric
+                                    ? 'text-amber-300 font-mono'
+                                    : 'text-slate-300'
+                                }
+                              >
+                                {tLine}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-3 rounded-2xl bg-[#050d1a] border border-slate-800/60 text-xs text-slate-500 font-mono text-center">
+                          Click "Run Test Bench" below to evaluate your solution against test cases.
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Test Bench Output */}
-                  <div className={`${mobileExamTab === 'EDITOR' ? 'hidden md:block' : 'block'}`}>
-                    {testOutput ? (
-                      <div className="p-3.5 rounded-2xl bg-[#050d1a] border border-slate-800 text-xs font-mono max-h-36 overflow-y-auto space-y-1">
-                        {testOutput.split('\n').map((tLine, tIdx) => {
-                          const isPass = tLine.includes('PASSED') || tLine.includes('passed') || tLine.includes('✅') || tLine.includes('SUCCESS');
-                          const isFail = tLine.includes('FAILED') || tLine.includes('Error') || tLine.includes('ERROR') || tLine.includes('❌');
-                          const isMetric = tLine.includes('Runtime:') || tLine.includes('Memory:');
-                          return (
-                            <div
-                              key={tIdx}
-                              className={
-                                isPass
-                                  ? 'text-emerald-300 font-semibold'
-                                  : isFail
-                                  ? 'text-rose-400 font-bold'
-                                  : isMetric
-                                  ? 'text-amber-300 font-mono'
-                                  : 'text-slate-300'
-                              }
-                            >
-                              {tLine}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="p-3 rounded-2xl bg-[#050d1a] border border-slate-800/60 text-xs text-slate-500 font-mono text-center">
-                        Click "Run Test Bench" to evaluate your solution against test cases.
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Run Test & Navigation Buttons */}
-                  <div className="flex items-center justify-between pt-2">
+                  {/* Right Column Bottom Sub-Footer (Mirrors Left Column Footer) */}
+                  <div className="h-14 shrink-0 px-4 py-3 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md flex items-center justify-between gap-2 z-20">
                     <button
                       onClick={handleRunTest}
                       disabled={isRunningTest}
@@ -706,27 +809,17 @@ export const StudentExamsPage: React.FC = () => {
                       )}
                     </button>
 
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setTestOutput(null);
-                          setSelectedQuestionIdx(prev => Math.max(0, prev - 1));
-                        }}
-                        disabled={selectedQuestionIdx === 0}
-                        className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold disabled:opacity-40"
-                      >
-                        &larr; Prev
-                      </button>
-                      <button
-                        onClick={() => {
-                          setTestOutput(null);
-                          setSelectedQuestionIdx(prev => Math.min(shuffledQuestions.length - 1, prev + 1));
-                        }}
-                        disabled={selectedQuestionIdx === shuffledQuestions.length - 1}
-                        className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold disabled:opacity-40"
-                      >
-                        Next Q &rarr;
-                      </button>
+                    <div className="flex items-center gap-2">
+                      {testedQuestions[currentQuestion?.id || ''] ? (
+                        <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-xl">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Passed Benchmark</span>
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          Q{selectedQuestionIdx + 1} not tested yet
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

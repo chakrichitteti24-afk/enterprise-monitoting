@@ -364,17 +364,17 @@ export const DeanExamsPage: React.FC = () => {
             <motion.div
               key={exam.id}
               whileHover={{ y: -2 }}
-              className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-5 sm:p-6 space-y-4 flex flex-col justify-between"
+              className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-5 sm:p-6 flex flex-col justify-between h-full"
             >
-              <div className="space-y-3">
+              <div className="flex-1 flex flex-col justify-between space-y-3">
                 {/* Card Header: Week Badge, Tier Badge & Status */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-800 text-xs font-mono font-extrabold border border-blue-100">
+                    <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-800 text-xs font-mono font-extrabold border border-blue-100 shrink-0">
                       WEEK {String(exam.weekNumber).padStart(2, '0')}
                     </span>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ${
                         tierInfo.tier === 'EASY'
                           ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                           : tierInfo.tier === 'MEDIUM'
@@ -401,10 +401,10 @@ export const DeanExamsPage: React.FC = () => {
                   </span>
                 </div>
 
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug line-clamp-1 min-h-[26px]">
                   {exam.title}
                 </h3>
-                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed min-h-[36px]">
                   {exam.description}
                 </p>
 
@@ -430,7 +430,7 @@ export const DeanExamsPage: React.FC = () => {
               </div>
 
               {/* Action Toolbar (Root Privileges) */}
-              <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+              <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 min-h-[48px]">
                 <div className="text-xs text-slate-500 flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5 text-slate-400" />
                   <span>
@@ -443,7 +443,7 @@ export const DeanExamsPage: React.FC = () => {
                   {isScheduled && (
                     <button
                       onClick={() => setExamStatus(exam.id, 'LIVE')}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
                     >
                       <Play className="w-3 h-3 fill-white" />
                       <span>Make LIVE</span>
@@ -453,7 +453,7 @@ export const DeanExamsPage: React.FC = () => {
                   {isLive && (
                     <button
                       onClick={() => setExamStatus(exam.id, 'COMPLETED')}
-                      className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                      className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                       <span>End / Complete</span>
@@ -463,7 +463,7 @@ export const DeanExamsPage: React.FC = () => {
                   {/* Inspect Questions Button */}
                   <button
                     onClick={() => setInspectQuestionsExam(exam)}
-                    className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold flex items-center gap-1 transition-colors"
+                    className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     <span>View {questionCount} Qs</span>
@@ -472,14 +472,14 @@ export const DeanExamsPage: React.FC = () => {
                   {/* View Results Button */}
                   <button
                     onClick={() => setSelectedExamForResults(exam)}
-                    className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors"
+                    className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
                   >
                     Results ({submissionCount})
                   </button>
 
                   <button
                     onClick={() => setDeleteConfirmId(exam.id)}
-                    className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                     title="Delete Exam"
                   >
                     <Trash2 className="w-4 h-4" />

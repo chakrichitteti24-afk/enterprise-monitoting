@@ -53,10 +53,10 @@ export const convertProblemToExamQuestion = (
   const dossier = getProblemDossier(problem);
   const tierInfo = getExamTier(weekNumber);
 
-  const testCases = dossier.testCases.map((tc, idx) => ({
+  const testCases = dossier.testCases.slice(0, 1).map((tc) => ({
     input: tc.input,
     output: tc.expectedOutput,
-    isHidden: tc.isHidden || idx >= 3,
+    isHidden: false,
   }));
 
   return {

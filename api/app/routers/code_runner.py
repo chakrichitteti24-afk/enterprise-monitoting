@@ -67,16 +67,30 @@ def run_code_sandbox(req: CodeRunRequest):
             tc_input = tc.input.strip()
             expected = tc.expectedOutput.strip()
 
-            runner_script = f"""
-import sys, json, math, ast
+            indented_code = chr(10).join('    ' + line for line in code.splitlines())
+            runner_script = f"""import sys, json, math, ast, io
 
-{code}
+_stdout_buffer = io.StringIO()
+_orig_stdout = sys.stdout
+sys.stdout = _stdout_buffer
+__name__ = '__student_module__'
 
-# Test Case Execution Wrapper
+try:
+{indented_code}
+except Exception as _e:
+    sys.stdout = _orig_stdout
+    print(json.dumps({{"error": str(_e)}}))
+    sys.exit(0)
+
 def __run_test():
     raw_input = {repr(tc_input)}
     try:
-        # Find solution method
+        printed_already = _stdout_buffer.getvalue().strip()
+        if printed_already:
+            sys.stdout = _orig_stdout
+            print(json.dumps({{"actual": printed_already}}))
+            return
+
         target_fn = None
         if 'Solution' in globals() and hasattr(Solution, '{req.entry_point}'):
             sol = Solution()
@@ -87,45 +101,59 @@ def __run_test():
             target_fn = globals()['solve']
         elif 'Solution' in globals():
             sol = Solution()
-            # find first public method
             methods = [m for m in dir(sol) if not m.startswith('_')]
             if methods:
                 target_fn = getattr(sol, methods[0])
+        elif 'main' in globals():
+            target_fn = globals()['main']
 
-        if target_fn is None:
-            print(json.dumps({{"error": "Function 'solve' or 'Solution' class not found"}}))
-            return
+        if target_fn is not None:
+            import inspect
+            sig = inspect.signature(target_fn)
+            num_params = len(sig.parameters)
+            if num_params == 0:
+                res = target_fn()
+            else:
+                args = []
+                if raw_input:
+                    try:
+                        parsed_val = ast.literal_eval(f"({{raw_input}},)")
+                        args = list(parsed_val)
+                    except Exception:
+                        try:
+                            parsed_val = ast.literal_eval(raw_input)
+                            args = [parsed_val]
+                        except Exception:
+                            if ' ' in raw_input:
+                                args = [int(x) if x.isdigit() else x for x in raw_input.split()]
+                            else:
+                                args = [int(raw_input) if raw_input.isdigit() else raw_input]
 
-        # Parse inputs with ast
-        args = []
-        if raw_input:
-            try:
-                parsed_val = ast.literal_eval(f"({{raw_input}},)")
-                args = list(parsed_val)
-            except Exception:
-                try:
-                    parsed_val = ast.literal_eval(raw_input)
-                    args = [parsed_val]
-                except Exception:
-                    if ' ' in raw_input:
-                        args = [int(x) if x.isdigit() else x for x in raw_input.split()]
-                    else:
-                        args = [int(raw_input) if raw_input.isdigit() else raw_input]
+                if len(args) > num_params and num_params == 1:
+                    res = target_fn(args)
+                elif len(args) < num_params:
+                    res = target_fn(*args, *([None] * (num_params - len(args))))
+                else:
+                    res = target_fn(*args[:num_params])
 
-        import inspect
-        sig = inspect.signature(target_fn)
-        num_params = len(sig.parameters)
-        if len(args) > num_params and num_params == 1:
-            res = target_fn(args)
-        elif len(args) < num_params:
-            res = target_fn(*args, *([None] * (num_params - len(args))))
+            sys.stdout = _orig_stdout
+            printed = _stdout_buffer.getvalue().strip()
+            if res is not None:
+                out_str = str(res).lower() if isinstance(res, bool) else json.dumps(res) if isinstance(res, (list, dict, tuple)) else str(res)
+                print(json.dumps({{"actual": out_str}}))
+            elif printed:
+                print(json.dumps({{"actual": printed}}))
+            else:
+                print(json.dumps({{"actual": ""}}))
         else:
-            res = target_fn(*args[:num_params])
-
-        # Normalize output
-        out_str = str(res).lower() if isinstance(res, bool) else json.dumps(res) if isinstance(res, (list, dict, tuple)) else str(res)
-        print(json.dumps({{"actual": out_str}}))
+            sys.stdout = _orig_stdout
+            printed = _stdout_buffer.getvalue().strip()
+            if printed:
+                print(json.dumps({{"actual": printed}}))
+            else:
+                print(json.dumps({{"error": "Function 'solve' or 'Solution' class or output print not found"}}))
     except Exception as e:
+        sys.stdout = _orig_stdout
         print(json.dumps({{"error": str(e)}}))
 
 __run_test()
@@ -133,6 +161,7 @@ __run_test()
             try:
                 proc = subprocess.run(
                     [sys.executable, "-c", runner_script],
+                    input=tc_input,
                     capture_output=True,
                     text=True,
                     timeout=3.0,
@@ -203,9 +232,25 @@ __run_test()
 
             # Create a wrapper script for JS
             js_script = f"""
+const _printed = [];
+const _origLog = console.log;
+console.log = function(...args) {{
+    _printed.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+}};
+
+try {{
 {code}
+}} catch (e) {{
+    _origLog(JSON.stringify({{error: e.message}}));
+    process.exit(0);
+}}
 
 function __run_test() {{
+    if (_printed.length > 0) {{
+        _origLog(JSON.stringify({{actual: _printed.join('\\n').trim()}}));
+        return;
+    }}
+
     const rawInput = {json.dumps(tc_input)};
     let args = [];
     try {{
@@ -224,23 +269,35 @@ function __run_test() {{
         let fn = null;
         if (typeof {req.entry_point} === 'function') fn = {req.entry_point};
         else if (typeof solve === 'function') fn = solve;
+        else if (typeof main === 'function') fn = main;
         else if (typeof Solution !== 'undefined') {{
             const s = new Solution();
             if (typeof s.{req.entry_point} === 'function') fn = s.{req.entry_point}.bind(s);
             else if (typeof s.solve === 'function') fn = s.solve.bind(s);
         }}
         
-        if (!fn) throw new Error("Function not found");
+        if (!fn) {{
+            if (_printed.length > 0) {{
+                _origLog(JSON.stringify({{actual: _printed.join('\\n').trim()}}));
+                return;
+            }}
+            throw new Error("Function 'solve' or 'Solution' or output print not found");
+        }}
         const res = fn(...args);
         
-        let out_str;
-        if (typeof res === 'boolean') out_str = String(res).toLowerCase();
-        else if (typeof res === 'object') out_str = JSON.stringify(res);
-        else out_str = String(res ?? '');
-        
-        console.log(JSON.stringify({{actual: out_str}}));
+        if (res !== undefined) {{
+            let out_str;
+            if (typeof res === 'boolean') out_str = String(res).toLowerCase();
+            else if (typeof res === 'object') out_str = JSON.stringify(res);
+            else out_str = String(res ?? '');
+            _origLog(JSON.stringify({{actual: out_str}}));
+        }} else if (_printed.length > 0) {{
+            _origLog(JSON.stringify({{actual: _printed.join('\\n').trim()}}));
+        }} else {{
+            _origLog(JSON.stringify({{actual: ''}}));
+        }}
     }} catch (err) {{
-        console.log(JSON.stringify({{error: err.message}}));
+        _origLog(JSON.stringify({{error: err.message}}));
     }}
 }}
 __run_test();
@@ -253,6 +310,7 @@ __run_test();
                 
                 proc = subprocess.run(
                     ["node", temp_path],
+                    input=tc_input,
                     capture_output=True,
                     text=True,
                     timeout=3.0,
@@ -323,7 +381,12 @@ __run_test();
             actual_out = ""
             status_str = "WRONG_ANSWER"
 
-            java_script = f"""
+            if "class Main" in code:
+                java_script = code
+                if "public class Main" not in java_script and "class Main" in java_script:
+                    java_script = java_script.replace("class Main", "public class Main", 1)
+            else:
+                java_script = f"""
 import java.util.*;
 
 {code}
@@ -389,7 +452,7 @@ public class Main {{
                         error_message = compile_proc.stderr
                         overall_status = "COMPILATION_ERROR"
                     else:
-                        proc = subprocess.run(["java", "-cp", tmpdir, "Main"], capture_output=True, text=True, timeout=3.0)
+                        proc = subprocess.run(["java", "-cp", tmpdir, "Main"], input=tc_input, capture_output=True, text=True, timeout=3.0)
                         stdout = proc.stdout.strip()
                         stderr = proc.stderr.strip()
 
@@ -405,6 +468,7 @@ public class Main {{
                                     actual_out = parsed["error"]
                                     is_passed = False
                                     status_str = "RUNTIME_ERROR"
+                                    error_message = parsed["error"]
                                 else:
                                     actual_out = str(parsed.get("actual", ""))
                                     norm_actual = actual_out.strip().replace(" ", "").lower()
@@ -413,7 +477,9 @@ public class Main {{
                                     status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
                             except:
                                 actual_out = stdout or "No output"
-                                is_passed = (actual_out.strip() == expected.strip())
+                                norm_actual = actual_out.strip().replace(" ", "").lower()
+                                norm_expected = expected.strip().replace(" ", "").lower()
+                                is_passed = (norm_actual == norm_expected)
                                 status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
             except subprocess.TimeoutExpired:
                 actual_out = "Time Limit Exceeded ( > 3.0s )"
