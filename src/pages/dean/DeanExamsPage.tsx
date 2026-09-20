@@ -2,11 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { WeeklyExam, ExamQuestion, Problem } from '../../types';
 import { PROBLEMS_BANK_100 } from '../../data/dsaCurriculum100';
-import { convertProblemToExamQuestion, getExamTier } from '../../data/mockExams';
+import { convertProblemToExamQuestion, getExamTier, calculateExamRemainingSeconds } from '../../data/mockExams';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
   Play,
+  Pause,
   CheckCircle2,
   Users,
   ShieldCheck,
@@ -18,6 +19,7 @@ import {
   Eye,
   Shuffle,
   Download,
+  Clock,
 } from 'lucide-react';
 
 export const DeanExamsPage: React.FC = () => {
@@ -28,11 +30,18 @@ export const DeanExamsPage: React.FC = () => {
     setExamStatus,
   } = useAuth();
 
-  const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'LIVE' | 'SCHEDULED' | 'COMPLETED'>('ALL');
+  const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'LIVE' | 'PAUSED' | 'SCHEDULED' | 'COMPLETED'>('ALL');
+  const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedExamForResults, setSelectedExamForResults] = useState<WeeklyExam | null>(null);
   const [inspectQuestionsExam, setInspectQuestionsExam] = useState<WeeklyExam | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // 1-second ticker to smoothly render live countdown timelines
+  React.useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Exam Form State
   const [weekNum, setWeekNum] = useState<number>(exams.length + 1);
@@ -77,6 +86,7 @@ export const DeanExamsPage: React.FC = () => {
 
   const totalExamsCount = exams.length;
   const liveExamsCount = exams.filter(e => e.status === 'LIVE').length;
+  const pausedExamsCount = exams.filter(e => e.status === 'PAUSED').length;
   const completedExamsCount = exams.filter(e => e.status === 'COMPLETED').length;
 
   // Aggregate student score across completed exams
@@ -333,6 +343,7 @@ export const DeanExamsPage: React.FC = () => {
           [
             { id: 'ALL', label: `All Exams (${exams.length})` },
             { id: 'LIVE', label: `⚡ Live Now (${liveExamsCount})` },
+            { id: 'PAUSED', label: `⏸️ Paused (${pausedExamsCount})` },
             { id: 'SCHEDULED', label: `📅 Scheduled (${exams.filter(e => e.status === 'SCHEDULED').length})` },
             { id: 'COMPLETED', label: `✅ Completed (${completedExamsCount})` },
           ] as const
@@ -355,16 +366,34 @@ export const DeanExamsPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredExams.map((exam) => {
           const isLive = exam.status === 'LIVE';
+          const isPaused = exam.status === 'PAUSED';
           const isScheduled = exam.status === 'SCHEDULED';
           const submissionCount = exam.submissions?.length || 0;
           const questionCount = exam.questions?.length || 20;
           const tierInfo = getExamTier(exam.weekNumber);
 
+          const remainingSecs = calculateExamRemainingSeconds(exam, currentTime);
+          const totalDurationSecs = (exam.durationMinutes || 90) * 60;
+          const elapsedSecs = Math.max(0, totalDurationSecs - remainingSecs);
+          const progressPercent = Math.min(100, Math.max(0, (elapsedSecs / totalDurationSecs) * 100));
+
+          const formatTimer = (s: number) => {
+            const mins = Math.floor(s / 60);
+            const secs = s % 60;
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+          };
+
           return (
             <motion.div
               key={exam.id}
               whileHover={{ y: -2 }}
-              className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-5 sm:p-6 flex flex-col justify-between h-full"
+              className={`bg-white rounded-3xl border shadow-xs p-5 sm:p-6 flex flex-col justify-between h-full ${
+                isLive
+                  ? 'border-emerald-300 ring-2 ring-emerald-500/20'
+                  : isPaused
+                  ? 'border-amber-300 ring-2 ring-amber-500/20'
+                  : 'border-slate-200/80'
+              }`}
             >
               <div className="flex-1 flex flex-col justify-between space-y-3">
                 {/* Card Header: Week Badge, Tier Badge & Status */}
@@ -391,12 +420,15 @@ export const DeanExamsPage: React.FC = () => {
                     className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 ${
                       isLive
                         ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 animate-pulse'
-                        : isScheduled
+                        : isPaused
                         ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                        : isScheduled
+                        ? 'bg-blue-50 text-blue-800 border border-blue-200'
                         : 'bg-slate-100 text-slate-700 border border-slate-200'
                     }`}
                   >
-                    {isLive && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
+                    {isLive && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />}
+                    {isPaused && <Pause className="w-3 h-3 text-amber-600 fill-amber-500" />}
                     <span>{exam.status}</span>
                   </span>
                 </div>
@@ -407,6 +439,33 @@ export const DeanExamsPage: React.FC = () => {
                 <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed min-h-[36px]">
                   {exam.description}
                 </p>
+
+                {/* 90-Minute Official Timeline Bar (Active / Paused) */}
+                {(isLive || isPaused) && (
+                  <div className="p-3 rounded-2xl bg-slate-900 text-white space-y-2 border border-slate-800 shadow-inner">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 font-bold">
+                        <Clock className={`w-3.5 h-3.5 ${isLive ? 'text-emerald-400' : 'text-amber-400'}`} />
+                        <span className={isLive ? 'text-emerald-400' : 'text-amber-400'}>
+                          {isLive ? '90-MIN TIMELINE ACTIVE' : 'EXAM PAUSED BY ROOT'}
+                        </span>
+                      </span>
+                      <span className="font-mono font-extrabold text-sm tracking-wider text-white">
+                        {formatTimer(remainingSecs)} remaining
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-500 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-slate-400">
+                      <span>Duration: {exam.durationMinutes || 90} mins</span>
+                      <span>Auto-ends at 00:00</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Exam Details Pill List */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-100 text-xs">
@@ -443,21 +502,52 @@ export const DeanExamsPage: React.FC = () => {
                   {isScheduled && (
                     <button
                       onClick={() => setExamStatus(exam.id, 'LIVE')}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95"
                     >
                       <Play className="w-3 h-3 fill-white" />
-                      <span>Make LIVE</span>
+                      <span>Launch Exam (90 Mins)</span>
                     </button>
                   )}
 
                   {isLive && (
-                    <button
-                      onClick={() => setExamStatus(exam.id, 'COMPLETED')}
-                      className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>End / Complete</span>
-                    </button>
+                    <>
+                      <button
+                        onClick={() => setExamStatus(exam.id, 'PAUSED')}
+                        className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95"
+                        title="Root can pause the exam timeline"
+                      >
+                        <Pause className="w-3.5 h-3.5 fill-white" />
+                        <span>Pause Exam</span>
+                      </button>
+                      <button
+                        onClick={() => setExamStatus(exam.id, 'COMPLETED')}
+                        className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95"
+                        title="Root conclude exam"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>End / Complete</span>
+                      </button>
+                    </>
+                  )}
+
+                  {isPaused && (
+                    <>
+                      <button
+                        onClick={() => setExamStatus(exam.id, 'LIVE')}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95"
+                        title="Resume the paused examination"
+                      >
+                        <Play className="w-3 h-3 fill-white" />
+                        <span>Resume Exam</span>
+                      </button>
+                      <button
+                        onClick={() => setExamStatus(exam.id, 'COMPLETED')}
+                        className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>End / Complete</span>
+                      </button>
+                    </>
                   )}
 
                   {/* Inspect Questions Button */}

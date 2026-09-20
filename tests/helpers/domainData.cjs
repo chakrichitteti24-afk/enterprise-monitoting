@@ -447,6 +447,35 @@ function buildOfficialExam(weekNumber, title, scheduledDate, startTime = '10:00 
   };
 }
 
+function calculateExamRemainingSeconds(exam, nowMs) {
+  const durationMins = exam.durationMinutes || 90;
+  const totalDurationMs = durationMins * 60 * 1000;
+
+  if (exam.status === 'SCHEDULED') {
+    return durationMins * 60;
+  }
+  if (exam.status === 'COMPLETED') {
+    return 0;
+  }
+
+  if (!exam.launchedAt) {
+    return durationMins * 60;
+  }
+
+  const launchTime = new Date(exam.launchedAt).getTime();
+  const totalPaused = exam.totalPausedMs || 0;
+
+  if (exam.status === 'PAUSED') {
+    const freezeTime = exam.pausedAt ? new Date(exam.pausedAt).getTime() : (nowMs || Date.now());
+    const elapsedBeforePause = Math.max(0, (freezeTime - launchTime) - totalPaused);
+    return Math.max(0, Math.floor((totalDurationMs - elapsedBeforePause) / 1000));
+  }
+
+  const current = nowMs || Date.now();
+  const activeElapsedMs = Math.max(0, (current - launchTime) - totalPaused);
+  return Math.max(0, Math.floor((totalDurationMs - activeElapsedMs) / 1000));
+}
+
 module.exports = {
   TOTAL_CURRICULUM_PROBLEMS,
   TOTAL_CURRICULUM_DAYS,
@@ -469,4 +498,6 @@ module.exports = {
   getShuffledQuestionsForStudent,
   convertProblemToExamQuestion,
   buildOfficialExam,
+  calculateExamRemainingSeconds,
 };
+

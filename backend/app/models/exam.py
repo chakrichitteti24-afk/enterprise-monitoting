@@ -28,6 +28,17 @@ class WeeklyExam(Base):
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+    launched_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        default=None,
+    )
+    paused_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        default=None,
+    )
+    total_paused_ms: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     # Relationships
     submissions: Mapped[List["StudentExamSubmission"]] = relationship(

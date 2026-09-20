@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { WeeklyExam, ExamQuestion, StudentExamSubmission } from '../../types';
-import { getShuffledQuestionsForStudent, getExamTier } from '../../data/mockExams';
+import { getShuffledQuestionsForStudent, getExamTier, calculateExamRemainingSeconds } from '../../data/mockExams';
 import { executeRealCode } from '../../utils/realCodeRunner';
 import { CodeEditorWithSyntax } from '../../components/coding/CodeEditorWithSyntax';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,6 +11,7 @@ import {
   Clock,
   Code2,
   Play,
+  Pause,
   CheckCircle2,
   X,
   ShieldCheck,
@@ -38,6 +39,7 @@ export const StudentExamsPage: React.FC = () => {
   const [testOutput, setTestOutput] = useState<string | null>(null);
   const [isRunningTest, setIsRunningTest] = useState<boolean>(false);
   const [timeLeftSeconds, setTimeLeftSeconds] = useState<number>(5400); // 90 mins
+  const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSubmitConfirmModal, setShowSubmitConfirmModal] = useState(false);
   const [completedSubmissionResult, setCompletedSubmissionResult] = useState<StudentExamSubmission | null>(null);
@@ -45,6 +47,17 @@ export const StudentExamsPage: React.FC = () => {
     exam: WeeklyExam;
     submission: StudentExamSubmission;
   } | null>(null);
+
+  // 1-second interval ticker for student UI
+  useEffect(() => {
+    const ticker = setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => clearInterval(ticker);
+  }, []);
+
+  const liveExamInContext = activeLiveExam
+    ? exams.find(e => e.id === activeLiveExam.id) || activeLiveExam
+    : null;
+  const isExamPaused = liveExamInContext?.status === 'PAUSED';
 
   const getStarterCode = useCallback((q: ExamQuestion, lang: 'java' | 'cpp' | 'python'): string => {
     if (q.starterCode && q.starterCode[lang]) {
@@ -90,24 +103,46 @@ export const StudentExamsPage: React.FC = () => {
     }
   }, [activeLiveExam, viewScorecardSubmission, completedSubmissionResult]);
 
-  // Countdown timer for active exam
+  // Countdown timer for active exam synchronized with 90-min official launch timeline
   useEffect(() => {
     if (!activeLiveExam) return;
+
+    const latest = exams.find(e => e.id === activeLiveExam.id) || activeLiveExam;
+    if (latest.status === 'COMPLETED') {
+      executeFinalSubmit();
+      return;
+    }
+
     const timer = setInterval(() => {
-      setTimeLeftSeconds(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          executeFinalSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
+      const currentSync = exams.find(e => e.id === activeLiveExam.id) || activeLiveExam;
+      if (currentSync.status === 'COMPLETED') {
+        clearInterval(timer);
+        executeFinalSubmit();
+        return;
+      }
+      const remaining = calculateExamRemainingSeconds(currentSync);
+      setTimeLeftSeconds(remaining);
+      if (remaining <= 0) {
+        clearInterval(timer);
+        executeFinalSubmit();
+      }
     }, 1000);
+
     return () => clearInterval(timer);
-  }, [activeLiveExam, executeFinalSubmit]);
+  }, [activeLiveExam, exams, executeFinalSubmit]);
 
   // Start a live exam with Anti-Cheating Random Shuffling per student
   const handleStartExam = (exam: WeeklyExam) => {
+    const remaining = calculateExamRemainingSeconds(exam);
+    if (remaining <= 0 || exam.status === 'COMPLETED') {
+      alert('The 90-minute examination period has already concluded.');
+      return;
+    }
+    if (exam.status === 'PAUSED') {
+      alert('This examination is currently paused by Root (Dean). Please wait for resumption.');
+      return;
+    }
+
     const studentIdentifier = student?.rollNo || student?.id || 'STUDENT_DEFAULT';
     const { shuffledQuestions: randomizedQs, setCode } = getShuffledQuestionsForStudent(
       exam.questions || [],
@@ -119,7 +154,7 @@ export const StudentExamsPage: React.FC = () => {
     setShuffledQuestions(randomizedQs);
     setStudentPaperSetCode(setCode);
     setSelectedQuestionIdx(0);
-    setTimeLeftSeconds((exam.durationMinutes || 90) * 60);
+    setTimeLeftSeconds(remaining);
     setTestOutput(null);
     setTestedQuestions({});
 
@@ -176,7 +211,7 @@ export const StudentExamsPage: React.FC = () => {
   };
 
   const handleRunTest = async () => {
-    if (!currentQuestion) return;
+    if (!currentQuestion || isExamPaused) return;
     setIsRunningTest(true);
     const activeLang = questionLanguages[currentQuestion.id] || selectedLanguage;
     const currentCode = (codeAnswers[currentQuestion.id]?.[activeLang] || getStarterCode(currentQuestion, activeLang)).trim();
@@ -297,19 +332,28 @@ export const StudentExamsPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 items-stretch">
           {exams.map(exam => {
             const isLive = exam.status === 'LIVE';
+            const isPaused = exam.status === 'PAUSED';
             const isCompleted = exam.status === 'COMPLETED';
             const totalQ = exam.questions?.length || 20;
             const studentSubmission = (exam.submissions || []).find(
               s => s.studentId === student?.id || s.studentRollNo === student?.rollNo
             );
 
+            const remainingSecs = calculateExamRemainingSeconds(exam, currentTime);
+            const totalDurationSecs = (exam.durationMinutes || 90) * 60;
+            const elapsedSecs = Math.max(0, totalDurationSecs - remainingSecs);
+            const progressPercent = Math.min(100, Math.max(0, (elapsedSecs / totalDurationSecs) * 100));
+            const isExpired = (isLive || isPaused) && remainingSecs <= 0;
+
             return (
               <motion.div
                 key={exam.id}
                 whileHover={{ y: -2 }}
                 className={`bg-white rounded-3xl border p-5 sm:p-6 shadow-xs flex flex-col justify-between h-full ${
-                  isLive && !studentSubmission
+                  isLive && !studentSubmission && !isExpired
                     ? 'border-emerald-300 ring-2 ring-emerald-500/20'
+                    : isPaused && !studentSubmission && !isExpired
+                    ? 'border-amber-300 ring-2 ring-amber-500/20'
                     : 'border-slate-200/80'
                 }`}
               >
@@ -341,15 +385,18 @@ export const StudentExamsPage: React.FC = () => {
 
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 ${
-                        isLive
-                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                          : isCompleted
+                        isLive && !isExpired
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 animate-pulse'
+                          : isPaused && !isExpired
+                          ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                          : isCompleted || isExpired
                           ? 'bg-slate-100 text-slate-700 border border-slate-200'
-                          : 'bg-amber-50 text-amber-800 border border-amber-200'
+                          : 'bg-blue-50 text-blue-800 border border-blue-200'
                       }`}
                     >
-                      {isLive && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />}
-                      <span>{exam.status}</span>
+                      {isLive && !isExpired && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />}
+                      {isPaused && !isExpired && <Pause className="w-3 h-3 text-amber-600 fill-amber-500" />}
+                      <span>{isExpired ? 'COMPLETED' : exam.status}</span>
                     </span>
                   </div>
 
@@ -364,6 +411,33 @@ export const StudentExamsPage: React.FC = () => {
                   <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed min-h-[36px]">
                     {exam.description}
                   </p>
+
+                  {/* 90-Minute Live / Paused Timeline Strip */}
+                  {(isLive || isPaused) && !isExpired && (
+                    <div className="p-3 rounded-2xl bg-slate-900 text-white space-y-1.5 border border-slate-800 shadow-inner">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-1.5 font-bold">
+                          <Clock className={`w-3.5 h-3.5 ${isLive ? 'text-emerald-400 animate-spin' : 'text-amber-400'}`} />
+                          <span className={isLive ? 'text-emerald-400' : 'text-amber-400'}>
+                            {isLive ? '90-MIN TIMELINE ACTIVE' : 'EXAM PAUSED BY ROOT'}
+                          </span>
+                        </span>
+                        <span className="font-mono font-extrabold text-xs tracking-wider text-white">
+                          {formatTimer(remainingSecs)} remaining
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-500 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] text-slate-400">
+                        <span>Duration: {exam.durationMinutes || 90} mins</span>
+                        <span>Auto-ends at 00:00</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Exam Details Pill List */}
                   <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-xs">
@@ -402,15 +476,29 @@ export const StudentExamsPage: React.FC = () => {
                         View Scorecard
                       </button>
                     </div>
-                  ) : isLive ? (
+                  ) : isPaused && !isExpired ? (
+                    <div className="flex items-center justify-between w-full flex-wrap gap-2">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700">
+                        <Pause className="w-3.5 h-3.5 fill-amber-600 text-amber-600" />
+                        <span>Paused by Root ({formatTimer(remainingSecs)} left)</span>
+                      </div>
+                      <button
+                        disabled
+                        className="px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-400 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed border border-slate-200"
+                      >
+                        <Pause className="w-3 h-3 fill-slate-400" />
+                        <span>Exam Paused by Root</span>
+                      </button>
+                    </div>
+                  ) : isLive && !isExpired ? (
                     <div className="flex items-center justify-between w-full flex-wrap gap-2">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 animate-pulse">
                         <Sparkles className="w-3.5 h-3.5" />
-                        <span>Exam Live ({totalQ} Problems)</span>
+                        <span>Exam Live &bull; {formatTimer(remainingSecs)} left</span>
                       </div>
                       <button
                         onClick={() => handleStartExam(exam)}
-                        className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-500/25 flex items-center gap-1.5 transition-all cursor-pointer"
+                        className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-500/25 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
                       >
                         <Play className="w-3.5 h-3.5 fill-white" />
                         <span>Start Exam (Shuffled Paper)</span>
@@ -418,9 +506,9 @@ export const StudentExamsPage: React.FC = () => {
                     </div>
                   ) : (
                     <div className="flex items-center justify-between w-full text-xs text-slate-500">
-                      <span>Scheduled for {exam.scheduledDate} at {exam.startTime}</span>
+                      <span>{isCompleted || isExpired ? '90-minute examination period concluded' : `Scheduled for ${exam.scheduledDate} at ${exam.startTime}`}</span>
                       <span className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-600 font-semibold text-[11px]">
-                        Locked
+                        {isCompleted || isExpired ? 'Closed' : 'Locked'}
                       </span>
                     </div>
                   )}
@@ -449,6 +537,36 @@ export const StudentExamsPage: React.FC = () => {
               exit={{ scale: 0.97, opacity: 0 }}
               className="relative w-full max-w-[1550px] h-[94vh] max-h-[94vh] bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 z-10 flex flex-col overflow-hidden text-white"
             >
+              {/* Full Arena Pause Overlay if Root has paused the exam */}
+              {isExamPaused && (
+                <div className="absolute inset-0 z-50 bg-slate-950/92 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center space-y-4">
+                  <div className="w-16 h-16 rounded-3xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-xl shadow-amber-500/20">
+                    <Pause className="w-8 h-8 fill-amber-400" />
+                  </div>
+                  <div className="max-w-md space-y-2">
+                    <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+                      Examination Paused by Root (Dean)
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                      The official examination timeline has been paused by the Dean.
+                      The countdown timer is frozen at <strong className="text-amber-400 font-mono text-base">{formatTimer(timeLeftSeconds)}</strong>.
+                    </p>
+                    <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-xs text-slate-400 text-left space-y-1.5 shadow-inner">
+                      <p className="text-emerald-400 font-semibold flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>All your written code is securely preserved.</span>
+                      </p>
+                      <p>• Code editor and test runner are locked until Root resumes.</p>
+                      <p>• The 90-minute timeline will resume once Root unpauses.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-amber-400 font-mono animate-pulse">
+                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                    <span>Waiting for Dean / Root to resume session...</span>
+                  </div>
+                </div>
+              )}
+
               {/* Top Arena Header */}
               <div className="px-4 sm:px-6 py-2.5 sm:py-3 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-950/90 shrink-0">
                 <div className="flex items-center gap-3 min-w-0">
@@ -474,15 +592,23 @@ export const StudentExamsPage: React.FC = () => {
 
                 <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                   {/* Timer Pill */}
-                  <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-300 font-mono font-bold text-xs sm:text-sm shrink-0">
-                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" />
-                    <span>{formatTimer(timeLeftSeconds)}</span>
+                  <div className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-2xl font-mono font-bold text-xs sm:text-sm shrink-0 ${
+                    isExamPaused
+                      ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300'
+                      : 'bg-rose-500/20 border border-rose-500/30 text-rose-300'
+                  }`}>
+                    {isExamPaused ? (
+                      <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-amber-400 text-amber-400" />
+                    ) : (
+                      <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" />
+                    )}
+                    <span>{formatTimer(timeLeftSeconds)} {isExamPaused ? '(PAUSED)' : ''}</span>
                   </div>
 
                   <button
                     onClick={() => setShowSubmitConfirmModal(true)}
-                    disabled={isSubmitting}
-                    className="px-3.5 sm:px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-500/30 flex items-center gap-1.5 transition-all shrink-0 cursor-pointer"
+                    disabled={isSubmitting || isExamPaused}
+                    className="px-3.5 sm:px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold shadow-md shadow-emerald-500/30 flex items-center gap-1.5 transition-all shrink-0 cursor-pointer"
                   >
                     <CheckCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span>Submit Exam</span>

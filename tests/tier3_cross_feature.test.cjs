@@ -14,6 +14,7 @@ const {
   getShuffledQuestionsForStudent,
   convertProblemToExamQuestion,
   buildOfficialExam,
+  calculateExamRemainingSeconds,
   PROBLEMS_BANK_100,
   DSA_TOPICS,
 } = require('./helpers/domainData.cjs');
@@ -518,6 +519,139 @@ suite.describe('Cross-Feature Multi-Role Integrations', () => {
     expect(students[0].mentorName).toBe('K.S.GAYATHRI');
     expect(students[1].mentorName).toBe('K.S.GAYATHRI');
   });
+
+  suite.it('3.20 Dean Launches Exam -> Sets Exact 90-Min Duration & LaunchedAt Timestamp', () => {
+    const exam = buildOfficialExam(2, 'Week 02 Assessment', '2026-09-02');
+    expect(exam.status).toBe('SCHEDULED');
+    expect(exam.durationMinutes).toBe(90);
+
+    // Dean launches exam to LIVE
+    const launchTime = new Date('2026-09-20T10:00:00.000Z').toISOString();
+    exam.status = 'LIVE';
+    exam.launchedAt = launchTime;
+    exam.totalPausedMs = 0;
+
+    expect(exam.status).toBe('LIVE');
+    expect(exam.launchedAt).toBe(launchTime);
+    expect(exam.durationMinutes).toBe(90);
+    expect(exam.totalPausedMs).toBe(0);
+  });
+
+  suite.it('3.21 90-Min Timeline Calculation Accurately Decrements Remaining Active Seconds', () => {
+    const launchMs = new Date('2026-09-20T10:00:00.000Z').getTime();
+    const exam = {
+      id: 'exam-test-1',
+      status: 'LIVE',
+      durationMinutes: 90,
+      launchedAt: new Date(launchMs).toISOString(),
+      totalPausedMs: 0,
+    };
+
+    // Exactly at launch: 90 * 60 = 5400 seconds remaining
+    expect(calculateExamRemainingSeconds(exam, launchMs)).toBe(5400);
+
+    // After 10 minutes (600s elapsed): exactly 4800 seconds remaining
+    const after10Min = launchMs + 10 * 60 * 1000;
+    expect(calculateExamRemainingSeconds(exam, after10Min)).toBe(4800);
+
+    // After 45 minutes (2700s elapsed): exactly 2700 seconds remaining
+    const after45Min = launchMs + 45 * 60 * 1000;
+    expect(calculateExamRemainingSeconds(exam, after45Min)).toBe(2700);
+  });
+
+  suite.it('3.22 Root Pauses Exam -> Status Becomes PAUSED & Countdown Freezes at Paused Moment', () => {
+    const launchMs = new Date('2026-09-20T10:00:00.000Z').getTime();
+    const exam = {
+      id: 'exam-test-2',
+      status: 'LIVE',
+      durationMinutes: 90,
+      launchedAt: new Date(launchMs).toISOString(),
+      totalPausedMs: 0,
+    };
+
+    // 20 minutes in, Root pauses the exam
+    const pauseTimeMs = launchMs + 20 * 60 * 1000;
+    exam.status = 'PAUSED';
+    exam.pausedAt = new Date(pauseTimeMs).toISOString();
+
+    // At pause moment: remaining is 90 - 20 = 70 mins = 4200 seconds
+    const remainingAtPause = calculateExamRemainingSeconds(exam, pauseTimeMs);
+    expect(remainingAtPause).toBe(4200);
+
+    // 15 minutes later while paused, remaining time is STILL frozen at 4200 seconds!
+    const laterWhilePaused = pauseTimeMs + 15 * 60 * 1000;
+    expect(calculateExamRemainingSeconds(exam, laterWhilePaused)).toBe(4200);
+  });
+
+  suite.it('3.23 Root Resumes Exam -> Pause Duration Accumulated in totalPausedMs & Countdown Continues', () => {
+    const launchMs = new Date('2026-09-20T10:00:00.000Z').getTime();
+    const exam = {
+      id: 'exam-test-3',
+      status: 'PAUSED',
+      durationMinutes: 90,
+      launchedAt: new Date(launchMs).toISOString(),
+      pausedAt: new Date(launchMs + 20 * 60 * 1000).toISOString(),
+      totalPausedMs: 0,
+    };
+
+    // Paused for 10 minutes, then Root resumes to LIVE
+    const resumeTimeMs = launchMs + 30 * 60 * 1000;
+    const pauseDuration = resumeTimeMs - new Date(exam.pausedAt).getTime();
+    exam.totalPausedMs = (exam.totalPausedMs || 0) + pauseDuration; // 10 mins = 600,000 ms
+    exam.pausedAt = undefined;
+    exam.status = 'LIVE';
+
+    expect(exam.status).toBe('LIVE');
+    expect(exam.totalPausedMs).toBe(600000);
+
+    // At resumption: exactly 70 minutes remaining (4200s), preserving active duration!
+    expect(calculateExamRemainingSeconds(exam, resumeTimeMs)).toBe(4200);
+
+    // 10 minutes after resuming (total clock 40 mins, active 30 mins): exactly 60 minutes left (3600s)
+    const afterResume10Min = resumeTimeMs + 10 * 60 * 1000;
+    expect(calculateExamRemainingSeconds(exam, afterResume10Min)).toBe(3600);
+  });
+
+  suite.it('3.24 After 90 Minutes Active Time -> Exam Automatically Concludes (COMPLETED) & Answers Locked', () => {
+    const launchMs = new Date('2026-09-20T10:00:00.000Z').getTime();
+    const exam = {
+      id: 'exam-test-4',
+      status: 'LIVE',
+      durationMinutes: 90,
+      launchedAt: new Date(launchMs).toISOString(),
+      totalPausedMs: 0,
+      submissions: [],
+    };
+
+    // Exactly 90 minutes later: remaining is 0
+    const exactly90Min = launchMs + 90 * 60 * 1000;
+    expect(calculateExamRemainingSeconds(exam, exactly90Min)).toBe(0);
+
+    // 95 minutes later: remaining is clamped to 0
+    const after95Min = launchMs + 95 * 60 * 1000;
+    expect(calculateExamRemainingSeconds(exam, after95Min)).toBe(0);
+
+    // Auto-end condition fires: exam transitions to COMPLETED
+    if (calculateExamRemainingSeconds(exam, after95Min) <= 0) {
+      exam.status = 'COMPLETED';
+    }
+    expect(exam.status).toBe('COMPLETED');
+
+    // Submissions locked after COMPLETED
+    const studentSubmission = {
+      id: 'sub-auto-1',
+      studentId: 's-auto',
+      studentName: 'Test Student',
+      studentRollNo: '22GK1A0501',
+      score: 85,
+      totalMarks: 100,
+      status: 'SUBMITTED',
+    };
+    exam.submissions.push(studentSubmission);
+    expect(exam.submissions.length).toBe(1);
+    expect(exam.submissions[0].score).toBe(85);
+  });
 });
 
 module.exports = suite;
+

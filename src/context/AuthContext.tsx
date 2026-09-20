@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CurrentUser, Mentor, Problem, Student, Team, UserRole, DSATopic, WeeklyExam, ExamStatus, StudentExamSubmission } from '../types';
-import { INITIAL_WEEKLY_EXAMS, getShuffledQuestionsForStudent } from '../data/mockExams';
+import { INITIAL_WEEKLY_EXAMS, getShuffledQuestionsForStudent, calculateExamRemainingSeconds } from '../data/mockExams';
 import { PROBLEMS_BANK_100 } from '../data/dsaCurriculum100';
 import {
   ALL_MENTORS,
@@ -90,7 +90,7 @@ interface AuthContextType {
   createWeeklyExam: (examData: Partial<WeeklyExam>) => Promise<void>;
   updateWeeklyExam: (examId: string, updates: Partial<WeeklyExam>) => Promise<void>;
   deleteWeeklyExam: (examId: string) => Promise<void>;
-  setExamStatus: (examId: string, status: ExamStatus) => Promise<void>;
+  setExamStatus: (examId: string, status: ExamStatus, isSystemAutoEnd?: boolean) => Promise<void>;
   submitExamSolution: (examId: string, answers: Record<string, string>) => Promise<StudentExamSubmission>;
 }
 
@@ -996,13 +996,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           topicFocus: e.topic_focus ?? e.topicFocus ?? '',
           scheduledDate: e.scheduled_date ?? e.scheduledDate ?? '',
           startTime: e.start_time ?? e.startTime ?? '10:00 AM',
-          durationMinutes: e.duration_minutes ?? e.durationMinutes ?? 60,
+          durationMinutes: e.duration_minutes ?? e.durationMinutes ?? 90,
           totalMarks: e.total_marks ?? e.totalMarks ?? 100,
           passMarks: e.pass_marks ?? e.passMarks ?? 50,
           status: e.status,
           createdBy: e.created_by ?? e.createdBy ?? '',
           questions: e.questions ?? [],
           submissions: e.submissions ?? [],
+          launchedAt: e.launched_at ?? e.launchedAt ?? undefined,
+          pausedAt: e.paused_at ?? e.pausedAt ?? undefined,
+          totalPausedMs: e.total_paused_ms ?? e.totalPausedMs ?? 0,
         }));
         setExams(mappedExams);
         try { localStorage.setItem('gkce_weekly_exams_v4', JSON.stringify(mappedExams)); } catch {}
@@ -1908,22 +1911,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const setExamStatus = async (examId: string, status: ExamStatus): Promise<void> => {
-    if (currentUser.role !== 'DEAN') {
+  const setExamStatus = async (examId: string, status: ExamStatus, isSystemAutoEnd: boolean = false): Promise<void> => {
+    const targetExam = exams.find(e => e.id === examId);
+    if (!targetExam) return;
+
+    if (currentUser.role !== 'DEAN' && !isSystemAutoEnd) {
       throw new Error('[RBAC Blocked] Only Dean/Root (SUDO) can change exam lifecycle status.');
     }
 
+    const nowIso = new Date().toISOString();
+    let updatedLaunchedAt = targetExam.launchedAt;
+    let updatedPausedAt = targetExam.pausedAt;
+    let updatedTotalPausedMs = targetExam.totalPausedMs || 0;
+    const durationMinutes = targetExam.durationMinutes || 90;
+
+    if (status === 'LIVE') {
+      if (!updatedLaunchedAt) {
+        // Initial launch by Dean: establish exact 90-min timeline
+        updatedLaunchedAt = nowIso;
+        updatedPausedAt = undefined;
+        updatedTotalPausedMs = 0;
+      } else if (targetExam.status === 'PAUSED' && targetExam.pausedAt) {
+        // Resuming from PAUSED state: accumulate pause duration
+        const pauseDuration = Math.max(0, Date.now() - new Date(targetExam.pausedAt).getTime());
+        updatedTotalPausedMs += pauseDuration;
+        updatedPausedAt = undefined;
+      }
+    } else if (status === 'PAUSED') {
+      // Freeze timer at current moment
+      updatedPausedAt = nowIso;
+    } else if (status === 'COMPLETED') {
+      updatedPausedAt = undefined;
+    }
+
+    const updatedExamFields: Partial<WeeklyExam> = {
+      status,
+      launchedAt: updatedLaunchedAt,
+      pausedAt: updatedPausedAt,
+      totalPausedMs: updatedTotalPausedMs,
+      durationMinutes,
+    };
+
     setExams(prev =>
-      prev.map(ex => (ex.id === examId ? { ...ex, status } : ex))
+      prev.map(ex => (ex.id === examId ? { ...ex, ...updatedExamFields } : ex))
     );
 
     // Persist to Neon PostgreSQL
     try {
-      await updateWeeklyExamApi(examId, { status });
+      await updateWeeklyExamApi(examId, {
+        status,
+        launchedAt: updatedLaunchedAt,
+        pausedAt: updatedPausedAt,
+        totalPausedMs: updatedTotalPausedMs,
+        durationMinutes,
+      });
     } catch (err) {
       console.warn('[Neon DB] updateWeeklyExamApi (status) deferred:', err);
     }
   };
+
+  // Background Monitor: Automatically transition LIVE exams to COMPLETED once 90-min timeline concludes
+  useEffect(() => {
+    const timer = setInterval(() => {
+      exams.forEach(ex => {
+        if (ex.status === 'LIVE' && ex.launchedAt) {
+          const remainingSecs = calculateExamRemainingSeconds(ex);
+          if (remainingSecs <= 0) {
+            setExamStatus(ex.id, 'COMPLETED', true);
+          }
+        }
+      });
+    }, 2000);
+
+    return () => clearInterval(timer);
+  }, [exams]);
+
 
   const submitExamSolution = async (
     examId: string,

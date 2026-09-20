@@ -22,12 +22,15 @@ class ExamCreateSchema(BaseModel):
     topicFocus: Optional[str] = "DSA Core Curriculum"
     scheduledDate: str
     startTime: Optional[str] = "10:00 AM"
-    durationMinutes: Optional[int] = 60
+    durationMinutes: Optional[int] = 90
     totalMarks: Optional[int] = 100
     passMarks: Optional[int] = 50
     status: Optional[str] = "SCHEDULED"
     createdBy: Optional[str] = "Root (Dean of Academic Affairs / Sudo Admin)"
     questions: Optional[List[Dict[str, Any]]] = []
+    launchedAt: Optional[str] = None
+    pausedAt: Optional[str] = None
+    totalPausedMs: Optional[int] = 0
 
 
 class ExamUpdateSchema(BaseModel):
@@ -44,6 +47,9 @@ class ExamUpdateSchema(BaseModel):
     passMarks: Optional[int] = None
     status: Optional[str] = None
     questions: Optional[List[Dict[str, Any]]] = None
+    launchedAt: Optional[str] = None
+    pausedAt: Optional[str] = None
+    totalPausedMs: Optional[int] = None
 
 
 class ExamSubmitSchema(BaseModel):
@@ -76,6 +82,14 @@ def format_exam(exam: WeeklyExam) -> Dict[str, Any]:
             "answers": sub.answers or {},
         })
 
+    launched_at_iso = None
+    if getattr(exam, "launched_at", None):
+        launched_at_iso = exam.launched_at.isoformat()
+
+    paused_at_iso = None
+    if getattr(exam, "paused_at", None):
+        paused_at_iso = exam.paused_at.isoformat()
+
     return {
         "id": exam.id,
         "weekNumber": exam.week_number,
@@ -93,12 +107,31 @@ def format_exam(exam: WeeklyExam) -> Dict[str, Any]:
         "createdBy": exam.created_by,
         "questions": exam.questions or [],
         "submissions": submissions_list,
+        "launchedAt": launched_at_iso,
+        "pausedAt": paused_at_iso,
+        "totalPausedMs": getattr(exam, "total_paused_ms", 0) or 0,
     }
 
 
 @router.get("/exams", response_model=List[Dict[str, Any]], summary="Get all weekly exams")
 def get_exams(db: Session = Depends(get_db)):
     exams = db.query(WeeklyExam).order_by(WeeklyExam.created_at.desc()).all()
+    now = datetime.now(timezone.utc)
+    updated_any = False
+    for ex in exams:
+        # Check auto-end for LIVE exams when duration (90 mins) expires
+        if ex.status == "LIVE" and getattr(ex, "launched_at", None):
+            duration_secs = (ex.duration_minutes or 90) * 60
+            total_paused_secs = (getattr(ex, "total_paused_ms", 0) or 0) / 1000.0
+            launch_time = ex.launched_at
+            if launch_time.tzinfo is None:
+                launch_time = launch_time.replace(tzinfo=timezone.utc)
+            elapsed_active_secs = (now - launch_time).total_seconds() - total_paused_secs
+            if elapsed_active_secs >= duration_secs:
+                ex.status = "COMPLETED"
+                updated_any = True
+    if updated_any:
+        db.commit()
     return [format_exam(e) for e in exams]
 
 
@@ -113,6 +146,20 @@ def create_exam(
     if existing:
         raise HTTPException(status_code=400, detail="Exam ID already exists.")
 
+    launched_dt = None
+    if payload.launchedAt:
+        try:
+            launched_dt = datetime.fromisoformat(payload.launchedAt.replace("Z", "+00:00"))
+        except Exception:
+            pass
+
+    paused_dt = None
+    if payload.pausedAt:
+        try:
+            paused_dt = datetime.fromisoformat(payload.pausedAt.replace("Z", "+00:00"))
+        except Exception:
+            pass
+
     new_exam = WeeklyExam(
         id=exam_id,
         week_number=payload.weekNumber or 1,
@@ -123,12 +170,15 @@ def create_exam(
         topic_focus=payload.topicFocus or "DSA Core Curriculum",
         scheduled_date=payload.scheduledDate,
         start_time=payload.startTime or "10:00 AM",
-        duration_minutes=payload.durationMinutes or 60,
+        duration_minutes=payload.durationMinutes or 90,
         total_marks=payload.totalMarks or 100,
         pass_marks=payload.passMarks or 50,
         status=payload.status or "SCHEDULED",
         created_by=payload.createdBy or "Root (Dean of Academic Affairs / Sudo Admin)",
         questions=payload.questions or [],
+        launched_at=launched_dt,
+        paused_at=paused_dt,
+        total_paused_ms=payload.totalPausedMs or 0,
     )
     db.add(new_exam)
     db.commit()
@@ -173,10 +223,23 @@ def update_exam(
         exam.status = payload.status
     if payload.questions is not None:
         exam.questions = payload.questions
+    if payload.launchedAt is not None:
+        try:
+            exam.launched_at = datetime.fromisoformat(payload.launchedAt.replace("Z", "+00:00")) if payload.launchedAt else None
+        except Exception:
+            pass
+    if payload.pausedAt is not None:
+        try:
+            exam.paused_at = datetime.fromisoformat(payload.pausedAt.replace("Z", "+00:00")) if payload.pausedAt else None
+        except Exception:
+            pass
+    if payload.totalPausedMs is not None:
+        exam.total_paused_ms = payload.totalPausedMs
 
     db.commit()
     db.refresh(exam)
     return format_exam(exam)
+
 
 
 @router.delete("/dean/exams/{exam_id}", summary="Delete an exam")

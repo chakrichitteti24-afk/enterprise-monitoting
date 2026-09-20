@@ -121,7 +121,7 @@ export interface CurrentUser {
   teamNumber?: string;
 }
 
-export type ExamStatus = 'SCHEDULED' | 'LIVE' | 'COMPLETED';
+export type ExamStatus = 'SCHEDULED' | 'LIVE' | 'PAUSED' | 'COMPLETED';
 
 export interface ExamQuestion {
   id: string;
@@ -176,12 +176,16 @@ export interface WeeklyExam {
   topicFocus: string; // e.g. "Basics, Loops & Number Logic"
   scheduledDate: string; // e.g. "2026-08-28"
   startTime: string; // e.g. "10:00 AM"
-  durationMinutes: number; // e.g. 60
+  durationMinutes: number; // e.g. 90
   totalMarks: number; // e.g. 100
   passMarks: number; // e.g. 50
-  status: ExamStatus; // 'SCHEDULED' | 'LIVE' | 'COMPLETED'
+  status: ExamStatus; // 'SCHEDULED' | 'LIVE' | 'PAUSED' | 'COMPLETED'
   createdBy: string; // "Dean of Academic Affairs (SUDO)"
   questions: ExamQuestion[];
   submissions?: StudentExamSubmission[];
+  launchedAt?: string; // ISO timestamp when Dean launches exam
+  pausedAt?: string; // ISO timestamp when Root pauses exam
+  totalPausedMs?: number; // Total cumulative paused duration in milliseconds
+  endsAt?: string; // Expected completion timestamp
 }
 

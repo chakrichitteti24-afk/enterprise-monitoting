@@ -4,6 +4,7 @@ import { QuickRoleSwitcher } from '../ui/QuickRoleSwitcher';
 import { UserAvatar } from '../ui/UserAvatar';
 import { AppLogo } from '../ui/AppLogo';
 import { motion, AnimatePresence } from 'framer-motion';
+import { calculateExamRemainingSeconds } from '../../data/mockExams';
 import {
   Search,
   Bell,
@@ -17,6 +18,7 @@ import {
   Sparkles,
   Radio,
   BookOpen,
+  Pause,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -42,28 +44,44 @@ export const Header: React.FC<HeaderProps> = ({
   } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [currentTime, setCurrentTime] = useState<number>(Date.now());
+
+  React.useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const topTeam = teams.length > 0 ? [...teams].sort((a, b) => b.avgProgress - a.avgProgress)[0] : null;
   const attentionStudentCount = students.filter((s) => s.status === 'Needs Attention').length;
 
-  const liveExam = exams.find(e => e.status === 'LIVE');
-  const studentSubmission = liveExam?.submissions?.find(
+  const activeExam = exams.find(e => e.status === 'LIVE' || e.status === 'PAUSED');
+  const isPaused = activeExam?.status === 'PAUSED';
+  const remainingSecs = activeExam ? calculateExamRemainingSeconds(activeExam, currentTime) : 0;
+  const minsLeft = Math.floor(remainingSecs / 60);
+  const secsLeft = remainingSecs % 60;
+  const timeStr = `${String(minsLeft).padStart(2, '0')}:${String(secsLeft).padStart(2, '0')}`;
+
+  const studentSubmission = activeExam?.submissions?.find(
     s => s.studentId === currentUser.studentData?.id || s.studentRollNo === currentUser.studentData?.rollNo
   );
 
   const notifications = [
-    ...(liveExam
+    ...(activeExam
       ? [
           {
             id: 'live-exam-alert',
-            title: `🚨 Live Exam Active: ${liveExam.title}`,
+            title: isPaused
+              ? `⏸️ Exam Paused: ${activeExam.title}`
+              : `🚨 Live Exam Active: ${activeExam.title}`,
             desc: studentSubmission
               ? `You have submitted this exam (Score: ${studentSubmission.score}/${studentSubmission.totalMarks}).`
-              : `Root (Dean) has launched this assessment. Complete ${liveExam.questions?.length || 20} problems within ${liveExam.durationMinutes} mins.`,
-            time: 'Live Now',
-            icon: Radio,
-            color: 'text-rose-600 bg-rose-50',
-            isLive: true,
+              : isPaused
+              ? `Root (Dean) has temporarily paused this assessment. Remaining time: ${timeStr}.`
+              : `Root (Dean) has launched this assessment. 90-min timeline active (${timeStr} remaining).`,
+            time: isPaused ? 'Paused' : 'Live Now',
+            icon: isPaused ? Pause : Radio,
+            color: isPaused ? 'text-amber-600 bg-amber-50' : 'text-rose-600 bg-rose-50',
+            isLive: !isPaused,
           },
         ]
       : []),
@@ -96,26 +114,40 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <>
       {/* 🚨 Global Live Exam Alert Emergency Banner */}
-      {liveExam && !studentSubmission && (
+      {activeExam && !studentSubmission && remainingSecs > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-red-600 via-rose-600 to-indigo-600 text-white px-3 sm:px-6 py-2 text-xs font-bold flex items-center justify-between shadow-md border-b border-red-500/40 select-none z-40 relative"
+          className={`${
+            isPaused
+              ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 border-b border-amber-500/40'
+              : 'bg-gradient-to-r from-red-600 via-rose-600 to-indigo-600 border-b border-red-500/40'
+          } text-white px-3 sm:px-6 py-2 text-xs font-bold flex items-center justify-between shadow-md select-none z-40 relative`}
         >
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <span className="flex h-2.5 w-2.5 relative shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              {!isPaused && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>}
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
             </span>
             <span className="truncate">
-              🚨 <strong>LIVE EXAMINATION ACTIVE:</strong> Root (Dean) has launched <strong>{liveExam.title}</strong> ({liveExam.questions?.length || 20} Problems, {liveExam.durationMinutes} Mins)!
+              {isPaused ? (
+                <>
+                  ⏸️ <strong>EXAMINATION PAUSED:</strong> Root (Dean) has paused <strong>{activeExam.title}</strong> — {timeStr} frozen remaining.
+                </>
+              ) : (
+                <>
+                  🚨 <strong>LIVE EXAMINATION ACTIVE:</strong> Root (Dean) has launched <strong>{activeExam.title}</strong> (90 Mins Timeline) — <strong>{timeStr} remaining</strong>!
+                </>
+              )}
             </span>
           </div>
           <button
             onClick={() => setActiveTab('exams')}
-            className="ml-3 px-3.5 py-1 bg-white text-rose-700 hover:bg-rose-50 rounded-xl text-xs font-extrabold shadow-sm transition-all active:scale-95 shrink-0 flex items-center gap-1 cursor-pointer"
+            className={`ml-3 px-3.5 py-1 bg-white ${
+              isPaused ? 'text-amber-700 hover:bg-amber-50' : 'text-rose-700 hover:bg-rose-50'
+            } rounded-xl text-xs font-extrabold shadow-sm transition-all active:scale-95 shrink-0 flex items-center gap-1 cursor-pointer`}
           >
-            <span>Take Exam Now &rarr;</span>
+            <span>{isPaused ? 'View Exam' : 'Take Exam Now'} &rarr;</span>
           </button>
         </motion.div>
       )}
@@ -200,16 +232,16 @@ export const Header: React.FC<HeaderProps> = ({
                   setShowProfileMenu(false);
                 }}
                 className={`relative h-9 w-9 flex items-center justify-center rounded-2xl transition-colors shrink-0 ${
-                  liveExam && !studentSubmission
+                  activeExam && !studentSubmission
                     ? 'bg-rose-100 text-rose-700 hover:bg-rose-200 ring-2 ring-rose-400'
                     : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/80'
                 }`}
                 aria-label="Notifications"
               >
                 <Bell className="w-4 h-4" />
-                {liveExam && !studentSubmission ? (
+                {activeExam && !studentSubmission ? (
                   <span className="absolute -top-1 -right-1 px-1.5 py-0.2 bg-rose-600 text-white rounded-full text-[9px] font-extrabold animate-bounce">
-                    LIVE
+                    {isPaused ? 'PAUSED' : 'LIVE'}
                   </span>
                 ) : (
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full ring-2 ring-white animate-pulse" />
