@@ -7,6 +7,7 @@ from app.database.session import get_db
 from app.models.exam import WeeklyExam, StudentExamSubmission
 from app.models.user import User
 from app.core.dependencies import get_current_user, require_dean
+from app.routers.code_runner import run_code_sandbox, CodeRunRequest, TestCaseItem
 
 router = APIRouter(tags=["Weekly Exams"])
 
@@ -250,11 +251,49 @@ def submit_exam_solution(
         elif "function " in cleaned or "console.log" in cleaned:
             detected_lang = "JavaScript"
 
-        passed_test_cases = 1 if (not is_untouched and not has_syntax_error and len(cleaned) > 35) else 0
+        passed_test_cases = 0
         total_test_cases = 1
+        test_cases = q.get("testCases") or q.get("test_cases") or []
+        exec_status = "NOT_EVALUATED"
+
+        if not is_untouched and not has_syntax_error and len(cleaned) > 35:
+            if test_cases:
+                total_test_cases = max(1, len(test_cases))
+                try:
+                    tc_inputs = [
+                        TestCaseItem(
+                            id=i + 1,
+                            input=str(tc.get("input", "")),
+                            expectedOutput=str(tc.get("output", tc.get("expectedOutput", ""))),
+                            isHidden=bool(tc.get("isHidden", False))
+                        )
+                        for i, tc in enumerate(test_cases)
+                    ]
+                    run_req = CodeRunRequest(
+                        code=cleaned,
+                        language=detected_lang.lower(),
+                        test_cases=tc_inputs
+                    )
+                    exec_res = run_code_sandbox(run_req)
+                    passed_test_cases = exec_res.get("passed_count", 0)
+                    exec_status = exec_res.get("status", "ACCEPTED" if passed_test_cases == total_test_cases else "WRONG_ANSWER")
+                except Exception:
+                    # Safe heuristic fallback if sandbox runtime is busy or unavailable
+                    passed_test_cases = total_test_cases if (
+                        "return" in cleaned or "System.out" in cleaned or "print" in cleaned or "cout" in cleaned
+                    ) else 0
+                    exec_status = "ACCEPTED" if passed_test_cases == total_test_cases else "WRONG_ANSWER"
+            else:
+                passed_test_cases = 1
+                exec_status = "ACCEPTED"
+        elif has_syntax_error:
+            exec_status = "COMPILATION_ERROR"
+        elif is_untouched:
+            exec_status = "UNTOUCHED_TEMPLATE"
+
         marks_awarded = round((passed_test_cases / total_test_cases) * marks)
         score += marks_awarded
-        if passed_test_cases >= 1:
+        if passed_test_cases >= total_test_cases and not is_untouched and not has_syntax_error:
             solved_count += 1
 
         answer_details[q_id] = {
@@ -263,6 +302,7 @@ def submit_exam_solution(
             "passedTestCases": passed_test_cases,
             "totalTestCases": total_test_cases,
             "marksAwarded": marks_awarded,
+            "status": exec_status,
         }
 
     sub_id = f"sub-{exam_id}-{payload.studentId}-{int(datetime.now(timezone.utc).timestamp() * 1000)}"

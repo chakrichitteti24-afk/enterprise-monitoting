@@ -4,11 +4,95 @@ import tempfile
 import os
 import json
 import time
+import math
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, status
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/code", tags=["Code Execution Sandbox"])
+
+
+def compare_outputs(actual_raw: Any, expected_raw: Any) -> bool:
+    """
+    High-precision judge comparison for test case evaluations:
+    - Normalizes line endings (\\r\\n -> \\n)
+    - Strips leading/trailing whitespace
+    - Compares exact string matches
+    - Compares line-by-line with per-line trailing whitespace removed
+    - Compares token-by-token across whitespace boundaries
+    - Performs numeric float tolerance comparison (math.isclose / 1e-5)
+    - Supports JSON structured data comparison (lists, dicts, primitives)
+    - Supports boolean case-insensitivity ('true' vs 'True')
+    - PREVENTS false positive token merges (e.g. '1 2 3' will NEVER match '123')
+    """
+    if actual_raw is None or expected_raw is None:
+        return False
+
+    actual = str(actual_raw).replace("\r\n", "\n").strip()
+    expected = str(expected_raw).replace("\r\n", "\n").strip()
+
+    # 1. Exact string match
+    if actual == expected:
+        return True
+
+    # 2. Case-insensitive match for booleans or status words
+    if actual.lower() == expected.lower() and actual.lower() in ("true", "false", "yes", "no", "even", "odd"):
+        return True
+
+    # 3. Numeric comparison (single number or float)
+    try:
+        a_f = float(actual)
+        e_f = float(expected)
+        if math.isclose(a_f, e_f, rel_tol=1e-5, abs_tol=1e-5):
+            return True
+    except (ValueError, TypeError):
+        pass
+
+    # 4. JSON / structure comparison
+    try:
+        a_json = json.loads(actual)
+        e_json = json.loads(expected)
+        if a_json == e_json:
+            return True
+    except Exception:
+        pass
+
+    # 5. Line-by-line comparison
+    a_lines = [l.rstrip() for l in actual.split("\n")]
+    e_lines = [l.rstrip() for l in expected.split("\n")]
+    while a_lines and not a_lines[-1]:
+        a_lines.pop()
+    while e_lines and not e_lines[-1]:
+        e_lines.pop()
+
+    if a_lines == e_lines:
+        return True
+
+    # 6. Token-by-token comparison (preserves token boundaries)
+    if len(a_lines) == len(e_lines):
+        all_lines_match = True
+        for a_line, e_line in zip(a_lines, e_lines):
+            a_toks = a_line.split()
+            e_toks = e_line.split()
+            if len(a_toks) != len(e_toks):
+                all_lines_match = False
+                break
+            for a_tok, e_tok in zip(a_toks, e_toks):
+                if a_tok == e_tok:
+                    continue
+                if a_tok.lower() == e_tok.lower() and a_tok.lower() in ("true", "false"):
+                    continue
+                try:
+                    if math.isclose(float(a_tok), float(e_tok), rel_tol=1e-5, abs_tol=1e-5):
+                        continue
+                except (ValueError, TypeError):
+                    pass
+                all_lines_match = False
+                break
+        if all_lines_match:
+            return True
+
+    return False
 
 
 class TestCaseItem(BaseModel):
@@ -184,14 +268,11 @@ __run_test()
                             error_message = parsed["error"]
                         else:
                             actual_out = str(parsed.get("actual", ""))
-                            # Compare outputs
-                            norm_actual = actual_out.strip().replace(" ", "").lower()
-                            norm_expected = expected.strip().replace(" ", "").lower()
-                            is_passed = (norm_actual == norm_expected)
+                            is_passed = compare_outputs(actual_out, expected)
                             status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
                     except:
                         actual_out = stdout or "No output"
-                        is_passed = (actual_out.strip() == expected.strip())
+                        is_passed = compare_outputs(actual_out, expected)
                         status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
 
             except subprocess.TimeoutExpired:
@@ -335,14 +416,11 @@ __run_test();
                             error_message = parsed["error"]
                         else:
                             actual_out = str(parsed.get("actual", ""))
-                            # Compare outputs
-                            norm_actual = actual_out.strip().replace(" ", "").lower()
-                            norm_expected = expected.strip().replace(" ", "").lower()
-                            is_passed = (norm_actual == norm_expected)
+                            is_passed = compare_outputs(actual_out, expected)
                             status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
                     except:
                         actual_out = stdout or "No output"
-                        is_passed = (actual_out.strip() == expected.strip())
+                        is_passed = compare_outputs(actual_out, expected)
                         status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
 
             except subprocess.TimeoutExpired:
@@ -471,15 +549,11 @@ public class Main {{
                                     error_message = parsed["error"]
                                 else:
                                     actual_out = str(parsed.get("actual", ""))
-                                    norm_actual = actual_out.strip().replace(" ", "").lower()
-                                    norm_expected = expected.strip().replace(" ", "").lower()
-                                    is_passed = (norm_actual == norm_expected)
+                                    is_passed = compare_outputs(actual_out, expected)
                                     status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
                             except:
                                 actual_out = stdout or "No output"
-                                norm_actual = actual_out.strip().replace(" ", "").lower()
-                                norm_expected = expected.strip().replace(" ", "").lower()
-                                is_passed = (norm_actual == norm_expected)
+                                is_passed = compare_outputs(actual_out, expected)
                                 status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
             except subprocess.TimeoutExpired:
                 actual_out = "Time Limit Exceeded ( > 3.0s )"

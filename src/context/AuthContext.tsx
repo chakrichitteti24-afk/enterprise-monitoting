@@ -2013,7 +2013,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       answers: answerDetails,
     };
 
-    // Update Exam submissions in state
+    // Persist to backend with real sandbox test-case grading
+    try {
+      const backendRes = await submitExamSolutionApi(examId, {
+        studentId: student.id,
+        studentName: student.name,
+        studentRollNo: student.rollNo,
+        teamNumber: student.teamNumber,
+        randomizedSetCode: setCode,
+        answers: answerDetails,
+      });
+      if (backendRes && typeof backendRes.score === 'number') {
+        newSubmission.score = backendRes.score;
+        newSubmission.questionsSolved = backendRes.questions_solved ?? backendRes.questionsSolved ?? newSubmission.questionsSolved;
+        newSubmission.passedCount = newSubmission.questionsSolved;
+        if (backendRes.answers) {
+          newSubmission.answers = backendRes.answers;
+        }
+      }
+    } catch (err) {
+      console.warn('[Neon DB] submitExamSolutionApi deferred:', err);
+    }
+
+    // Update Exam submissions in state with verified score
     setExams(prev =>
       prev.map(ex => {
         if (ex.id === examId) {
@@ -2023,20 +2045,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return ex;
       })
     );
-
-    // Persist to Neon PostgreSQL
-    try {
-      await submitExamSolutionApi(examId, {
-        studentId: student.id,
-        studentName: student.name,
-        studentRollNo: student.rollNo,
-        teamNumber: student.teamNumber,
-        randomizedSetCode: setCode,
-        answers: answerDetails,
-      });
-    } catch (err) {
-      console.warn('[Neon DB] submitExamSolutionApi deferred:', err);
-    }
 
     return newSubmission;
   };
