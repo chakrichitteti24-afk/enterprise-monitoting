@@ -121,9 +121,9 @@ button, [role="button"], .select-none {
   overscroll-behavior-y: contain;
 }
 
-/* Prevent iOS input auto-zoom on focus (16px floor) */
+/* Prevent iOS input auto-zoom on focus (16px floor) - exclude code-editor-textarea to preserve pixel-perfect syntax alignment */
 @media (max-width: 768px) {
-  input, select, textarea {
+  input, select, textarea:not(.code-editor-textarea) {
     font-size: 16px !important;
     line-height: 1.35 !important;
   }

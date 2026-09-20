@@ -714,7 +714,7 @@ export const StudentExamsPage: React.FC = () => {
                   {/* Middle Scrollable Area: Code Editor & Live Test Bench */}
                   <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 min-h-0 custom-scrollbar">
                     {/* Code Editor */}
-                    <div className="rounded-2xl border border-slate-700 overflow-hidden shrink-0 shadow-inner">
+                    <div className="shrink-0">
                       <CodeEditorWithSyntax
                         value={
                           currentQuestion
@@ -740,7 +740,7 @@ export const StudentExamsPage: React.FC = () => {
                         language={(questionLanguages[currentQuestion?.id || ''] || selectedLanguage) as any}
                         fontSize={13}
                         placeholder="// Implement optimal logic for this problem..."
-                        minHeight="290px"
+                        minHeight="320px"
                       />
                     </div>
 

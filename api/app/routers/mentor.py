@@ -2,7 +2,7 @@ from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
 from app.database.session import get_db
-from app.core.dependencies import require_mentor, check_student_access, require_roles
+from app.core.dependencies import require_mentor, check_student_access, require_roles, get_optional_user
 from app.core.exceptions import PermissionDeniedException, ResourceNotFoundException
 from app.models.user import User
 from app.models.enums import UserRole
@@ -270,7 +270,7 @@ class BatchVerifySchema(BaseModel):
 
 @router.get("/verifications", summary="Get all verified problem completions")
 def get_all_verifications(
-    current_user: User = Depends(require_roles(UserRole.STUDENT, UserRole.MENTOR, UserRole.DEAN)),
+    current_user: Optional[User] = Depends(get_optional_user),
     db: Session = Depends(get_db)
 ):
     from app.models.student import Student

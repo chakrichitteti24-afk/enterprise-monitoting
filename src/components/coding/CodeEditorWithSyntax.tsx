@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 
 interface CodeEditorWithSyntaxProps {
   value: string;
@@ -21,6 +21,29 @@ const BRACKET_PAIRS: Record<string, string> = {
 
 const CLOSING_BRACKETS = new Set([')', ']', '}', '"', "'", '`']);
 
+const KEYWORDS = new Set([
+  'class', 'public', 'private', 'protected', 'static', 'final', 'void', 'int', 'long', 'float', 'double',
+  'boolean', 'bool', 'char', 'string', 'if', 'else', 'elif', 'for', 'while', 'do', 'return', 'def', 'import',
+  'from', 'in', 'is', 'not', 'and', 'or', 'true', 'false', 'True', 'False', 'null', 'nullptr', 'None',
+  'new', 'struct', 'auto', 'const', 'let', 'var', 'function', 'async', 'await', 'try', 'catch', 'finally',
+  'throw', 'throws', 'sizeof', 'typeof', 'include', 'namespace', 'using', 'std', 'this', 'self', 'extends',
+  'implements', 'pass', 'break', 'continue', 'yield', 'lambda', 'as', 'with', 'except', 'raise'
+]);
+
+const TYPES = new Set([
+  'Main', 'Solution', 'Scanner', 'System', 'String', 'Math', 'Vector', 'vector', 'List', 'ArrayList',
+  'Map', 'HashMap', 'Set', 'HashSet', 'Stack', 'Queue', 'TreeNode', 'ListNode', 'Console',
+  'Integer', 'Boolean', 'Double', 'Long', 'Character', 'Object', 'Arrays', 'Collections',
+  'cin', 'cout', 'endl'
+]);
+
+const BUILTIN_FUNCS = new Set([
+  'println', 'print', 'printf', 'main', 'solve', 'next', 'nextInt', 'nextLine', 'nextDouble',
+  'hasNext', 'hasNextInt', 'range', 'len', 'str', 'dict', 'list', 'tuple', 'set',
+  'push_back', 'pop_back', 'push', 'pop', 'peek', 'append', 'size', 'length', 'substring',
+  'charAt', 'indexOf', 'split', 'trim', 'toLowerCase', 'toUpperCase', 'parseInt', 'parseFloat'
+]);
+
 export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
   value,
   onChange,
@@ -31,12 +54,17 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
   minHeight = '320px',
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const preRef = useRef<HTMLPreElement>(null);
   const gutterRef = useRef<HTMLDivElement>(null);
 
   const [cursorPosition, setCursorPosition] = useState<{ line: number; col: number }>({
     line: 1,
     col: 1,
   });
+  const [scrollTop, setScrollTop] = useState<number>(0);
+
+  const lineHeightPx = 22;
+  const paddingPx = 12;
 
   // Calculate current Line & Column for cursor tracking
   const updateCursorPosition = useCallback(() => {
@@ -50,10 +78,18 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
     });
   }, [value]);
 
-  // Sync line numbers gutter scrolling with textarea
+  // Sync line numbers gutter & syntax pre layer scrolling with textarea in real time
   const handleScroll = () => {
-    if (textareaRef.current && gutterRef.current) {
-      gutterRef.current.scrollTop = textareaRef.current.scrollTop;
+    if (textareaRef.current) {
+      const { scrollTop: st, scrollLeft: sl } = textareaRef.current;
+      setScrollTop(st);
+      if (preRef.current) {
+        preRef.current.scrollTop = st;
+        preRef.current.scrollLeft = sl;
+      }
+      if (gutterRef.current) {
+        gutterRef.current.scrollTop = st;
+      }
     }
   };
 
@@ -72,7 +108,6 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
       if (start !== end) {
         // Multi-line indent / dedent
         const before = val.substring(0, start);
-        const selected = val.substring(start, end);
         const after = val.substring(end);
 
         const lineStart = before.lastIndexOf('\n') + 1;
@@ -108,6 +143,7 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
             onChange(newCode);
             setTimeout(() => {
               target.selectionStart = target.selectionEnd = Math.max(lineStart, start - 4);
+              updateCursorPosition();
             }, 0);
           }
         } else {
@@ -131,7 +167,6 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
       const matchIndent = currentLine.match(/^[ \t]*/);
       let indent = matchIndent ? matchIndent[0] : '';
 
-      // Extra indent if line ends with open brace, colon, or open bracket
       const trimmedBefore = currentLine.trim();
       const needsExtraIndent =
         trimmedBefore.endsWith('{') ||
@@ -139,7 +174,6 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
         trimmedBefore.endsWith('(') ||
         trimmedBefore.endsWith('[');
 
-      // Check if pressing Enter between { and }
       const charBefore = val[start - 1];
       const charAfter = val[start];
       const isBetweenBraces = charBefore === '{' && charAfter === '}';
@@ -174,7 +208,6 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
       const closeChar = BRACKET_PAIRS[openChar];
 
       if (start !== end) {
-        // Wrap selection in brackets
         e.preventDefault();
         const selected = val.substring(start, end);
         const updated = val.substring(0, start) + openChar + selected + closeChar + val.substring(end);
@@ -186,7 +219,7 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
         return;
       }
 
-      // If typing a quote right before the same quote, just step over it
+      // If typing a quote right before the same quote, step over it
       if ((openChar === '"' || openChar === "'" || openChar === '`') && val[start] === openChar) {
         e.preventDefault();
         target.selectionStart = target.selectionEnd = start + 1;
@@ -194,7 +227,6 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
         return;
       }
 
-      // Insert pair
       e.preventDefault();
       const updated = val.substring(0, start) + openChar + closeChar + val.substring(end);
       onChange(updated);
@@ -205,7 +237,7 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
       return;
     }
 
-    // 4. Step-over closing brackets if already present
+    // 4. Step-over closing brackets
     if (CLOSING_BRACKETS.has(e.key) && val[start] === e.key && start === end) {
       e.preventDefault();
       target.selectionStart = target.selectionEnd = start + 1;
@@ -236,25 +268,102 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
     }
   };
 
+  // High-precision syntax highlighting generator:
+  // Strictly maintains 1:1 character alignment with zero bolding width drift
+  const highlightedHTML = useMemo(() => {
+    if (!value) return '';
+
+    const escapeHtml = (text: string) =>
+      text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // Accurate token matcher for comments, strings, numbers, words
+    const tokenRegex =
+      language === 'python'
+        ? /(#[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z_]\w*\b)/g
+        : /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z_]\w*\b)/g;
+
+    let result = '';
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = tokenRegex.exec(value)) !== null) {
+      if (match.index > lastIndex) {
+        result += escapeHtml(value.slice(lastIndex, match.index));
+      }
+
+      const [, comment, str, num, word] = match;
+
+      if (comment !== undefined) {
+        result += `<span style="color: #7f848e; font-style: normal; font-weight: 400;">${escapeHtml(comment)}</span>`;
+      } else if (str !== undefined) {
+        result += `<span style="color: #98c379; font-style: normal; font-weight: 400;">${escapeHtml(str)}</span>`;
+      } else if (num !== undefined) {
+        result += `<span style="color: #d19a66; font-style: normal; font-weight: 400;">${escapeHtml(num)}</span>`;
+      } else if (word !== undefined) {
+        if (KEYWORDS.has(word)) {
+          result += `<span style="color: #c678dd; font-style: normal; font-weight: 400;">${escapeHtml(word)}</span>`;
+        } else if (TYPES.has(word)) {
+          result += `<span style="color: #e5c07b; font-style: normal; font-weight: 400;">${escapeHtml(word)}</span>`;
+        } else if (BUILTIN_FUNCS.has(word)) {
+          result += `<span style="color: #61afef; font-style: normal; font-weight: 400;">${escapeHtml(word)}</span>`;
+        } else {
+          result += `<span style="color: #abb2bf; font-style: normal; font-weight: 400;">${escapeHtml(word)}</span>`;
+        }
+      }
+
+      lastIndex = tokenRegex.lastIndex;
+    }
+
+    if (lastIndex < value.length) {
+      result += escapeHtml(value.slice(lastIndex));
+    }
+
+    return result;
+  }, [value, language]);
+
   // Line count calculations
   const lines = (value || '').split('\n');
   const lineCount = Math.max(lines.length, 16);
-  const lineHeightPx = Math.round(fontSize * 1.6);
 
   useEffect(() => {
     updateCursorPosition();
   }, [value, updateCursorPosition]);
 
+  const sharedFontStyle: React.CSSProperties = {
+    fontFamily: "Consolas, 'Cascadia Code', 'Fira Code', Menlo, Monaco, monospace",
+    fontSize: `${fontSize}px`,
+    lineHeight: `${lineHeightPx}px`,
+    fontWeight: 400,
+    fontStyle: 'normal',
+    letterSpacing: '0px',
+    wordSpacing: '0px',
+    tabSize: 4,
+    MozTabSize: 4,
+    whiteSpace: 'pre',
+    wordBreak: 'normal',
+    overflowWrap: 'normal',
+    fontVariantLigatures: 'none',
+    fontFeatureSettings: '"liga" 0, "calt" 0',
+    WebkitFontSmoothing: 'antialiased',
+    MozOsxFontSmoothing: 'grayscale',
+    textRendering: 'geometricPrecision',
+    padding: `${paddingPx}px 14px`,
+    margin: '0px',
+    border: '0px solid transparent',
+    boxSizing: 'border-box',
+    textAlign: 'left',
+  };
+
   return (
     <div
       onClick={handleContainerClick}
-      className="relative flex flex-col w-full h-full min-h-0 bg-[#0d1522] border border-slate-700/80 rounded-2xl overflow-hidden shadow-inner text-slate-200 select-text font-mono cursor-text"
+      className="relative flex flex-col w-full bg-[#0d1522] border border-slate-700/80 rounded-2xl overflow-hidden shadow-inner select-text font-mono cursor-text"
       style={{
         minHeight,
-        height: minHeight === '100%' ? '100%' : undefined,
+        height: minHeight === '100%' ? '100%' : minHeight,
       }}
     >
-      {/* Editor Body: Gutter + Direct Crisp Textarea */}
+      {/* Editor Body: Gutter + Synced Syntax Layer + Transparent Textarea */}
       <div className="relative flex flex-1 w-full h-full min-h-0 overflow-hidden">
         {/* ----------------------------------------------------------- */}
         {/* Line Numbers Gutter                                         */}
@@ -262,10 +371,12 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
         <div
           ref={gutterRef}
           aria-hidden="true"
-          className="w-12 bg-[#090f19] border-r border-slate-800/80 py-3 pr-2.5 text-right text-slate-500 font-mono select-none shrink-0 overflow-hidden transition-colors"
+          className="w-12 bg-[#080e18] border-r border-slate-800/90 text-right font-mono select-none shrink-0 overflow-hidden"
           style={{
-            fontSize: `${Math.max(11, fontSize - 2)}px`,
-            lineHeight: `${lineHeightPx}px`,
+            paddingTop: `${paddingPx}px`,
+            paddingBottom: `${paddingPx}px`,
+            paddingRight: '10px',
+            boxSizing: 'border-box',
           }}
         >
           {Array.from({ length: lineCount }, (_, i) => {
@@ -273,9 +384,15 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
             return (
               <div
                 key={i + 1}
-                className={`transition-colors ${
-                  isCurrentLine ? 'text-blue-400 font-bold' : 'text-slate-600 hover:text-slate-400'
+                className={`select-none transition-colors ${
+                  isCurrentLine ? 'text-blue-400 font-bold' : 'text-slate-600'
                 }`}
+                style={{
+                  height: `${lineHeightPx}px`,
+                  lineHeight: `${lineHeightPx}px`,
+                  fontSize: `${Math.max(11, fontSize - 2)}px`,
+                  fontFamily: "Consolas, 'Cascadia Code', 'Fira Code', Menlo, Monaco, monospace",
+                }}
               >
                 {i + 1}
               </div>
@@ -284,9 +401,33 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
         </div>
 
         {/* ----------------------------------------------------------- */}
-        {/* Real Visible Code Editor Textarea                           */}
+        {/* Dual-Layer Synced Editor: Syntax Highlighting + Interactive  */}
         {/* ----------------------------------------------------------- */}
         <div className="relative flex-1 h-full min-h-0 overflow-hidden bg-[#0d1522]">
+          {/* Active Line Background Highlight */}
+          <div
+            aria-hidden="true"
+            className="absolute left-0 right-0 pointer-events-none bg-blue-500/10 border-y border-blue-500/15"
+            style={{
+              top: `${paddingPx + (cursorPosition.line - 1) * lineHeightPx - scrollTop}px`,
+              height: `${lineHeightPx}px`,
+              zIndex: 1,
+            }}
+          />
+
+          {/* Layer 1: Colored Syntax Highlighting Layer (Underneath) */}
+          <pre
+            ref={preRef}
+            aria-hidden="true"
+            className="absolute inset-0 overflow-hidden pointer-events-none text-[#abb2bf] select-none"
+            style={{
+              ...sharedFontStyle,
+              zIndex: 2,
+            }}
+            dangerouslySetInnerHTML={{ __html: highlightedHTML + (value.endsWith('\n') ? ' ' : '') }}
+          />
+
+          {/* Layer 2: Real Editable Textarea (Foreground Transparent with Caret) */}
           <textarea
             ref={textareaRef}
             value={value || ''}
@@ -303,15 +444,15 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
             autoCapitalize="off"
             autoComplete="off"
             autoCorrect="off"
+            wrap="off"
             readOnly={readOnly}
             placeholder={placeholder}
-            className="w-full h-full p-3 m-0 font-mono bg-transparent text-slate-100 placeholder-slate-600 focus:outline-hidden resize-none whitespace-pre overflow-auto selection:bg-blue-600/50 selection:text-white custom-scrollbar border-0"
+            className="code-editor-textarea absolute inset-0 bg-transparent text-transparent placeholder-slate-600 resize-none overflow-auto custom-scrollbar selection:bg-blue-600/35 selection:text-transparent"
             style={{
-              fontFamily: "Consolas, 'Cascadia Code', 'Fira Code', Menlo, Monaco, 'Courier New', monospace",
-              fontSize: `${fontSize}px`,
-              lineHeight: `${lineHeightPx}px`,
-              tabSize: 4,
+              ...sharedFontStyle,
               caretColor: '#38bdf8',
+              outline: 'none',
+              zIndex: 3,
             }}
           />
         </div>

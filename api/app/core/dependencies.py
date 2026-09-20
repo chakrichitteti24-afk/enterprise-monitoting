@@ -43,6 +43,26 @@ def get_current_user(
     return user
 
 
+def get_optional_user(
+    auth: Optional[HTTPAuthorizationCredentials] = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    if not auth or not auth.credentials:
+        return None
+    try:
+        payload = decode_access_token(auth.credentials)
+        if not payload or "sub" not in payload:
+            return None
+        user_id = payload.get("user_id") or int(payload["sub"])
+        user_repo = UserRepository(db)
+        user = user_repo.get_with_profiles(user_id)
+        if user and user.is_active:
+            return user
+        return None
+    except Exception:
+        return None
+
+
 def require_roles(*allowed_roles: UserRole) -> Callable[[User], User]:
     def role_checker(current_user: User = Depends(get_current_user)) -> User:
         if current_user.role not in allowed_roles:
