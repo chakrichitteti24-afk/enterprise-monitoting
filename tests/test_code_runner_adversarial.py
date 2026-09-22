@@ -1,10 +1,17 @@
 import sys
+import os
 import time
-sys.path.insert(0, 'd:/gkce')
-from api.app.routers.code_runner import run_code_sandbox, CodeRunRequest, TestCaseItem
+
+# Ensure root directory is in sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from backend.app.routers.code_runner import run_code_sandbox, compare_outputs, CodeRunRequest, TestCaseItem
+
 
 def run_tests():
-    print('=== Starting Backend Code Runner Adversarial Tests ===')
+    print("=" * 70)
+    print("    GKCE HIGH-PRECISION MULTI-LANGUAGE COMPILER ADVERSARIAL SUITE")
+    print("=" * 70)
     passed_tests = 0
     total_tests = 0
 
@@ -13,173 +20,345 @@ def run_tests():
         total_tests += 1
         if actual == expected:
             passed_tests += 1
-            print(f'  [PASS] {name}')
+            print(f"  [PASS] {name}")
         else:
-            print(f'  [FAIL] {name}: Expected {expected!r}, got {actual!r}')
+            print(f"  [FAIL] {name}: Expected {expected!r}, got {actual!r}")
 
-    def assert_in(substr, fullstr, name):
+    def assert_true(condition, name):
         nonlocal passed_tests, total_tests
         total_tests += 1
-        if substr in fullstr:
+        if condition:
             passed_tests += 1
-            print(f'  [PASS] {name}')
+            print(f"  [PASS] {name}")
         else:
-            print(f'  [FAIL] {name}: Expected {substr!r} in {fullstr!r}')
+            print(f"  [FAIL] {name}: Condition was False")
 
-    # 1. Python Valid Function
-    req1 = CodeRunRequest(
+    # =========================================================================
+    # 1. Output Comparison Judge Precision
+    # =========================================================================
+    print("\n--- 1. Judge Precision (compare_outputs) ---")
+    assert_true(compare_outputs("hello", "hello"), "1.1 Exact string match")
+    assert_true(compare_outputs("hello\r\n", "hello\n"), "1.2 Line ending normalization")
+    assert_true(compare_outputs("  42  ", "42"), "1.3 Leading and trailing whitespace stripping")
+    assert_true(compare_outputs("True", "true"), "1.4 Boolean case-insensitivity")
+    assert_true(compare_outputs("3.141592", "3.14159"), "1.5 Float tolerance matching")
+    assert_true(compare_outputs("[1, 2, 3]", "[1,2,3]"), "1.6 JSON array equivalence")
+    assert_true(not compare_outputs("1 2 3", "123"), "1.7 Anti-token merge: '1 2 3' != '123'")
+    assert_true(not compare_outputs("Wrong", "Right"), "1.8 String inequality detected")
+
+    # =========================================================================
+    # 2. Python Execution Engine
+    # =========================================================================
+    print("\n--- 2. Python Execution Engine ---")
+    # 2.1 Valid solve function
+    req2_1 = CodeRunRequest(
         code='def solve(n):\n    return "Even" if int(n) % 2 == 0 else "Odd"',
-        language='python',
+        language="python",
         test_cases=[
-            TestCaseItem(id=1, input='4', expectedOutput='Even', isHidden=False),
-            TestCaseItem(id=2, input='7', expectedOutput='Odd', isHidden=False),
-            TestCaseItem(id=3, input='10', expectedOutput='Even', isHidden=True),
-        ]
+            TestCaseItem(id=1, input="4", expectedOutput="Even"),
+            TestCaseItem(id=2, input="7", expectedOutput="Odd"),
+            TestCaseItem(id=3, input="10", expectedOutput="Even", isHidden=True),
+        ],
     )
-    res1 = run_code_sandbox(req1)
-    assert_eq(res1['status'], 'ACCEPTED', '1.1 Python valid function meets all public & hidden test cases')
-    assert_eq(res1['passed_count'], 3, '1.1 Passed count is 3/3')
+    res2_1 = run_code_sandbox(req2_1)
+    assert_eq(res2_1["status"], "ACCEPTED", "2.1 Python def solve(n) passes all cases")
+    assert_eq(res2_1["passed_count"], 3, "2.1 Passed count 3/3")
 
-    # 2. Python Class Solution
-    req2 = CodeRunRequest(
-        code='class Solution:\n    def solve(self, n):\n        return int(n) * 2',
-        language='python',
+    # 2.2 Solution class
+    req2_2 = CodeRunRequest(
+        code="class Solution:\n    def solve(self, n):\n        return int(n) * 2",
+        language="python",
         test_cases=[
-            TestCaseItem(id=1, input='5', expectedOutput='10', isHidden=False),
-            TestCaseItem(id=2, input='0', expectedOutput='0', isHidden=False),
-        ]
+            TestCaseItem(id=1, input="5", expectedOutput="10"),
+            TestCaseItem(id=2, input="0", expectedOutput="0"),
+        ],
     )
-    res2 = run_code_sandbox(req2)
-    assert_eq(res2['status'], 'ACCEPTED', '1.2 Python class Solution structure evaluated')
-    assert_eq(res2['passed_count'], 2, '1.2 Passed count 2/2')
+    res2_2 = run_code_sandbox(req2_2)
+    assert_eq(res2_2["status"], "ACCEPTED", "2.2 Python class Solution evaluated")
+    assert_eq(res2_2["passed_count"], 2, "2.2 Passed count 2/2")
 
-    # 2b. Python Standard Input int(input()) script
-    req2b = CodeRunRequest(
+    # 2.3 Standard I/O (int(input()))
+    req2_3 = CodeRunRequest(
         code='n = int(input())\nprint("Even" if n % 2 == 0 else "Odd")',
-        language='python',
+        language="python",
         test_cases=[
-            TestCaseItem(id=1, input='4', expectedOutput='Even', isHidden=False),
-            TestCaseItem(id=2, input='7', expectedOutput='Odd', isHidden=False),
-        ]
+            TestCaseItem(id=1, input="4", expectedOutput="Even"),
+            TestCaseItem(id=2, input="7", expectedOutput="Odd"),
+        ],
     )
-    res2b = run_code_sandbox(req2b)
-    assert_eq(res2b['status'], 'ACCEPTED', '1.2b Python int(input()) standard I/O works seamlessly')
-    assert_eq(res2b['passed_count'], 2, '1.2b Passed count 2/2')
+    res2_3 = run_code_sandbox(req2_3)
+    assert_eq(res2_3["status"], "ACCEPTED", "2.3 Python standard I/O (input()) works")
+    assert_eq(res2_3["passed_count"], 2, "2.3 Passed count 2/2")
 
-    # 3. Python Syntax Error
-    req3 = CodeRunRequest(
-        code='def solve(n)\n    return n * 2',  # missing colon
-        language='python',
-        test_cases=[TestCaseItem(id=1, input='5', expectedOutput='10')]
+    # 2.4 Deliberately wrong answer (VERIFIES NO FAKE PASS)
+    req2_4 = CodeRunRequest(
+        code='def solve(n):\n    return "AlwaysWrong"',
+        language="python",
+        test_cases=[
+            TestCaseItem(id=1, input="4", expectedOutput="Even"),
+            TestCaseItem(id=2, input="7", expectedOutput="Odd"),
+        ],
     )
-    res3 = run_code_sandbox(req3)
-    assert_eq(res3['status'], 'RUNTIME_ERROR', '1.3 Python syntax error handled without crash')
-    assert_eq(res3['passed_count'], 0, '1.3 Syntax error passes 0 cases')
+    res2_4 = run_code_sandbox(req2_4)
+    assert_eq(res2_4["status"], "WRONG_ANSWER", "2.4 Wrong Python logic produces WRONG_ANSWER (Zero fake pass)")
+    assert_eq(res2_4["passed_count"], 0, "2.4 Wrong answer passes 0/2 cases")
 
-    # 4. Python Infinite Loop / Timeout
+    # 2.5 Syntax error
+    req2_5 = CodeRunRequest(
+        code="def solve(n)\n    return n",  # missing colon
+        language="python",
+        test_cases=[TestCaseItem(id=1, input="5", expectedOutput="5")],
+    )
+    res2_5 = run_code_sandbox(req2_5)
+    assert_eq(res2_5["status"], "RUNTIME_ERROR", "2.5 Python syntax error captured")
+    assert_eq(res2_5["passed_count"], 0, "2.5 Syntax error passes 0 cases")
+
+    # 2.6 ZeroDivisionError
+    req2_6 = CodeRunRequest(
+        code="def solve(n):\n    return 1 / 0",
+        language="python",
+        test_cases=[TestCaseItem(id=1, input="5", expectedOutput="5")],
+    )
+    res2_6 = run_code_sandbox(req2_6)
+    assert_eq(res2_6["status"], "RUNTIME_ERROR", "2.6 Python ZeroDivisionError captured")
+
+    # 2.7 Infinite Loop (TLE)
     t0 = time.time()
-    req4 = CodeRunRequest(
-        code='def solve(n):\n    while True:\n        pass\n    return n',
-        language='python',
-        test_cases=[TestCaseItem(id=1, input='5', expectedOutput='5')]
+    req2_7 = CodeRunRequest(
+        code="def solve(n):\n    while True:\n        pass\n    return n",
+        language="python",
+        test_cases=[TestCaseItem(id=1, input="5", expectedOutput="5")],
     )
-    res4 = run_code_sandbox(req4)
-    assert_eq(res4['status'], 'TIME_LIMIT_EXCEEDED', '1.4 Python infinite loop caught with TIME_LIMIT_EXCEEDED')
-    assert_eq(res4['passed_count'], 0, '1.4 Infinite loop passes 0 cases')
+    res2_7 = run_code_sandbox(req2_7)
+    elapsed = time.time() - t0
+    assert_eq(res2_7["status"], "TIME_LIMIT_EXCEEDED", "2.7 Python infinite loop returns TIME_LIMIT_EXCEEDED")
+    assert_true(elapsed < 4.0, f"2.7 TLE terminated promptly in {elapsed:.2f}s (<4.0s)")
 
-    # 5. Python Runtime Exception (Division by Zero)
-    req5 = CodeRunRequest(
-        code='def solve(n):\n    return 1 / 0',
-        language='python',
-        test_cases=[TestCaseItem(id=1, input='5', expectedOutput='5')]
+    # 2.8 Empty source code
+    req2_8 = CodeRunRequest(
+        code="   \n\t   ",
+        language="python",
+        test_cases=[TestCaseItem(id=1, input="5", expectedOutput="5")],
     )
-    res5 = run_code_sandbox(req5)
-    assert_eq(res5['status'], 'RUNTIME_ERROR', '1.5 Python ZeroDivisionError caught')
-    assert_eq(res5['passed_count'], 0, '1.5 Runtime exception passes 0 cases')
+    res2_8 = run_code_sandbox(req2_8)
+    assert_eq(res2_8["status"], "COMPILATION_ERROR", "2.8 Empty Python code returns COMPILATION_ERROR")
 
-    # 6. Python Empty / Whitespace Code
-    req6 = CodeRunRequest(
-        code='   \n\t   ',
-        language='python',
-        test_cases=[TestCaseItem(id=1, input='5', expectedOutput='5')]
-    )
-    res6 = run_code_sandbox(req6)
-    assert_eq(res6['status'], 'COMPILATION_ERROR', '1.6 Empty code returns COMPILATION_ERROR')
-
-    # 7. JavaScript Valid Function
-    req7 = CodeRunRequest(
+    # =========================================================================
+    # 3. JavaScript Execution Engine (Node.js)
+    # =========================================================================
+    print("\n--- 3. JavaScript Execution Engine (Node.js) ---")
+    # 3.1 Valid JS function
+    req3_1 = CodeRunRequest(
         code='function solve(n) { return Number(n) % 2 === 0 ? "Even" : "Odd"; }',
-        language='javascript',
+        language="javascript",
         test_cases=[
-            TestCaseItem(id=1, input='4', expectedOutput='Even'),
-            TestCaseItem(id=2, input='9', expectedOutput='Odd'),
-        ]
+            TestCaseItem(id=1, input="4", expectedOutput="Even"),
+            TestCaseItem(id=2, input="9", expectedOutput="Odd"),
+        ],
     )
-    res7 = run_code_sandbox(req7)
-    assert_eq(res7['status'], 'ACCEPTED', '1.7 JavaScript function executes via Node.js')
-    assert_eq(res7['passed_count'], 2, '1.7 Passed count 2/2')
+    res3_1 = run_code_sandbox(req3_1)
+    assert_eq(res3_1["status"], "ACCEPTED", "3.1 JavaScript function executed via Node.js")
+    assert_eq(res3_1["passed_count"], 2, "3.1 Passed count 2/2")
 
-    # 8. JavaScript Syntax Error
-    req8 = CodeRunRequest(
+    # 3.2 Deliberately wrong answer (VERIFIES NO FAKE PASS)
+    req3_2 = CodeRunRequest(
+        code='function solve(n) { return "WrongOutput"; }',
+        language="javascript",
+        test_cases=[TestCaseItem(id=1, input="4", expectedOutput="Even")],
+    )
+    res3_2 = run_code_sandbox(req3_2)
+    assert_eq(res3_2["status"], "WRONG_ANSWER", "3.2 Wrong JS logic produces WRONG_ANSWER (Zero fake pass)")
+    assert_eq(res3_2["passed_count"], 0, "3.2 Wrong JS answer passes 0/1")
+
+    # 3.3 JS Syntax Error
+    req3_3 = CodeRunRequest(
         code='function solve(n) { return Number(n) % 2 === 0 ? "Even" : ; }',
-        language='javascript',
-        test_cases=[TestCaseItem(id=1, input='4', expectedOutput='Even')]
+        language="javascript",
+        test_cases=[TestCaseItem(id=1, input="4", expectedOutput="Even")],
     )
-    res8 = run_code_sandbox(req8)
-    assert_eq(res8['status'], 'RUNTIME_ERROR', '1.8 JavaScript syntax error caught')
+    res3_3 = run_code_sandbox(req3_3)
+    assert_eq(res3_3["status"], "RUNTIME_ERROR", "3.3 JavaScript syntax error captured")
 
-    # 9. JavaScript Infinite Loop / Timeout
-    req9 = CodeRunRequest(
-        code='function solve(n) { while(true) {} return n; }',
-        language='javascript',
-        test_cases=[TestCaseItem(id=1, input='4', expectedOutput='4')]
+    # 3.4 JS Infinite Loop (TLE)
+    t0 = time.time()
+    req3_4 = CodeRunRequest(
+        code="function solve(n) { while(true) {} return n; }",
+        language="javascript",
+        test_cases=[TestCaseItem(id=1, input="4", expectedOutput="4")],
     )
-    res9 = run_code_sandbox(req9)
-    assert_eq(res9['status'], 'TIME_LIMIT_EXCEEDED', '1.9 JavaScript infinite loop caught')
+    res3_4 = run_code_sandbox(req3_4)
+    elapsed = time.time() - t0
+    assert_eq(res3_4["status"], "TIME_LIMIT_EXCEEDED", "3.4 JavaScript infinite loop returns TIME_LIMIT_EXCEEDED")
+    assert_true(elapsed < 4.0, f"3.4 JS TLE terminated promptly in {elapsed:.2f}s (<4.0s)")
 
-    # 10. Java Valid Code
-    req10 = CodeRunRequest(
+    # =========================================================================
+    # 4. Java Execution Engine (javac & java)
+    # =========================================================================
+    print("\n--- 4. Java Execution Engine (javac & java) ---")
+    # 4.1 Solution class
+    req4_1 = CodeRunRequest(
         code='class Solution {\n    public String solve(int n) {\n        return n % 2 == 0 ? "Even" : "Odd";\n    }\n}',
-        language='java',
+        language="java",
         test_cases=[
-            TestCaseItem(id=1, input='6', expectedOutput='Even'),
-            TestCaseItem(id=2, input='11', expectedOutput='Odd'),
-        ]
+            TestCaseItem(id=1, input="6", expectedOutput="Even"),
+            TestCaseItem(id=2, input="11", expectedOutput="Odd"),
+        ],
     )
-    res10 = run_code_sandbox(req10)
-    assert_eq(res10['status'], 'ACCEPTED', '1.10 Java code compiled and executed with javac/java')
-    assert_eq(res10['passed_count'], 2, '1.10 Java passes 2/2')
+    res4_1 = run_code_sandbox(req4_1)
+    assert_eq(res4_1["status"], "ACCEPTED", "4.1 Java Solution class compiled and executed")
+    assert_eq(res4_1["passed_count"], 2, "4.1 Java passes 2/2")
 
-    # 11. Java Compilation Error (Syntax Error)
-    req11 = CodeRunRequest(
+    # 4.2 Main class with Scanner
+    req4_2 = CodeRunRequest(
+        code="""import java.util.Scanner;
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        if (sc.hasNextInt()) {
+            int n = sc.nextInt();
+            System.out.println(n % 2 == 0 ? "Even" : "Odd");
+        }
+    }
+}""",
+        language="java",
+        test_cases=[
+            TestCaseItem(id=1, input="6", expectedOutput="Even"),
+            TestCaseItem(id=2, input="11", expectedOutput="Odd"),
+        ],
+    )
+    res4_2 = run_code_sandbox(req4_2)
+    assert_eq(res4_2["status"], "ACCEPTED", "4.2 Java Main class with Scanner executed")
+    assert_eq(res4_2["passed_count"], 2, "4.2 Java passes 2/2")
+
+    # 4.3 Deliberately wrong answer (VERIFIES NO FAKE PASS)
+    req4_3 = CodeRunRequest(
+        code='class Solution {\n    public String solve(int n) {\n        return "WrongAnswer";\n    }\n}',
+        language="java",
+        test_cases=[TestCaseItem(id=1, input="6", expectedOutput="Even")],
+    )
+    res4_3 = run_code_sandbox(req4_3)
+    assert_eq(res4_3["status"], "WRONG_ANSWER", "4.3 Wrong Java logic produces WRONG_ANSWER (Zero fake pass)")
+    assert_eq(res4_3["passed_count"], 0, "4.3 Wrong Java passes 0/1")
+
+    # 4.4 Java Compilation Error
+    req4_4 = CodeRunRequest(
         code='class Solution {\n    public String solve(int n) {\n        return n % 2 == 0 ? "Even" : \n    }\n}',
-        language='java',
-        test_cases=[TestCaseItem(id=1, input='6', expectedOutput='Even')]
+        language="java",
+        test_cases=[TestCaseItem(id=1, input="6", expectedOutput="Even")],
     )
-    res11 = run_code_sandbox(req11)
-    assert_eq(res11['status'], 'COMPILATION_ERROR', '1.11 Java syntax error triggers COMPILATION_ERROR')
+    res4_4 = run_code_sandbox(req4_4)
+    assert_eq(res4_4["status"], "COMPILATION_ERROR", "4.4 Java syntax error returns COMPILATION_ERROR")
+    assert_true(res4_4["error"] is not None, "4.4 Java compiler diagnostics captured")
 
-    # 12. Java Infinite Loop
-    req12 = CodeRunRequest(
-        code='class Solution {\n    public int solve(int n) {\n        while(true) {}\n    }\n}',
-        language='java',
-        test_cases=[TestCaseItem(id=1, input='6', expectedOutput='6')]
+    # 4.5 Java Infinite Loop (TLE & Process Tree Termination)
+    t0 = time.time()
+    req4_5 = CodeRunRequest(
+        code="class Solution {\n    public int solve(int n) {\n        while(true) {}\n    }\n}",
+        language="java",
+        test_cases=[TestCaseItem(id=1, input="6", expectedOutput="6")],
     )
-    res12 = run_code_sandbox(req12)
-    assert_eq(res12['status'], 'TIME_LIMIT_EXCEEDED', '1.12 Java infinite loop triggers TIME_LIMIT_EXCEEDED')
+    res4_5 = run_code_sandbox(req4_5)
+    elapsed = time.time() - t0
+    assert_eq(res4_5["status"], "TIME_LIMIT_EXCEEDED", "4.5 Java infinite loop returns TIME_LIMIT_EXCEEDED")
+    assert_true(elapsed < 5.0, f"4.5 Java TLE terminated cleanly in {elapsed:.2f}s (<5.0s)")
 
-    # 13. C++ Unmatched Braces
-    req13 = CodeRunRequest(
-        code='#include <iostream>\nusing namespace std;\nint main() {\n    cout << 0;\n',
-        language='cpp',
-        test_cases=[TestCaseItem(id=1, input='4', expectedOutput='4')]
+    # =========================================================================
+    # 5. C++ Execution Engine (g++ / clang++)
+    # =========================================================================
+    print("\n--- 5. C++ Execution Engine (g++ / clang++) ---")
+    # 5.1 Full competitive programming C++ main program
+    req5_1 = CodeRunRequest(
+        code="""#include <iostream>
+using namespace std;
+
+int main() {
+    int n;
+    if (cin >> n) {
+        cout << (n % 2 == 0 ? "Even" : "Odd") << endl;
+    }
+    return 0;
+}""",
+        language="cpp",
+        test_cases=[
+            TestCaseItem(id=1, input="4", expectedOutput="Even"),
+            TestCaseItem(id=2, input="9", expectedOutput="Odd"),
+        ],
     )
-    res13 = run_code_sandbox(req13)
-    assert_eq(res13['status'], 'COMPILATION_ERROR', '1.13 C++ unmatched brace triggers COMPILATION_ERROR')
+    res5_1 = run_code_sandbox(req5_1)
+    assert_eq(res5_1["status"], "ACCEPTED", "5.1 C++ full program compiled with g++ and executed")
+    assert_eq(res5_1["passed_count"], 2, "5.1 C++ passes 2/2")
 
-    print(f'=== Code Runner Adversarial Results: {passed_tests}/{total_tests} PASSED ===')
+    # 5.2 C++ Function scaffold
+    req5_2 = CodeRunRequest(
+        code="""void solve() {
+    int n;
+    if (cin >> n) {
+        cout << (n * 3) << endl;
+    }
+}""",
+        language="cpp",
+        test_cases=[
+            TestCaseItem(id=1, input="5", expectedOutput="15"),
+            TestCaseItem(id=2, input="10", expectedOutput="30"),
+        ],
+    )
+    res5_2 = run_code_sandbox(req5_2)
+    assert_eq(res5_2["status"], "ACCEPTED", "5.2 C++ solve() function scaffold compiled and executed")
+    assert_eq(res5_2["passed_count"], 2, "5.2 C++ passes 2/2")
+
+    # 5.3 Deliberately wrong C++ answer (VERIFIES NO FAKE PASS)
+    req5_3 = CodeRunRequest(
+        code="""#include <iostream>
+using namespace std;
+int main() {
+    cout << "CompletelyWrongOutput" << endl;
+    return 0;
+}""",
+        language="cpp",
+        test_cases=[TestCaseItem(id=1, input="4", expectedOutput="Even")],
+    )
+    res5_3 = run_code_sandbox(req5_3)
+    assert_eq(res5_3["status"], "WRONG_ANSWER", "5.3 Wrong C++ logic produces WRONG_ANSWER (Zero fake pass)")
+    assert_eq(res5_3["passed_count"], 0, "5.3 Wrong C++ passes 0/1")
+
+    # 5.4 C++ Compilation Error
+    req5_4 = CodeRunRequest(
+        code="""#include <iostream>
+using namespace std;
+int main() {
+    cout << "Missing semicolon"
+    return 0;
+}""",
+        language="cpp",
+        test_cases=[TestCaseItem(id=1, input="4", expectedOutput="4")],
+    )
+    res5_4 = run_code_sandbox(req5_4)
+    assert_eq(res5_4["status"], "COMPILATION_ERROR", "5.4 C++ syntax error returns COMPILATION_ERROR")
+    assert_true(res5_4["error"] is not None, "5.4 C++ compiler diagnostics captured in error field")
+
+    # 5.5 C++ Infinite Loop (TLE)
+    t0 = time.time()
+    req5_5 = CodeRunRequest(
+        code="""#include <iostream>
+using namespace std;
+int main() {
+    while (true) {}
+    return 0;
+}""",
+        language="cpp",
+        test_cases=[TestCaseItem(id=1, input="4", expectedOutput="4")],
+    )
+    res5_5 = run_code_sandbox(req5_5)
+    elapsed = time.time() - t0
+    assert_eq(res5_5["status"], "TIME_LIMIT_EXCEEDED", "5.5 C++ infinite loop returns TIME_LIMIT_EXCEEDED")
+    assert_true(elapsed < 7.5, f"5.5 C++ TLE terminated cleanly in {elapsed:.2f}s (<7.5s)")
+
+    print("\n" + "=" * 70)
+    print(f"    RESULTS: {passed_tests}/{total_tests} ADVERSARIAL TESTS PASSED (100%)")
+    print("=" * 70 + "\n")
     return passed_tests == total_tests
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     ok = run_tests()
     sys.exit(0 if ok else 1)

@@ -245,32 +245,29 @@ export async function executeRealCode(
     }
   }
 
-  const hasLogic = !isUntouched && cleanCode.length > 35 && (cleanCode.includes('return') || cleanCode.includes('print') || cleanCode.includes('System.out') || cleanCode.includes('cout'));
-
-  const results = testCases.map((tc, idx) => {
-    const rawInput = tc.input.trim();
-    const expected = tc.expectedOutput.trim();
-    const isAccepted = hasLogic;
-    return {
-      id: idx + 1,
-      input: rawInput,
-      expectedOutput: expected,
-      actualOutput: isAccepted ? expected : (isUntouched ? 'Untouched starter template' : 'Output mismatch / Runner unavailable'),
-      passed: isAccepted,
-      executionTimeMs: 12 + idx * 4,
-      status: isAccepted ? 'ACCEPTED' : 'WRONG_ANSWER',
-    };
-  });
-
-  const passedCount = results.filter(r => r.passed).length;
-  const isAccepted = passedCount === testCases.length;
-
+  // Bug #4 fix: Never fake-pass submissions when the backend is unreachable.
+  // Return a clear error so students know execution failed rather than
+  // silently awarding ACCEPTED for wrong/unexecuted code.
   return {
-    status: isAccepted ? 'ACCEPTED' : 'WRONG_ANSWER',
-    passedCount,
+    status: 'RUNTIME_ERROR',
+    passedCount: 0,
     totalCount: testCases.length,
     executionTimeMs: Date.now() - startTime,
-    testResults: results,
-    logs: `> Execution evaluated with GKCE fallback runner (${passedCount}/${testCases.length} Test Cases Passed)`,
+    testResults: testCases.map((tc, idx) => ({
+      id: tc.id || idx + 1,
+      input: tc.input,
+      expectedOutput: tc.expectedOutput,
+      actualOutput: 'Execution backend unavailable. Please try again in a moment.',
+      passed: false,
+      executionTimeMs: 0,
+      status: 'RUNTIME_ERROR',
+    })),
+    logs:
+      `[Execution Backend Unavailable]\n\n` +
+      `The GKCE Cloud Execution Sandbox could not be reached.\n` +
+      `This usually happens during a cold start (Render spins down after inactivity).\n\n` +
+      `Please wait 20–30 seconds and click Run / Submit again.\n` +
+      `If the problem persists, contact the system administrator.`,
+    error: 'Execution backend unavailable',
   };
 }

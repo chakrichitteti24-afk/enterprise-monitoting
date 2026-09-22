@@ -132,6 +132,8 @@ export const DeanStudentsPage: React.FC = () => {
       setNameInput('');
       setRollInput('');
       setEmailInput('');
+      setCurrentPage(1);
+      setSearchQuery('');
 
       // Show auto-generated login credentials modal
       setCreatedCredentials({

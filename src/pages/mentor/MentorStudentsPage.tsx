@@ -121,6 +121,7 @@ export const MentorStudentsPage: React.FC = () => {
       setNameInput('');
       setRollInput('');
       setEmailInput('');
+      setFilterQuery('');
 
       // Show auto-generated credentials card
       setCreatedCredentials({

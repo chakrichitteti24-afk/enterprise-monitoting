@@ -2,10 +2,11 @@ import sys
 import subprocess
 import tempfile
 import os
+import shutil
 import json
 import time
 import math
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from fastapi import APIRouter, status
 from pydantic import BaseModel
 
@@ -95,6 +96,117 @@ def compare_outputs(actual_raw: Any, expected_raw: Any) -> bool:
     return False
 
 
+def _run_process_safe(
+    cmd: List[str],
+    input_str: str = "",
+    timeout: float = 3.0,
+    cwd: Optional[str] = None,
+    preexec_fn: Any = None,
+) -> Tuple[int, str, str, bool]:
+    """
+    Executes a subprocess safely with strict timeout enforcement and
+    process tree termination to prevent hangs or orphaned processes.
+    Returns: (returncode, stdout, stderr, timed_out)
+    """
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=cwd,
+            preexec_fn=preexec_fn if sys.platform != "win32" else None,
+        )
+    except OSError as err:
+        if sys.platform == "win32":
+            time.sleep(0.25)
+            try:
+                proc = subprocess.Popen(
+                    cmd,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    cwd=cwd,
+                )
+            except Exception as retry_err:
+                return -1, "", str(retry_err), False
+        else:
+            return -1, "", str(err), False
+    try:
+        stdout, stderr = proc.communicate(input=input_str, timeout=timeout)
+        return proc.returncode, stdout, stderr, False
+    except subprocess.TimeoutExpired:
+        if sys.platform == "win32":
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
+        else:
+            proc.kill()
+        try:
+            stdout, stderr = proc.communicate(timeout=0.5)
+        except Exception:
+            stdout, stderr = "", ""
+        return -1, stdout, stderr, True
+
+
+def _find_cpp_compiler() -> Optional[str]:
+    """Resolves g++ or clang++ on the host machine and ensures its bin dir is in PATH."""
+    comp = shutil.which("g++") or shutil.which("clang++")
+    if comp:
+        bin_dir = os.path.dirname(os.path.abspath(comp))
+        if bin_dir not in os.environ.get("PATH", ""):
+            os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
+        return comp
+
+    user_appdata = os.environ.get("LOCALAPPDATA", "")
+    known_paths = [
+        os.path.join(
+            user_appdata,
+            r"Microsoft\WinGet\Packages\MartinStorsjo.LLVM-MinGW.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\llvm-mingw-20260616-ucrt-x86_64\bin\g++.exe",
+        ),
+        os.path.join(
+            user_appdata,
+            r"Microsoft\WinGet\Packages\MartinStorsjo.LLVM-MinGW.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\llvm-mingw-20260616-ucrt-x86_64\bin\clang++.exe",
+        ),
+        r"C:\MinGW\bin\g++.exe",
+        r"C:\msys64\ucrt64\bin\g++.exe",
+        r"C:\msys64\mingw64\bin\g++.exe",
+    ]
+    for p in known_paths:
+        if os.path.exists(p):
+            bin_dir = os.path.dirname(os.path.abspath(p))
+            if bin_dir not in os.environ.get("PATH", ""):
+                os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
+            return p
+    return None
+
+
+def _find_javac() -> Optional[str]:
+    comp = shutil.which("javac")
+    if comp:
+        return comp
+    known = [
+        r"C:\Program Files\Common Files\Oracle\Java\javapath\javac.exe",
+    ]
+    for p in known:
+        if os.path.exists(p):
+            return p
+    return None
+
+
+def _find_java() -> Optional[str]:
+    comp = shutil.which("java")
+    if comp:
+        return comp
+    known = [
+        r"C:\Program Files\Common Files\Oracle\Java\javapath\java.exe",
+    ]
+    for p in known:
+        if os.path.exists(p):
+            return p
+    return None
+
+
 class TestCaseItem(BaseModel):
     id: Optional[int] = None
     input: str
@@ -144,9 +256,17 @@ def run_code_sandbox(req: CodeRunRequest):
     error_message = None
 
     # -------------------------------------------------------------
-    # Python Execution Strategy
+    # 1. Python Execution Strategy
     # -------------------------------------------------------------
-    if lang == "python" or lang == "py":
+    if lang in ("python", "py"):
+        def _set_limits():
+            try:
+                import resource
+                resource.setrlimit(resource.RLIMIT_AS, (256 * 1024 * 1024, 256 * 1024 * 1024))
+                resource.setrlimit(resource.RLIMIT_CPU, (5, 5))
+            except Exception:
+                pass
+
         for idx, tc in enumerate(test_cases):
             tc_input = tc.input.strip()
             expected = tc.expectedOutput.strip()
@@ -200,18 +320,32 @@ def __run_test():
             else:
                 args = []
                 if raw_input:
-                    try:
-                        parsed_val = ast.literal_eval(f"({{raw_input}},)")
-                        args = list(parsed_val)
-                    except Exception:
+                    lines = [l.strip() for l in raw_input.splitlines() if l.strip()]
+
+                    def _parse_token(tok):
                         try:
-                            parsed_val = ast.literal_eval(raw_input)
-                            args = [parsed_val]
+                            return ast.literal_eval(tok)
                         except Exception:
-                            if ' ' in raw_input:
-                                args = [int(x) if x.isdigit() else x for x in raw_input.split()]
-                            else:
-                                args = [int(raw_input) if raw_input.isdigit() else raw_input]
+                            return tok
+
+                    def _parse_line(line):
+                        try:
+                            return ast.literal_eval(line)
+                        except Exception:
+                            pass
+                        parts = line.split()
+                        if len(parts) > 1:
+                            return [_parse_token(p) for p in parts]
+                        return _parse_token(parts[0]) if parts else line
+
+                    if len(lines) == 1:
+                        val = _parse_line(lines[0])
+                        if isinstance(val, list) and num_params > 1:
+                            args = val
+                        else:
+                            args = [val]
+                    else:
+                        args = [_parse_line(l) for l in lines]
 
                 if len(args) > num_params and num_params == 1:
                     res = target_fn(args)
@@ -242,47 +376,38 @@ def __run_test():
 
 __run_test()
 """
-            try:
-                proc = subprocess.run(
-                    [sys.executable, "-c", runner_script],
-                    input=tc_input,
-                    capture_output=True,
-                    text=True,
-                    timeout=3.0,
-                )
-                stdout = proc.stdout.strip()
-                stderr = proc.stderr.strip()
+            rc, stdout, stderr, timed_out = _run_process_safe(
+                [sys.executable, "-I", "-c", runner_script],
+                input_str=tc_input,
+                timeout=3.0,
+                preexec_fn=_set_limits if sys.platform != "win32" else None,
+            )
 
-                if proc.returncode != 0 or stderr:
-                    actual_out = stderr.splitlines()[-1] if stderr else "Runtime Error"
-                    is_passed = False
-                    status_str = "RUNTIME_ERROR"
-                    error_message = stderr
-                else:
-                    try:
-                        parsed = json.loads(stdout)
-                        if "error" in parsed:
-                            actual_out = parsed["error"]
-                            is_passed = False
-                            status_str = "RUNTIME_ERROR"
-                            error_message = parsed["error"]
-                        else:
-                            actual_out = str(parsed.get("actual", ""))
-                            is_passed = compare_outputs(actual_out, expected)
-                            status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
-                    except:
-                        actual_out = stdout or "No output"
-                        is_passed = compare_outputs(actual_out, expected)
-                        status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
-
-            except subprocess.TimeoutExpired:
+            if timed_out:
                 actual_out = "Time Limit Exceeded ( > 3.0s )"
                 is_passed = False
                 status_str = "TIME_LIMIT_EXCEEDED"
-            except Exception as ex:
-                actual_out = f"Execution Error: {str(ex)}"
+            elif rc != 0 or stderr:
+                actual_out = stderr.splitlines()[-1] if stderr else f"Runtime Error (code {rc})"
                 is_passed = False
                 status_str = "RUNTIME_ERROR"
+                error_message = stderr
+            else:
+                try:
+                    parsed = json.loads(stdout.strip())
+                    if "error" in parsed:
+                        actual_out = parsed["error"]
+                        is_passed = False
+                        status_str = "RUNTIME_ERROR"
+                        error_message = parsed["error"]
+                    else:
+                        actual_out = str(parsed.get("actual", ""))
+                        is_passed = compare_outputs(actual_out, expected)
+                        status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
+                except Exception:
+                    actual_out = stdout.strip() or "No output"
+                    is_passed = compare_outputs(actual_out, expected)
+                    status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
 
             if is_passed:
                 passed_count += 1
@@ -300,18 +425,13 @@ __run_test()
             })
 
     # -------------------------------------------------------------
-    # JavaScript Execution via Node.js
+    # 2. JavaScript Execution via Node.js
     # -------------------------------------------------------------
     elif lang in ("javascript", "js"):
-        import tempfile
         for idx, tc in enumerate(test_cases):
             tc_input = tc.input.strip()
             expected = tc.expectedOutput.strip()
-            is_passed = False
-            actual_out = ""
-            status_str = "WRONG_ANSWER"
 
-            # Create a wrapper script for JS
             js_script = f"""
 const _printed = [];
 const _origLog = console.log;
@@ -356,7 +476,7 @@ function __run_test() {{
             if (typeof s.{req.entry_point} === 'function') fn = s.{req.entry_point}.bind(s);
             else if (typeof s.solve === 'function') fn = s.solve.bind(s);
         }}
-        
+
         if (!fn) {{
             if (_printed.length > 0) {{
                 _origLog(JSON.stringify({{actual: _printed.join('\\n').trim()}}));
@@ -365,7 +485,7 @@ function __run_test() {{
             throw new Error("Function 'solve' or 'Solution' or output print not found");
         }}
         const res = fn(...args);
-        
+
         if (res !== undefined) {{
             let out_str;
             if (typeof res === 'boolean') out_str = String(res).toLowerCase();
@@ -383,32 +503,25 @@ function __run_test() {{
 }}
 __run_test();
 """
+            tmp_js = tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8')
             try:
-                # Use a temporary file for the JS script
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False) as f:
-                    f.write(js_script)
-                    temp_path = f.name
-                
-                proc = subprocess.run(
-                    ["node", temp_path],
-                    input=tc_input,
-                    capture_output=True,
-                    text=True,
-                    timeout=3.0,
-                )
-                os.remove(temp_path)
-                
-                stdout = proc.stdout.strip()
-                stderr = proc.stderr.strip()
+                tmp_js.write(js_script)
+                tmp_js.close()
 
-                if proc.returncode != 0 or stderr:
-                    actual_out = stderr.splitlines()[-1] if stderr else "Runtime Error"
+                rc, stdout, stderr, timed_out = _run_process_safe(["node", tmp_js.name], input_str=tc_input, timeout=3.0)
+
+                if timed_out:
+                    actual_out = "Time Limit Exceeded ( > 3.0s )"
+                    is_passed = False
+                    status_str = "TIME_LIMIT_EXCEEDED"
+                elif rc != 0 or stderr:
+                    actual_out = stderr.splitlines()[-1] if stderr else f"Runtime Error (code {rc})"
                     is_passed = False
                     status_str = "RUNTIME_ERROR"
                     error_message = stderr
                 else:
                     try:
-                        parsed = json.loads(stdout)
+                        parsed = json.loads(stdout.strip())
                         if "error" in parsed:
                             actual_out = parsed["error"]
                             is_passed = False
@@ -418,19 +531,16 @@ __run_test();
                             actual_out = str(parsed.get("actual", ""))
                             is_passed = compare_outputs(actual_out, expected)
                             status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
-                    except:
-                        actual_out = stdout or "No output"
+                    except Exception:
+                        actual_out = stdout.strip() or "No output"
                         is_passed = compare_outputs(actual_out, expected)
                         status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
-
-            except subprocess.TimeoutExpired:
-                actual_out = "Time Limit Exceeded ( > 3.0s )"
-                is_passed = False
-                status_str = "TIME_LIMIT_EXCEEDED"
-            except Exception as ex:
-                actual_out = f"Execution Error: {str(ex)}"
-                is_passed = False
-                status_str = "RUNTIME_ERROR"
+            finally:
+                if os.path.exists(tmp_js.name):
+                    try:
+                        os.remove(tmp_js.name)
+                    except Exception:
+                        pass
 
             if is_passed:
                 passed_count += 1
@@ -448,33 +558,54 @@ __run_test();
             })
 
     # -------------------------------------------------------------
-    # Java Execution via Javac/Java
+    # 3. Java Execution via Javac & Java
     # -------------------------------------------------------------
     elif lang == "java":
-        import tempfile
-        for idx, tc in enumerate(test_cases):
-            tc_input = tc.input.strip()
-            expected = tc.expectedOutput.strip()
-            is_passed = False
-            actual_out = ""
-            status_str = "WRONG_ANSWER"
+        javac_cmd = _find_javac()
+        java_cmd = _find_java()
 
-            if "class Main" in code:
-                java_script = code
-                if "public class Main" not in java_script and "class Main" in java_script:
-                    java_script = java_script.replace("class Main", "public class Main", 1)
-            else:
-                java_script = f"""
-import java.util.*;
+        if not javac_cmd or not java_cmd:
+            for idx, tc in enumerate(test_cases):
+                results.append({
+                    "id": idx + 1,
+                    "input": tc.input.strip(),
+                    "expected_output": tc.expectedOutput.strip(),
+                    "actual_output": "Java compiler (javac/java) not found on this server.",
+                    "passed": False,
+                    "execution_time_ms": 10,
+                    "status": "RUNTIME_ERROR",
+                })
+            return {
+                "status": "RUNTIME_ERROR",
+                "passed_count": 0,
+                "total_count": len(test_cases),
+                "execution_time_ms": 10,
+                "test_results": results,
+                "error": "Java compiler not found.",
+            }
+
+        has_main_class = "class Main" in code or "class Main " in code
+        if has_main_class:
+            java_source = code
+            if "public class Main" not in java_source and "class Main" in java_source:
+                java_source = java_source.replace("class Main", "public class Main", 1)
+        else:
+            java_source = f"""import java.util.*;
+import java.io.*;
 
 {code}
 
 public class Main {{
     public static void main(String[] args) {{
         try {{
-            String rawInput = {json.dumps(tc_input)};
+            Scanner sc = new Scanner(System.in);
+            StringBuilder sb = new StringBuilder();
+            while (sc.hasNextLine()) {{
+                sb.append(sc.nextLine()).append("\\n");
+            }}
+            String rawInput = sb.toString().trim();
             Solution sol = new Solution();
-            
+
             java.lang.reflect.Method[] methods = Solution.class.getDeclaredMethods();
             java.lang.reflect.Method target = null;
             for (java.lang.reflect.Method m : methods) {{
@@ -483,147 +614,267 @@ public class Main {{
                     break;
                 }}
             }}
-            if (target == null) throw new Exception("Entry method not found");
-            
+            if (target == null) throw new Exception("Entry method not found in Solution class");
+
             Class<?>[] paramTypes = target.getParameterTypes();
             Object[] invokeArgs = new Object[paramTypes.length];
-            
             if (paramTypes.length > 0) {{
                 Class<?> pType = paramTypes[0];
                 if (pType == int.class) {{
-                    invokeArgs[0] = Integer.parseInt(rawInput.trim().split("\\\\s+")[0]);
+                    invokeArgs[0] = Integer.parseInt(rawInput.split("\\\\s+")[0]);
+                }} else if (pType == long.class) {{
+                    invokeArgs[0] = Long.parseLong(rawInput.split("\\\\s+")[0]);
+                }} else if (pType == double.class) {{
+                    invokeArgs[0] = Double.parseDouble(rawInput.split("\\\\s+")[0]);
                 }} else if (pType == String.class) {{
-                    invokeArgs[0] = rawInput.trim();
+                    invokeArgs[0] = rawInput;
                 }} else if (pType == int[].class) {{
-                    String[] parts = rawInput.trim().split("\\\\s+");
+                    String[] parts = rawInput.split("\\\\s+");
                     int[] arr = new int[parts.length];
-                    for(int i=0; i<parts.length; i++) {{
+                    for (int i = 0; i < parts.length; i++) {{
                         try {{ arr[i] = Integer.parseInt(parts[i]); }} catch(Exception ignored) {{}}
                     }}
                     invokeArgs[0] = arr;
                 }}
             }}
-            
             Object res = target.invoke(sol, invokeArgs);
-            String outStr = "";
-            if (res instanceof Boolean) outStr = String.valueOf(res).toLowerCase();
-            else outStr = String.valueOf(res);
-            
-            System.out.println("{{\\"actual\\": \\"" + outStr.replace("\\"", "\\\\\\"") + "\\"}}");
+            if (res != null) {{
+                if (res instanceof Boolean) {{
+                    System.out.println(String.valueOf(res).toLowerCase());
+                }} else if (res instanceof int[]) {{
+                    System.out.println(Arrays.toString((int[]) res));
+                }} else {{
+                    System.out.println(String.valueOf(res));
+                }}
+            }}
         }} catch (Exception e) {{
-            System.out.println("{{\\"error\\": \\"" + e.toString().replace("\\"", "\\\\\\"") + "\\"}}");
+            System.err.println(e.getMessage() != null ? e.getMessage() : e.toString());
+            System.exit(1);
         }}
     }}
 }}
 """
-            try:
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    java_file = os.path.join(tmpdir, "Main.java")
-                    with open(java_file, "w") as f:
-                        f.write(java_script)
-                    
-                    compile_proc = subprocess.run(["javac", java_file], capture_output=True, text=True, timeout=3.0)
-                    if compile_proc.returncode != 0:
-                        actual_out = compile_proc.stderr.splitlines()[-1] if compile_proc.stderr else "Compilation Error"
-                        is_passed = False
-                        status_str = "COMPILATION_ERROR"
-                        error_message = compile_proc.stderr
-                        overall_status = "COMPILATION_ERROR"
-                    else:
-                        proc = subprocess.run(["java", "-cp", tmpdir, "Main"], input=tc_input, capture_output=True, text=True, timeout=3.0)
-                        stdout = proc.stdout.strip()
-                        stderr = proc.stderr.strip()
 
-                        if proc.returncode != 0 or stderr:
-                            actual_out = stderr.splitlines()[-1] if stderr else "Runtime Error"
-                            is_passed = False
-                            status_str = "RUNTIME_ERROR"
-                            error_message = stderr
-                        else:
-                            try:
-                                parsed = json.loads(stdout)
-                                if "error" in parsed:
-                                    actual_out = parsed["error"]
-                                    is_passed = False
-                                    status_str = "RUNTIME_ERROR"
-                                    error_message = parsed["error"]
-                                else:
-                                    actual_out = str(parsed.get("actual", ""))
-                                    is_passed = compare_outputs(actual_out, expected)
-                                    status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
-                            except:
-                                actual_out = stdout or "No output"
-                                is_passed = compare_outputs(actual_out, expected)
-                                status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
-            except subprocess.TimeoutExpired:
-                actual_out = "Time Limit Exceeded ( > 3.0s )"
-                is_passed = False
-                status_str = "TIME_LIMIT_EXCEEDED"
-            except Exception as ex:
-                actual_out = f"Execution Error: {str(ex)}"
-                is_passed = False
-                status_str = "RUNTIME_ERROR"
+        tmpdir = tempfile.mkdtemp(prefix="java_run_")
+        try:
+            java_file = os.path.join(tmpdir, "Main.java")
+            with open(java_file, "w", encoding="utf-8") as f:
+                f.write(java_source)
 
-            if is_passed:
-                passed_count += 1
-            elif overall_status == "ACCEPTED":
-                overall_status = status_str
+            comp_rc, comp_out, comp_err, comp_timed_out = _run_process_safe(
+                [javac_cmd, java_file], timeout=8.0, cwd=tmpdir
+            )
 
-            results.append({
-                "id": idx + 1,
-                "input": tc_input,
-                "expected_output": expected,
-                "actual_output": actual_out,
-                "passed": is_passed,
-                "execution_time_ms": int((time.time() - start_time) * 1000) + 10,
-                "status": status_str,
-            })
+            if comp_rc != 0 or comp_timed_out:
+                diag = comp_err.strip() or comp_out.strip() or "Compilation Error"
+                err_lines = diag.splitlines()
+                summary_diag = err_lines[-1] if err_lines else "Compilation Error"
+                for idx, tc in enumerate(test_cases):
+                    results.append({
+                        "id": idx + 1,
+                        "input": tc.input.strip(),
+                        "expected_output": tc.expectedOutput.strip(),
+                        "actual_output": summary_diag,
+                        "passed": False,
+                        "execution_time_ms": int((time.time() - start_time) * 1000) + 10,
+                        "status": "COMPILATION_ERROR",
+                    })
+                return {
+                    "status": "COMPILATION_ERROR",
+                    "passed_count": 0,
+                    "total_count": len(test_cases),
+                    "execution_time_ms": int((time.time() - start_time) * 1000) + 10,
+                    "test_results": results,
+                    "error": diag,
+                }
+
+            for idx, tc in enumerate(test_cases):
+                tc_input = tc.input.strip()
+                expected = tc.expectedOutput.strip()
+
+                rc, run_out, run_err, timed_out = _run_process_safe(
+                    [java_cmd, "-cp", tmpdir, "Main"], input_str=tc_input, timeout=3.0, cwd=tmpdir
+                )
+
+                if timed_out:
+                    actual_out = "Time Limit Exceeded ( > 3.0s )"
+                    is_passed = False
+                    status_str = "TIME_LIMIT_EXCEEDED"
+                elif rc != 0 or run_err:
+                    err_line = run_err.strip().splitlines()[-1] if run_err.strip() else f"Runtime Error (code {rc})"
+                    actual_out = err_line
+                    is_passed = False
+                    status_str = "RUNTIME_ERROR"
+                    error_message = run_err
+                else:
+                    actual_out = run_out.strip()
+                    is_passed = compare_outputs(actual_out, expected)
+                    status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
+
+                if is_passed:
+                    passed_count += 1
+                elif overall_status == "ACCEPTED":
+                    overall_status = status_str
+
+                results.append({
+                    "id": idx + 1,
+                    "input": tc_input,
+                    "expected_output": expected,
+                    "actual_output": actual_out,
+                    "passed": is_passed,
+                    "execution_time_ms": int((time.time() - start_time) * 1000) + 10,
+                    "status": status_str,
+                })
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
     # -------------------------------------------------------------
-    # C++ / Other Languages Simulation Sandbox
+    # 4. C++ Execution via g++ / clang++ (Authentic Native Sandbox)
+    # -------------------------------------------------------------
+    elif lang in ("cpp", "c++", "c"):
+        cpp_compiler = _find_cpp_compiler()
+        if not cpp_compiler:
+            for idx, tc in enumerate(test_cases):
+                results.append({
+                    "id": idx + 1,
+                    "input": tc.input.strip(),
+                    "expected_output": tc.expectedOutput.strip(),
+                    "actual_output": "g++ compiler not found on this server. Please contact the administrator.",
+                    "passed": False,
+                    "execution_time_ms": 10,
+                    "status": "RUNTIME_ERROR",
+                })
+            return {
+                "status": "RUNTIME_ERROR",
+                "passed_count": 0,
+                "total_count": len(test_cases),
+                "execution_time_ms": 10,
+                "test_results": results,
+                "error": "g++ compiler not found on this server.",
+            }
+
+        needs_main = "int main(" not in code and "int main (" not in code
+        if needs_main:
+            cpp_source = f"""#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <cmath>
+#include <map>
+#include <set>
+#include <queue>
+#include <stack>
+#include <deque>
+#include <numeric>
+#include <sstream>
+using namespace std;
+
+{code}
+
+int main() {{
+    solve();
+    return 0;
+}}
+"""
+        else:
+            cpp_source = code
+
+        tmpdir = tempfile.mkdtemp(prefix="cpp_run_")
+        try:
+            src_file = os.path.join(tmpdir, "solution.cpp")
+            bin_file = os.path.join(tmpdir, "solution.exe" if sys.platform == "win32" else "solution")
+            with open(src_file, "w", encoding="utf-8") as f:
+                f.write(cpp_source)
+
+            compile_cmd = [cpp_compiler, "-O2", "-std=c++17", "-o", bin_file, src_file]
+            comp_rc, comp_out, comp_err, comp_timed_out = _run_process_safe(
+                compile_cmd, timeout=10.0, cwd=tmpdir
+            )
+
+            if comp_rc != 0 or comp_timed_out:
+                diag = comp_err.strip() or comp_out.strip() or "Compilation Error"
+                err_lines = diag.splitlines()
+                summary_diag = err_lines[-1] if err_lines else "Compilation Error"
+                for idx, tc in enumerate(test_cases):
+                    results.append({
+                        "id": idx + 1,
+                        "input": tc.input.strip(),
+                        "expected_output": tc.expectedOutput.strip(),
+                        "actual_output": summary_diag,
+                        "passed": False,
+                        "execution_time_ms": int((time.time() - start_time) * 1000) + 10,
+                        "status": "COMPILATION_ERROR",
+                    })
+                return {
+                    "status": "COMPILATION_ERROR",
+                    "passed_count": 0,
+                    "total_count": len(test_cases),
+                    "execution_time_ms": int((time.time() - start_time) * 1000) + 10,
+                    "test_results": results,
+                    "error": diag,
+                }
+
+            for idx, tc in enumerate(test_cases):
+                tc_input = tc.input.strip()
+                expected = tc.expectedOutput.strip()
+
+                rc, run_out, run_err, timed_out = _run_process_safe(
+                    [bin_file], input_str=tc_input, timeout=3.0, cwd=tmpdir
+                )
+
+                if timed_out:
+                    actual_out = "Time Limit Exceeded ( > 3.0s )"
+                    is_passed = False
+                    status_str = "TIME_LIMIT_EXCEEDED"
+                elif rc != 0 or run_err:
+                    err_line = run_err.strip().splitlines()[-1] if run_err.strip() else f"Runtime Error (code {rc})"
+                    actual_out = err_line
+                    is_passed = False
+                    status_str = "RUNTIME_ERROR"
+                    error_message = run_err
+                else:
+                    actual_out = run_out.strip()
+                    is_passed = compare_outputs(actual_out, expected)
+                    status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
+
+                if is_passed:
+                    passed_count += 1
+                elif overall_status == "ACCEPTED":
+                    overall_status = status_str
+
+                results.append({
+                    "id": idx + 1,
+                    "input": tc_input,
+                    "expected_output": expected,
+                    "actual_output": actual_out,
+                    "passed": is_passed,
+                    "execution_time_ms": int((time.time() - start_time) * 1000) + 10,
+                    "status": status_str,
+                })
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+    # -------------------------------------------------------------
+    # 5. Unsupported Language Fallback
     # -------------------------------------------------------------
     else:
-        # Evaluate syntax and basic patterns for C++
         for idx, tc in enumerate(test_cases):
-            tc_input = tc.input.strip()
-            expected = tc.expectedOutput.strip()
-
-            # Syntax checks
-            open_b = code.count("{")
-            close_b = code.count("}")
-            if open_b != close_b:
-                actual_out = f"error: syntax error: unmatched curly braces ({open_b} '{{' vs {close_b} '}}')"
-                is_passed = False
-                status_str = "COMPILATION_ERROR"
-                overall_status = "COMPILATION_ERROR"
-            elif len(code) < 30 or ("return" not in code and "System.out" not in code and "cout" not in code):
-                actual_out = "0"
-                is_passed = (expected == "0")
-                status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
-                if not is_passed and overall_status == "ACCEPTED":
-                    overall_status = "WRONG_ANSWER"
-            else:
-                # Code has valid logic structure
-                actual_out = expected
-                is_passed = True
-                status_str = "ACCEPTED"
-
-            if is_passed:
-                passed_count += 1
-
             results.append({
                 "id": idx + 1,
-                "input": tc_input,
-                "expected_output": expected,
-                "actual_output": actual_out,
-                "passed": is_passed,
-                "execution_time_ms": 12 + idx * 3,
-                "status": status_str,
+                "input": tc.input.strip(),
+                "expected_output": tc.expectedOutput.strip(),
+                "actual_output": f"Language '{lang}' is not supported by this sandbox.",
+                "passed": False,
+                "execution_time_ms": 5,
+                "status": "RUNTIME_ERROR",
             })
+        overall_status = "RUNTIME_ERROR"
 
-    total_time_ms = int((time.time() - start_time) * 1000) + 12
+    total_time_ms = int((time.time() - start_time) * 1000) + 10
+    final_status = "ACCEPTED" if (passed_count == len(test_cases) and len(test_cases) > 0) else overall_status
+
     return {
-        "status": overall_status if passed_count == len(test_cases) else "WRONG_ANSWER" if overall_status == "ACCEPTED" else overall_status,
+        "status": final_status,
         "passed_count": passed_count,
         "total_count": len(test_cases),
         "execution_time_ms": total_time_ms,

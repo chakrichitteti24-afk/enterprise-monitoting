@@ -318,31 +318,85 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
   });
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('gkce_active_tab_v2');
+      if (saved) return saved;
+    } catch {}
+    return 'dashboard';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gkce_active_tab_v2', activeTab);
+    } catch {}
+  }, [activeTab]);
+
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+
   const [students, setStudents] = useState<Student[]>(() => {
-    // Clear all legacy localStorage caches — backend is the source of truth now
-    localStorage.removeItem('gkce_students');
-    localStorage.removeItem('gkce_teams');
-    localStorage.removeItem('gkce_students_v4');
-    localStorage.removeItem('gkce_teams_v4');
-    localStorage.removeItem('gkce_students_v5');
-    localStorage.removeItem('gkce_teams_v5');
-    // Start with mock data; syncFromBackend() will overwrite with real DB data right after login
+    try {
+      const saved = localStorage.getItem('gkce_students_v6');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          for (const s of parsed) {
+            if (!ALL_STUDENTS.some(m => m.id === s.id || m.rollNo === s.rollNo)) {
+              ALL_STUDENTS.unshift(s);
+            }
+          }
+          return parsed;
+        }
+      }
+    } catch {}
     return ALL_STUDENTS;
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gkce_students_v6', JSON.stringify(students));
+    } catch {}
+  }, [students]);
+
   const [teams, setTeams] = useState<Team[]>(() => {
-    // Start with mock data; syncFromBackend() will overwrite with real DB data right after login
+    try {
+      const saved = localStorage.getItem('gkce_teams_v6');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          for (const t of parsed) {
+            if (!ALL_TEAMS.some(m => m.id === t.id || m.teamNumber === t.teamNumber)) {
+              ALL_TEAMS.push(t);
+            }
+          }
+          return parsed;
+        }
+      }
+    } catch {}
     return ALL_TEAMS;
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gkce_teams_v6', JSON.stringify(teams));
+    } catch {}
+  }, [teams]);
   const [mentors, setMentors] = useState<Mentor[]>(() => {
     try {
       const saved = localStorage.getItem('gkce_mentors_v2');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= ALL_MENTORS.length) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          for (const m of parsed) {
+            if (!ALL_MENTORS.some(old => old.id === m.id || old.email === m.email)) {
+              ALL_MENTORS.push(m);
+            }
+          }
+          return parsed;
+        }
       }
     } catch {}
     return ALL_MENTORS;
@@ -528,6 +582,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       setTeams(prev => [...prev, newT]);
+      if (!ALL_TEAMS.some(t => t.id === newT.id || t.teamNumber === newT.teamNumber)) {
+        ALL_TEAMS.push(newT);
+      }
     } catch (err) {
       console.error('Error adding team:', err);
       throw err;
@@ -571,6 +628,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return t;
         })
       );
+
+      const teamMockIdx = ALL_TEAMS.findIndex(t => t.id === teamId);
+      if (teamMockIdx >= 0) {
+        ALL_TEAMS[teamMockIdx] = { ...ALL_TEAMS[teamMockIdx], ...updates };
+      }
 
       // Sync selectedTeam if open in modal
       setSelectedTeam(prev => {
@@ -620,6 +682,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
       setTeams(prev => prev.filter(t => t.id !== teamId));
+      const teamMockIdx = ALL_TEAMS.findIndex(t => t.id === teamId);
+      if (teamMockIdx >= 0) {
+        ALL_TEAMS.splice(teamMockIdx, 1);
+      }
     } catch (err) {
       console.error('Error removing team:', err);
       throw err;
@@ -700,16 +766,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         mentorFeedbackNotes: [],
       };
 
-      setStudents(prev => [newS, ...prev]);
+      setStudents(prev => [newS, ...prev.filter(s => s.id !== createdStudentId && s.rollNo !== roll)]);
+
+      // Synchronize in-memory ALL_STUDENTS
+      if (!ALL_STUDENTS.some(s => s.id === newS.id || s.rollNo === newS.rollNo)) {
+        ALL_STUDENTS.unshift(newS);
+      }
 
       // Synchronize team's studentIds
       setTeams(prev =>
         prev.map(t =>
           t.id === matchedTeam.id || t.teamNumber === matchedTeam.teamNumber
-            ? { ...t, studentIds: [...(t.studentIds || []), newS.id] }
+            ? { ...t, studentIds: [...(t.studentIds || []).filter(id => id !== newS.id), newS.id] }
             : t
         )
       );
+
+      // Synchronize in-memory ALL_TEAMS
+      const targetTeamMock = ALL_TEAMS.find(t => t.id === matchedTeam.id || t.teamNumber === matchedTeam.teamNumber);
+      if (targetTeamMock) {
+        targetTeamMock.studentIds = [...(targetTeamMock.studentIds || []).filter((id: string) => id !== newS.id), newS.id];
+      }
     } catch (err) {
       console.error('Error adding student:', err);
       throw err;
@@ -750,6 +827,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return s;
         })
       );
+
+      // Also update in-memory ALL_STUDENTS
+      const mockIdx = ALL_STUDENTS.findIndex(s => s.id === studentId || s.rollNo === updates.rollNo);
+      if (mockIdx >= 0) {
+        ALL_STUDENTS[mockIdx] = { ...ALL_STUDENTS[mockIdx], ...updates };
+      }
     } catch (err) {
       console.error('Error updating student:', err);
       throw err;
@@ -777,6 +860,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           studentIds: (t.studentIds || []).filter(id => id !== studentId),
         }))
       );
+      // Also update in-memory ALL_STUDENTS
+      const mockIdx = ALL_STUDENTS.findIndex(s => s.id === studentId);
+      if (mockIdx >= 0) {
+        ALL_STUDENTS.splice(mockIdx, 1);
+      }
     } catch (err) {
       console.error('Error removing student:', err);
       throw err;
@@ -879,10 +967,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [isAuthenticated, currentUser]);
 
-  const mapAndSetUser = (role: UserRole, userPayload?: any) => {
+  const mapAndSetUser = (role: UserRole, userPayload?: any, resetTab: boolean = true) => {
     setSelectedStudent(null);
     setSelectedTeam(null);
-    setActiveTab('dashboard');
+    if (resetTab) {
+      setActiveTab('dashboard');
+    }
 
     let newUser: CurrentUser;
 
@@ -1027,7 +1117,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             return initialMapped;
           });
-          setStudents(mappedStudents);
+          setStudents(prev => {
+            const updated = [...prev];
+            for (const bs of mappedStudents) {
+              const idx = updated.findIndex(
+                s => s.rollNo.toUpperCase() === bs.rollNo.toUpperCase() || s.id === bs.id
+              );
+              if (idx >= 0) {
+                updated[idx] = { ...updated[idx], ...bs };
+              } else {
+                updated.push(bs);
+              }
+            }
+            return updated;
+          });
         }
 
         if (teamsRes.status === 'fulfilled' && Array.isArray(teamsRes.value)) {
@@ -1035,12 +1138,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const mapped = teamsRes.value.map((t: any) => {
               const ft = backendTeamToFrontend(t, prev);
               ft.studentIds = mappedStudents
-                .filter(s => s.teamId === ft.id)
+                .filter(s => s.teamId === ft.id || s.teamNumber === ft.teamNumber)
                 .map(s => s.id);
               return ft;
             });
+            const next = [...prev];
+            for (const mt of mapped) {
+              const idx = next.findIndex(t => t.id === mt.id || t.teamNumber === mt.teamNumber);
+              if (idx >= 0) {
+                next[idx] = {
+                  ...next[idx],
+                  ...mt,
+                  studentIds: Array.from(new Set([...(next[idx].studentIds || []), ...(mt.studentIds || [])])),
+                };
+              } else {
+                next.push(mt);
+              }
+            }
             // Recompute team progress and topic performance from actual mapped students
-            return mapped.map(t => {
+            return next.map(t => {
               const teamSts = mappedStudents.filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber);
               if (teamSts.length === 0) return t;
               const tSolved = teamSts.reduce((acc, s) => acc + (s.solved || 0), 0);
@@ -1075,7 +1191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setTeams(prev =>
             prev.map(t => ({
               ...t,
-              studentIds: mappedStudents.filter(s => s.teamId === t.id).map(s => s.id),
+              studentIds: mappedStudents.filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber).map(s => s.id),
             }))
           );
         }
@@ -1197,7 +1313,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const res = await loginApi(cached.email, pwd);
               if (res && res.access_token) {
                 token = res.access_token;
-                mapAndSetUser(res.user.role as any, res.user);
+                mapAndSetUser(res.user.role as any, res.user, false);
                 setIsAuthenticated(true);
                 syncFromBackend(res.user.role as any, res.user);
                 setIsLoadingAuth(false);
@@ -1221,13 +1337,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (token && !token.startsWith('gkce_local_token_')) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
 
           const me = await getMeApi(controller.signal);
           clearTimeout(timeoutId);
 
           if (me && me.role) {
-            mapAndSetUser(me.role, me);
+            mapAndSetUser(me.role, me, false);
             setIsAuthenticated(true);
             syncFromBackend(me.role as UserRole, me);
           }
@@ -1396,6 +1512,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       localStorage.removeItem('gkce_user_profile_v1');
       localStorage.removeItem('gkce_weekly_exams_v4');
+      localStorage.removeItem('gkce_active_tab_v2');
     } catch {}
     setCurrentUser(DEAN_USER);
     setSelectedStudent(null);

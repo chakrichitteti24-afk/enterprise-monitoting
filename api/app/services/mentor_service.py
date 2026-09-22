@@ -176,11 +176,23 @@ class MentorService:
         self.db.add(user)
         self.db.flush()
 
+        team = None
+        if student_in.team_id:
+            team = self.team_repo.get_by_id(student_in.team_id)
+        if not team and student_in.team_number:
+            team = self.team_repo.get_by_team_number(student_in.team_number)
+        if not team and student_in.team_id:
+            team = self.team_repo.get_by_team_number(f"Team {student_in.team_id:02d}") or self.team_repo.get_by_team_number(f"Team {student_in.team_id}")
+        if not team:
+            team = self.db.query(Team).first()
+
+        team_id = team.id if team else student_in.team_id
+
         # Create Student Profile
         student = Student(
             user_id=user.id,
             roll_number=student_in.roll_number,
-            team_id=student_in.team_id,
+            team_id=team_id,
             status=student_in.status,
             dsa_level=student_in.dsa_level,
             leetcode_username=f"{student_in.name.lower().replace(' ', '_')[:10]}_{student_in.roll_number[-4:]}",
