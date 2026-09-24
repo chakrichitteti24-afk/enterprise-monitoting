@@ -329,12 +329,16 @@ def run_code_sandbox(req: CodeRunRequest):
             expected = tc.expectedOutput.strip()
 
             indented_code = chr(10).join('    ' + line for line in code.splitlines())
-            runner_script = f"""import sys, json, math, ast, io
+            runner_script = f"""import sys, json, math, ast, io, builtins
 
 _stdout_buffer = io.StringIO()
 _orig_stdout = sys.stdout
 sys.stdout = _stdout_buffer
 __name__ = '__main__'
+
+# Suppress interactive prompt strings (e.g. input("Enter n:")) to prevent corrupting test output
+_orig_input = builtins.input
+builtins.input = lambda prompt=None: _orig_input()
 
 try:
 {indented_code}
