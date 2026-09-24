@@ -82,6 +82,8 @@ export const StudentExamsPage: React.FC = () => {
         flatAnswers[q.id] = codeAnswers[q.id]?.[lang] || getStarterCode(q, lang);
       });
       const result = await submitExamSolution(activeLiveExam.id, flatAnswers);
+      // ✅ Clear autosaved answers upon successful submission
+      try { localStorage.removeItem(`gkce_exam_answers_${activeLiveExam.id}`); } catch {}
       setCompletedSubmissionResult(result);
       setActiveLiveExam(null);
       setShowSubmitConfirmModal(false);
@@ -131,6 +133,15 @@ export const StudentExamsPage: React.FC = () => {
     return () => clearInterval(timer);
   }, [activeLiveExam, exams, executeFinalSubmit]);
 
+  // ✅ Autosave student's exam code answers to localStorage every change
+  useEffect(() => {
+    if (!activeLiveExam || Object.keys(codeAnswers).length === 0) return;
+    const saveKey = `gkce_exam_answers_${activeLiveExam.id}`;
+    try {
+      localStorage.setItem(saveKey, JSON.stringify(codeAnswers));
+    } catch {}
+  }, [codeAnswers, activeLiveExam?.id]);
+
   // Start a live exam with Anti-Cheating Random Shuffling per student
   const handleStartExam = (exam: WeeklyExam) => {
     const remaining = calculateExamRemainingSeconds(exam);
@@ -158,14 +169,21 @@ export const StudentExamsPage: React.FC = () => {
     setTestOutput(null);
     setTestedQuestions({});
 
-    // Populate initial starter code for each language across all shuffled questions
+    // Check if any answers were autosaved locally (e.g. from page refresh)
+    let savedAnswers: Record<string, Record<'java' | 'cpp' | 'python', string>> | null = null;
+    try {
+      const raw = localStorage.getItem(`gkce_exam_answers_${exam.id}`);
+      if (raw) savedAnswers = JSON.parse(raw);
+    } catch {}
+
+    // Populate starter code or restored autosaved code for each question
     const initialCode: Record<string, Record<'java' | 'cpp' | 'python', string>> = {};
     const initialLangs: Record<string, 'java' | 'cpp' | 'python'> = {};
     randomizedQs.forEach(q => {
       initialCode[q.id] = {
-        java: getStarterCode(q, 'java'),
-        cpp: getStarterCode(q, 'cpp'),
-        python: getStarterCode(q, 'python'),
+        java: savedAnswers?.[q.id]?.java || getStarterCode(q, 'java'),
+        cpp: savedAnswers?.[q.id]?.cpp || getStarterCode(q, 'cpp'),
+        python: savedAnswers?.[q.id]?.python || getStarterCode(q, 'python'),
       };
       initialLangs[q.id] = 'java';
     });
@@ -216,22 +234,29 @@ export const StudentExamsPage: React.FC = () => {
     const activeLang = questionLanguages[currentQuestion.id] || selectedLanguage;
     const currentCode = (codeAnswers[currentQuestion.id]?.[activeLang] || getStarterCode(currentQuestion, activeLang)).trim();
 
-    const firstCase = currentQuestion.testCases?.[0] || { input: '5', output: '15' };
-    const testCasesToRun = [
-      {
-        id: 1,
-        input: firstCase.input || '5',
-        expectedOutput: firstCase.output || '15',
-        isHidden: false,
-      },
-    ];
+    const visibleCases = (currentQuestion.testCases || []).filter(tc => !tc.isHidden);
+    const sourceCases = visibleCases.length > 0 ? visibleCases : (currentQuestion.testCases || []);
+    const testCasesToRun = sourceCases.length > 0
+      ? sourceCases.map((tc, idx) => ({
+          id: idx + 1,
+          input: tc.input || '',
+          expectedOutput: tc.output || '',
+          isHidden: !!tc.isHidden,
+        }))
+      : [
+          {
+            id: 1,
+            input: '5',
+            expectedOutput: '15',
+            isHidden: false,
+          },
+        ];
 
     const result = await executeRealCode(currentCode, activeLang, testCasesToRun);
     setIsRunningTest(false);
 
-    if (result.status === 'ACCEPTED') {
-      setTestedQuestions(prev => ({ ...prev, [currentQuestion.id]: true }));
-    }
+    const isFullyPassed = result.status === 'ACCEPTED' && result.passedCount === testCasesToRun.length;
+    setTestedQuestions(prev => ({ ...prev, [currentQuestion.id]: isFullyPassed }));
 
     setTestOutput(result.logs);
   };
@@ -756,22 +781,26 @@ export const StudentExamsPage: React.FC = () => {
                           <p className="whitespace-pre-line">{currentQuestion.description}</p>
                         </div>
 
-                        {/* Single Evaluation Benchmark */}
+                        {/* Evaluation Benchmarks */}
                         <div className="space-y-2">
                           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                            Evaluation Benchmark (1 Test Case):
+                            Evaluation Benchmarks ({((currentQuestion.testCases || []).filter(tc => !tc.isHidden).length || (currentQuestion.testCases || []).length || 1)} Visible Test Case{(((currentQuestion.testCases || []).filter(tc => !tc.isHidden).length || (currentQuestion.testCases || []).length || 1) > 1 ? 's' : ''}):
                           </div>
-                          {currentQuestion.testCases?.slice(0, 1).map((tc, i) => (
+                          {((currentQuestion.testCases || []).filter(tc => !tc.isHidden).length > 0
+                            ? (currentQuestion.testCases || []).filter(tc => !tc.isHidden)
+                            : (currentQuestion.testCases || []).slice(0, 2)
+                          ).map((tc, i) => (
                             <div key={i} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono space-y-2 shadow-inner">
+                              <div className="text-[10px] font-bold text-slate-400">Sample Benchmark {i + 1}</div>
                               <div>
                                 <div className="text-[10px] text-slate-500 uppercase font-bold">Standard Input:</div>
-                                <div className="text-emerald-400 bg-slate-900/80 px-2.5 py-1.5 rounded-lg mt-1 border border-slate-800">
+                                <div className="text-emerald-400 bg-slate-900/80 px-2.5 py-1.5 rounded-lg mt-1 border border-slate-800 whitespace-pre-wrap">
                                   {tc.input}
                                 </div>
                               </div>
                               <div>
                                 <div className="text-[10px] text-slate-500 uppercase font-bold">Expected Output:</div>
-                                <div className="text-blue-400 bg-slate-900/80 px-2.5 py-1.5 rounded-lg mt-1 border border-slate-800">
+                                <div className="text-blue-400 bg-slate-900/80 px-2.5 py-1.5 rounded-lg mt-1 border border-slate-800 whitespace-pre-wrap">
                                   {tc.output}
                                 </div>
                               </div>

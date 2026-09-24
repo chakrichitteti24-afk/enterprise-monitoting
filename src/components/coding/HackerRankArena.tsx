@@ -83,8 +83,8 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
             date: 'Earlier Today',
             language: 'Java 17',
             status: 'Accepted',
-            runtime: '18 ms',
-            memory: '41.2 MB',
+            runtime: '< 50 ms',
+            memory: 'Standard',
           },
         ]
       : [];
@@ -115,36 +115,51 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
     }
   };
 
-  // Run Code against sample test cases
+  // Run Code against sample test cases or custom input
   const handleRunCode = async () => {
     setIsRunning(true);
     setActiveBottomTab('TERMINAL');
     setMobileActiveView('CONSOLE');
 
-    const result = await executeRealCode(code, selectedLanguage, dossier.testCases);
+    const isCustom = useCustomInput && customInput.trim().length > 0;
+    const testCasesToRun = isCustom
+      ? [
+          {
+            id: 1,
+            name: 'Custom Stdin',
+            input: customInput.trim(),
+            expectedOutput: '',
+            isHidden: false,
+          },
+        ]
+      : dossier.testCases;
+
+    const result = await executeRealCode(code, selectedLanguage, testCasesToRun);
     setIsRunning(false);
 
-    const updated = dossier.testCases.map((tc, idx) => {
-      const match = result.testResults.find(r => r.id === idx + 1);
-      return {
-        ...tc,
-        passed: match ? match.passed : false,
-        actualOutput: match ? match.actualOutput : 'Error',
-        executionTimeMs: match ? match.executionTimeMs : 15,
-      };
-    });
-
-    setTestResults(updated);
-
-    if (useCustomInput && customInput.trim()) {
+    if (isCustom) {
+      const customOut = result.testResults[0]?.actualOutput || '(No output produced)';
+      const isErr = result.status === 'COMPILATION_ERROR' || result.status === 'RUNTIME_ERROR';
       setTerminalLogs(
-        `[Compilation] Process completed successfully.\n` +
-        `[Execution Mode] Custom Stdin Evaluation\n\n` +
-        `Input Stdin:\n${customInput}\n\n` +
-        `Stdout:\nProcessed custom input vectors (${selectedLanguage.toUpperCase()}). Execution completed in ${result.executionTimeMs}ms.\n\n` +
+        `[Compilation] Process completed ${isErr ? 'with errors' : 'successfully'}.\n` +
+        `[Execution Mode] Custom Stdin Evaluation (${selectedLanguage.toUpperCase()})\n\n` +
+        `Input Stdin:\n${customInput.trim()}\n\n` +
+        `Output / Stdout:\n${customOut}\n\n` +
+        `Execution Time: ${result.executionTimeMs}ms\n` +
         `Status: ${result.status}`
       );
     } else {
+      const updated = dossier.testCases.map((tc, idx) => {
+        const match = result.testResults.find(r => r.id === idx + 1);
+        return {
+          ...tc,
+          passed: match ? match.passed : false,
+          actualOutput: match ? match.actualOutput : 'Error',
+          executionTimeMs: match ? match.executionTimeMs : 15,
+        };
+      });
+
+      setTestResults(updated);
       setTerminalLogs(result.logs);
     }
   };
@@ -177,8 +192,8 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
         `Problem: ${problem.title} (Day ${problem.dayNumber} - Q${problem.dayQuestionNumber})\n` +
         `Language: ${selectedLanguage.toUpperCase()}\n` +
         `Status: ACCEPTED ✅ (${result.passedCount}/${result.totalCount} Test Cases Passed)\n` +
-        `Runtime: ${result.executionTimeMs} ms (Beats 94.2% of GKCE student submissions)\n` +
-        `Memory Used: 41.2 MB (O(1) Auxiliary Space target met)\n` +
+        `Runtime: ${result.executionTimeMs} ms\n` +
+        `Memory: Standard Sandbox Limit (256 MB)\n` +
         `Submission Timestamp: ${new Date().toLocaleTimeString()}\n` +
         `======================================================`
       );
@@ -189,7 +204,7 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
         language: selectedLanguage === 'java' ? 'Java 17' : selectedLanguage === 'cpp' ? 'C++ 11' : selectedLanguage === 'python' ? 'Python 3.10' : 'Node.js 18',
         status: 'Accepted',
         runtime: `${result.executionTimeMs} ms`,
-        memory: '41.2 MB',
+        memory: 'Standard',
       };
       setSubmissionsHistory(prev => [newSub, ...prev]);
       setSubmissionSuccess(true);

@@ -268,6 +268,20 @@ def create_mentor(
     return dean_service.create_mentor(mentor_in)
 
 
+@router.get(
+    "/mentors",
+    response_model=List[MentorOut],
+    summary="Get all faculty mentors (Dean only)",
+    description="Returns all faculty mentor profiles with their assigned teams.",
+)
+def get_all_mentors(
+    current_user: User = Depends(require_dean),
+    db: Session = Depends(get_db),
+):
+    dean_service = DeanService(db)
+    return dean_service.get_all_mentors()
+
+
 @router.delete(
     "/mentors/{mentor_id}",
     summary="Remove faculty mentor (Dean only)",

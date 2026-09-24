@@ -36,6 +36,13 @@ export const TeamDetailModal: React.FC = () => {
   const [isChangeMentorOpen, setIsChangeMentorOpen] = useState(false);
   const [selectedMentorIdInput, setSelectedMentorIdInput] = useState('');
   const [isSavingMentor, setIsSavingMentor] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    name: string;
+    rollNo: string;
+    email: string;
+    password: string;
+    teamNumber: string;
+  } | null>(null);
 
   // Lock background body scroll while modal is open
   useEffect(() => {
@@ -89,21 +96,30 @@ export const TeamDetailModal: React.FC = () => {
     try {
       const studentRoll = rollInput.trim().toUpperCase();
       const studentName = nameInput.trim();
+      const studentEmail = emailInput.trim() || `${studentRoll.toLowerCase()}@gkce.edu.in`;
+      const studentPassword = 'gkce@1234';
       await addStudent({
         name: studentName,
         rollNo: studentRoll,
-        email: emailInput.trim() || `${studentRoll.toLowerCase()}@gkce.edu.in`,
+        email: studentEmail,
+        password: studentPassword,
         teamNumber: selectedTeam.teamNumber,
         teamId: selectedTeam.id,
         dsaLevel: dsaLevelInput,
         status: 'Active',
       });
       setIsEnrollOpen(false);
-      setSuccessMessage(`Student ${studentName} enrolled in ${selectedTeam.teamNumber}!`);
-      setTimeout(() => setSuccessMessage(null), 4000);
       setNameInput('');
       setRollInput('');
       setEmailInput('');
+      // ✅ Show credentials modal
+      setCreatedCredentials({
+        name: studentName,
+        rollNo: studentRoll,
+        email: studentEmail,
+        password: studentPassword,
+        teamNumber: selectedTeam.teamNumber,
+      });
     } catch (err: any) {
       console.error(err);
       alert(err.message || 'Failed to enroll student. Check connection.');
@@ -586,6 +602,66 @@ export const TeamDetailModal: React.FC = () => {
                       {isDeleting ? 'Removing...' : 'Confirm De-enroll'}
                     </button>
                   </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* ✅ Student Credentials Modal */}
+          <AnimatePresence>
+            {createdCredentials && (
+              <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs"
+                  onClick={() => setCreatedCredentials(null)}
+                />
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  className="relative bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 z-10 space-y-4"
+                >
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2 text-slate-900 font-bold text-base">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <CheckCircle2 className="w-5 h-5" />
+                      </div>
+                      <span>Student Credentials</span>
+                    </div>
+                    <button onClick={() => setCreatedCredentials(null)} className="p-1 text-slate-400 hover:text-slate-700 rounded-lg">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    <strong>{createdCredentials.name}</strong> enrolled in <strong>{createdCredentials.teamNumber}</strong>. Share these credentials:
+                  </p>
+                  <div className="p-4 bg-slate-900 text-slate-100 rounded-2xl space-y-2 font-mono text-xs">
+                    <div className="flex justify-between border-b border-slate-800 pb-1">
+                      <span className="text-slate-400">Roll No:</span>
+                      <span className="font-bold text-blue-400">{createdCredentials.rollNo}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-800 pb-1">
+                      <span className="text-slate-400">Email:</span>
+                      <span className="text-slate-300 truncate max-w-[160px]">{createdCredentials.email}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Password:</span>
+                      <span className="font-bold text-emerald-400">{createdCredentials.password}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const text = `GKCE Student Login\nRoll No: ${createdCredentials.rollNo}\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\nTeam: ${createdCredentials.teamNumber}`;
+                      navigator.clipboard.writeText(text);
+                      setCreatedCredentials(null);
+                    }}
+                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold transition-colors"
+                  >
+                    Copy & Close
+                  </button>
                 </motion.div>
               </div>
             )}

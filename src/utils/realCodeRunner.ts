@@ -143,7 +143,6 @@ export async function executeRealCode(
 
   // Fallback local evaluation if backend runner is unreachable
   const isUntouched =
-    cleanCode.length < 35 ||
     cleanCode.includes('TODO: Implement') ||
     (cleanCode.includes('TODO: Read input from sc') && (cleanCode.includes('System.out.println(0);') || !cleanCode.includes('sc.next'))) ||
     (cleanCode.includes('TODO: Read input from cin') && (cleanCode.includes('cout << 0 << endl;') || !cleanCode.includes('cin >>'))) ||
@@ -182,9 +181,20 @@ export async function executeRealCode(
           const runner = new Function(
             'input',
             `
+            const fs = {
+              readFileSync: function() { return input; },
+              readFileSyncUtf8: function() { return input; }
+            };
+            const require = function(m) {
+              if (m === 'fs') return fs;
+              return {};
+            };
             ${cleanCode}
             if (typeof solve === 'function') {
               const res = solve(input);
+              if (res !== undefined) return res;
+            } else if (typeof main === 'function') {
+              const res = main(input);
               if (res !== undefined) return res;
             }
           `

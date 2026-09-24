@@ -110,7 +110,7 @@ def run_tests():
         test_cases=[TestCaseItem(id=1, input="5", expectedOutput="5")],
     )
     res2_5 = run_code_sandbox(req2_5)
-    assert_eq(res2_5["status"], "RUNTIME_ERROR", "2.5 Python syntax error captured")
+    assert_eq(res2_5["status"], "COMPILATION_ERROR", "2.5 Python syntax error captured as COMPILATION_ERROR")
     assert_eq(res2_5["passed_count"], 0, "2.5 Syntax error passes 0 cases")
 
     # 2.6 ZeroDivisionError
@@ -177,7 +177,7 @@ def run_tests():
         test_cases=[TestCaseItem(id=1, input="4", expectedOutput="Even")],
     )
     res3_3 = run_code_sandbox(req3_3)
-    assert_eq(res3_3["status"], "RUNTIME_ERROR", "3.3 JavaScript syntax error captured")
+    assert_eq(res3_3["status"], "COMPILATION_ERROR", "3.3 JavaScript syntax error captured as COMPILATION_ERROR")
 
     # 3.4 JS Infinite Loop (TLE)
     t0 = time.time()
@@ -261,6 +261,34 @@ public class Main {
     elapsed = time.time() - t0
     assert_eq(res4_5["status"], "TIME_LIMIT_EXCEEDED", "4.5 Java infinite loop returns TIME_LIMIT_EXCEEDED")
     assert_true(elapsed < 5.0, f"4.5 Java TLE terminated cleanly in {elapsed:.2f}s (<5.0s)")
+
+    # 4.6 Java LeetCode-style public class Solution
+    req4_6 = CodeRunRequest(
+        code="""public class Solution {
+    public int solve(int n) {
+        return n * 3;
+    }
+}""",
+        language="java",
+        test_cases=[TestCaseItem(id=1, input="7", expectedOutput="21")],
+    )
+    res4_6 = run_code_sandbox(req4_6)
+    assert_eq(res4_6["status"], "ACCEPTED", "4.6 Java public class Solution (LeetCode style) compiles and passes")
+    assert_eq(res4_6["passed_count"], 1, "4.6 Java passes 1/1")
+
+    # 4.7 Java multi-parameter method
+    req4_7 = CodeRunRequest(
+        code="""class Solution {
+    public int solve(int a, int b) {
+        return a + b;
+    }
+}""",
+        language="java",
+        test_cases=[TestCaseItem(id=1, input="10 20", expectedOutput="30")],
+    )
+    res4_7 = run_code_sandbox(req4_7)
+    assert_eq(res4_7["status"], "ACCEPTED", "4.7 Java multi-parameter solve(int a, int b) passes")
+    assert_eq(res4_7["passed_count"], 1, "4.7 Java passes 1/1")
 
     # =========================================================================
     # 5. C++ Execution Engine (g++ / clang++)
@@ -352,6 +380,21 @@ int main() {
     elapsed = time.time() - t0
     assert_eq(res5_5["status"], "TIME_LIMIT_EXCEEDED", "5.5 C++ infinite loop returns TIME_LIMIT_EXCEEDED")
     assert_true(elapsed < 7.5, f"5.5 C++ TLE terminated cleanly in {elapsed:.2f}s (<7.5s)")
+
+    # 5.6 C++ LeetCode-style class Solution
+    req5_6 = CodeRunRequest(
+        code="""class Solution {
+public:
+    int solve(int n) {
+        return n * 4;
+    }
+};""",
+        language="cpp",
+        test_cases=[TestCaseItem(id=1, input="5", expectedOutput="20")],
+    )
+    res5_6 = run_code_sandbox(req5_6)
+    assert_eq(res5_6["status"], "ACCEPTED", "5.6 C++ class Solution (LeetCode style) compiles and passes")
+    assert_eq(res5_6["passed_count"], 1, "5.6 C++ passes 1/1")
 
     print("\n" + "=" * 70)
     print(f"    RESULTS: {passed_tests}/{total_tests} ADVERSARIAL TESTS PASSED (100%)")

@@ -44,7 +44,11 @@ def compare_outputs(actual_raw: Any, expected_raw: Any) -> bool:
     try:
         a_f = float(actual)
         e_f = float(expected)
-        if math.isclose(a_f, e_f, rel_tol=1e-5, abs_tol=1e-5):
+        a_lz = len(actual) > 1 and actual.startswith("0") and actual[1].isdigit()
+        e_lz = len(expected) > 1 and expected.startswith("0") and expected[1].isdigit()
+        if a_lz != e_lz:
+            pass
+        elif math.isclose(a_f, e_f, rel_tol=1e-5, abs_tol=1e-5):
             return True
     except (ValueError, TypeError):
         pass
@@ -84,13 +88,41 @@ def compare_outputs(actual_raw: Any, expected_raw: Any) -> bool:
                 if a_tok.lower() == e_tok.lower() and a_tok.lower() in ("true", "false"):
                     continue
                 try:
-                    if math.isclose(float(a_tok), float(e_tok), rel_tol=1e-5, abs_tol=1e-5):
+                    a_tf = float(a_tok)
+                    e_tf = float(e_tok)
+                    a_tlz = len(a_tok) > 1 and a_tok.startswith("0") and a_tok[1].isdigit()
+                    e_tlz = len(e_tok) > 1 and e_tok.startswith("0") and e_tok[1].isdigit()
+                    if a_tlz == e_tlz and math.isclose(a_tf, e_tf, rel_tol=1e-5, abs_tol=1e-5):
                         continue
                 except (ValueError, TypeError):
                     pass
                 all_lines_match = False
                 break
         if all_lines_match:
+            return True
+
+    # 7. Token sequence comparison across all whitespace boundaries
+    a_tokens = actual.split()
+    e_tokens = expected.split()
+    if a_tokens and len(a_tokens) == len(e_tokens):
+        all_tokens_match = True
+        for a_tok, e_tok in zip(a_tokens, e_tokens):
+            if a_tok == e_tok:
+                continue
+            if a_tok.lower() == e_tok.lower() and a_tok.lower() in ("true", "false", "yes", "no"):
+                continue
+            try:
+                a_tf = float(a_tok)
+                e_tf = float(e_tok)
+                a_tlz = len(a_tok) > 1 and a_tok.startswith("0") and a_tok[1].isdigit()
+                e_tlz = len(e_tok) > 1 and e_tok.startswith("0") and e_tok[1].isdigit()
+                if a_tlz == e_tlz and math.isclose(a_tf, e_tf, rel_tol=1e-5, abs_tol=1e-5):
+                    continue
+            except (ValueError, TypeError):
+                pass
+            all_tokens_match = False
+            break
+        if all_tokens_match:
             return True
 
     return False
@@ -259,6 +291,31 @@ def run_code_sandbox(req: CodeRunRequest):
     # 1. Python Execution Strategy
     # -------------------------------------------------------------
     if lang in ("python", "py"):
+        import ast
+        try:
+            ast.parse(code)
+        except SyntaxError as syn_err:
+            err_line = f"SyntaxError: {syn_err.msg} (line {syn_err.lineno})"
+            diag = f"File \"solution.py\", line {syn_err.lineno}\n    {syn_err.text.strip() if syn_err.text else ''}\nSyntaxError: {syn_err.msg}"
+            for idx, tc in enumerate(test_cases):
+                results.append({
+                    "id": idx + 1,
+                    "input": tc.input.strip(),
+                    "expected_output": tc.expectedOutput.strip(),
+                    "actual_output": err_line,
+                    "passed": False,
+                    "execution_time_ms": 10,
+                    "status": "COMPILATION_ERROR",
+                })
+            return {
+                "status": "COMPILATION_ERROR",
+                "passed_count": 0,
+                "total_count": len(test_cases),
+                "execution_time_ms": 10,
+                "test_results": results,
+                "error": diag,
+            }
+
         def _set_limits():
             try:
                 import resource
@@ -277,7 +334,7 @@ def run_code_sandbox(req: CodeRunRequest):
 _stdout_buffer = io.StringIO()
 _orig_stdout = sys.stdout
 sys.stdout = _stdout_buffer
-__name__ = '__student_module__'
+__name__ = '__main__'
 
 try:
 {indented_code}
@@ -290,10 +347,6 @@ def __run_test():
     raw_input = {repr(tc_input)}
     try:
         printed_already = _stdout_buffer.getvalue().strip()
-        if printed_already:
-            sys.stdout = _orig_stdout
-            print(json.dumps({{"actual": printed_already}}))
-            return
 
         target_fn = None
         if 'Solution' in globals() and hasattr(Solution, '{req.entry_point}'):
@@ -312,6 +365,9 @@ def __run_test():
             target_fn = globals()['main']
 
         if target_fn is not None:
+            # Clear pre-execution stdout buffer to avoid debug log pollution
+            _stdout_buffer.seek(0)
+            _stdout_buffer.truncate(0)
             import inspect
             sig = inspect.signature(target_fn)
             num_params = len(sig.parameters)
@@ -363,25 +419,36 @@ def __run_test():
                 print(json.dumps({{"actual": printed}}))
             else:
                 print(json.dumps({{"actual": ""}}))
+        elif printed_already:
+            sys.stdout = _orig_stdout
+            print(json.dumps({{"actual": printed_already}}))
         else:
             sys.stdout = _orig_stdout
-            printed = _stdout_buffer.getvalue().strip()
-            if printed:
-                print(json.dumps({{"actual": printed}}))
-            else:
-                print(json.dumps({{"error": "Function 'solve' or 'Solution' class or output print not found"}}))
+            print(json.dumps({{"error": "Function 'solve' or 'Solution' class or output print not found"}}))
     except Exception as e:
         sys.stdout = _orig_stdout
         print(json.dumps({{"error": str(e)}}))
 
 __run_test()
 """
-            rc, stdout, stderr, timed_out = _run_process_safe(
-                [sys.executable, "-I", "-c", runner_script],
-                input_str=tc_input,
-                timeout=3.0,
-                preexec_fn=_set_limits if sys.platform != "win32" else None,
-            )
+            tmp_py = tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8')
+            try:
+                tmp_py.write(runner_script)
+                tmp_py.close()
+                tc_t0 = time.time()
+                rc, stdout, stderr, timed_out = _run_process_safe(
+                    [sys.executable, "-I", tmp_py.name],
+                    input_str=tc_input,
+                    timeout=3.0,
+                    preexec_fn=_set_limits if sys.platform != "win32" else None,
+                )
+                tc_time_ms = max(1, int((time.time() - tc_t0) * 1000))
+            finally:
+                if os.path.exists(tmp_py.name):
+                    try:
+                        os.remove(tmp_py.name)
+                    except Exception:
+                        pass
 
             if timed_out:
                 actual_out = "Time Limit Exceeded ( > 3.0s )"
@@ -390,7 +457,7 @@ __run_test()
             elif rc != 0 or stderr:
                 actual_out = stderr.splitlines()[-1] if stderr else f"Runtime Error (code {rc})"
                 is_passed = False
-                status_str = "RUNTIME_ERROR"
+                status_str = "COMPILATION_ERROR" if "SyntaxError" in (stderr or "") or "IndentationError" in (stderr or "") else "RUNTIME_ERROR"
                 error_message = stderr
             else:
                 try:
@@ -398,7 +465,7 @@ __run_test()
                     if "error" in parsed:
                         actual_out = parsed["error"]
                         is_passed = False
-                        status_str = "RUNTIME_ERROR"
+                        status_str = "COMPILATION_ERROR" if "SyntaxError" in actual_out or "IndentationError" in actual_out else "RUNTIME_ERROR"
                         error_message = parsed["error"]
                     else:
                         actual_out = str(parsed.get("actual", ""))
@@ -420,7 +487,7 @@ __run_test()
                 "expected_output": expected,
                 "actual_output": actual_out,
                 "passed": is_passed,
-                "execution_time_ms": int((time.time() - start_time) * 1000) + 10,
+                "execution_time_ms": tc_time_ms,
                 "status": status_str,
             })
 
@@ -428,6 +495,39 @@ __run_test()
     # 2. JavaScript Execution via Node.js
     # -------------------------------------------------------------
     elif lang in ("javascript", "js"):
+        # Pre-check JavaScript syntax using node -c
+        tmp_check = tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8')
+        try:
+            tmp_check.write(code)
+            tmp_check.close()
+            chk_rc, chk_out, chk_err, _ = _run_process_safe(["node", "-c", tmp_check.name], timeout=3.0)
+            if chk_rc != 0:
+                diag = chk_err.strip() or chk_out.strip() or "SyntaxError in JavaScript source"
+                for idx, tc in enumerate(test_cases):
+                    results.append({
+                        "id": idx + 1,
+                        "input": tc.input.strip(),
+                        "expected_output": tc.expectedOutput.strip(),
+                        "actual_output": diag.splitlines()[-1] if diag else "SyntaxError",
+                        "passed": False,
+                        "execution_time_ms": 10,
+                        "status": "COMPILATION_ERROR",
+                    })
+                return {
+                    "status": "COMPILATION_ERROR",
+                    "passed_count": 0,
+                    "total_count": len(test_cases),
+                    "execution_time_ms": 10,
+                    "test_results": results,
+                    "error": diag,
+                }
+        finally:
+            if os.path.exists(tmp_check.name):
+                try:
+                    os.remove(tmp_check.name)
+                except Exception:
+                    pass
+
         for idx, tc in enumerate(test_cases):
             tc_input = tc.input.strip()
             expected = tc.expectedOutput.strip()
@@ -447,7 +547,19 @@ try {{
 }}
 
 function __run_test() {{
-    if (_printed.length > 0) {{
+    let fn = null;
+    try {{
+        if (typeof {req.entry_point} === 'function') fn = {req.entry_point};
+        else if (typeof solve === 'function') fn = solve;
+        else if (typeof main === 'function') fn = main;
+        else if (typeof Solution !== 'undefined') {{
+            const s = new Solution();
+            if (typeof s.{req.entry_point} === 'function') fn = s.{req.entry_point}.bind(s);
+            else if (typeof s.solve === 'function') fn = s.solve.bind(s);
+        }}
+    }} catch (ignored) {{}}
+
+    if (!fn && _printed.length > 0) {{
         _origLog(JSON.stringify({{actual: _printed.join('\\n').trim()}}));
         return;
     }}
@@ -457,26 +569,21 @@ function __run_test() {{
     try {{
         if (rawInput.startsWith('[') || rawInput.startsWith('{{')) {{
             args = [JSON.parse(rawInput)];
-        }} else if (rawInput.includes(' ')) {{
-            args = rawInput.split(' ').map(x => isNaN(x) ? x : Number(x));
         }} else {{
-            args = [isNaN(rawInput) ? rawInput : Number(rawInput)];
+            const tokens = rawInput.trim().split(/\\s+/).filter(Boolean);
+            if (tokens.length > 1) {{
+                args = tokens.map(x => (x !== '' && !isNaN(Number(x))) ? Number(x) : x);
+            }} else if (tokens.length === 1) {{
+                args = [(tokens[0] !== '' && !isNaN(Number(tokens[0]))) ? Number(tokens[0]) : tokens[0]];
+            }} else {{
+                args = [];
+            }}
         }}
     }} catch (e) {{
         args = [rawInput];
     }}
 
     try {{
-        let fn = null;
-        if (typeof {req.entry_point} === 'function') fn = {req.entry_point};
-        else if (typeof solve === 'function') fn = solve;
-        else if (typeof main === 'function') fn = main;
-        else if (typeof Solution !== 'undefined') {{
-            const s = new Solution();
-            if (typeof s.{req.entry_point} === 'function') fn = s.{req.entry_point}.bind(s);
-            else if (typeof s.solve === 'function') fn = s.solve.bind(s);
-        }}
-
         if (!fn) {{
             if (_printed.length > 0) {{
                 _origLog(JSON.stringify({{actual: _printed.join('\\n').trim()}}));
@@ -508,7 +615,9 @@ __run_test();
                 tmp_js.write(js_script)
                 tmp_js.close()
 
+                tc_t0 = time.time()
                 rc, stdout, stderr, timed_out = _run_process_safe(["node", tmp_js.name], input_str=tc_input, timeout=3.0)
+                tc_time_ms = max(1, int((time.time() - tc_t0) * 1000))
 
                 if timed_out:
                     actual_out = "Time Limit Exceeded ( > 3.0s )"
@@ -517,7 +626,7 @@ __run_test();
                 elif rc != 0 or stderr:
                     actual_out = stderr.splitlines()[-1] if stderr else f"Runtime Error (code {rc})"
                     is_passed = False
-                    status_str = "RUNTIME_ERROR"
+                    status_str = "COMPILATION_ERROR" if "SyntaxError" in (stderr or "") else "RUNTIME_ERROR"
                     error_message = stderr
                 else:
                     try:
@@ -525,7 +634,7 @@ __run_test();
                         if "error" in parsed:
                             actual_out = parsed["error"]
                             is_passed = False
-                            status_str = "RUNTIME_ERROR"
+                            status_str = "COMPILATION_ERROR" if "SyntaxError" in actual_out else "RUNTIME_ERROR"
                             error_message = parsed["error"]
                         else:
                             actual_out = str(parsed.get("actual", ""))
@@ -553,7 +662,7 @@ __run_test();
                 "expected_output": expected,
                 "actual_output": actual_out,
                 "passed": is_passed,
-                "execution_time_ms": int((time.time() - start_time) * 1000) + 10,
+                "execution_time_ms": tc_time_ms,
                 "status": status_str,
             })
 
@@ -584,16 +693,20 @@ __run_test();
                 "error": "Java compiler not found.",
             }
 
-        has_main_class = "class Main" in code or "class Main " in code
+        import re
+        # Strip 'public' from any non-Main classes so javac Main.java accepts Solution or other helper classes
+        cleaned_code = re.sub(r'\bpublic\s+class\s+(?!Main\b)(\w+)', r'class \1', code)
+
+        has_main_class = bool(re.search(r'\bclass\s+Main\b', cleaned_code))
         if has_main_class:
-            java_source = code
-            if "public class Main" not in java_source and "class Main" in java_source:
-                java_source = java_source.replace("class Main", "public class Main", 1)
+            java_source = cleaned_code
+            if "public class Main" not in java_source:
+                java_source = re.sub(r'\bclass\s+Main\b', 'public class Main', java_source, count=1)
         else:
             java_source = f"""import java.util.*;
 import java.io.*;
 
-{code}
+{cleaned_code}
 
 public class Main {{
     public static void main(String[] args) {{
@@ -618,25 +731,36 @@ public class Main {{
 
             Class<?>[] paramTypes = target.getParameterTypes();
             Object[] invokeArgs = new Object[paramTypes.length];
-            if (paramTypes.length > 0) {{
-                Class<?> pType = paramTypes[0];
-                if (pType == int.class) {{
-                    invokeArgs[0] = Integer.parseInt(rawInput.split("\\\\s+")[0]);
-                }} else if (pType == long.class) {{
-                    invokeArgs[0] = Long.parseLong(rawInput.split("\\\\s+")[0]);
-                }} else if (pType == double.class) {{
-                    invokeArgs[0] = Double.parseDouble(rawInput.split("\\\\s+")[0]);
+            String[] tokens = rawInput.isEmpty() ? new String[0] : rawInput.split("\\\\s+");
+            int tokIdx = 0;
+            for (int i = 0; i < paramTypes.length; i++) {{
+                Class<?> pType = paramTypes[i];
+                if (pType == int.class || pType == Integer.class) {{
+                    invokeArgs[i] = (tokIdx < tokens.length) ? Integer.parseInt(tokens[tokIdx++]) : 0;
+                }} else if (pType == long.class || pType == Long.class) {{
+                    invokeArgs[i] = (tokIdx < tokens.length) ? Long.parseLong(tokens[tokIdx++]) : 0L;
+                }} else if (pType == double.class || pType == Double.class) {{
+                    invokeArgs[i] = (tokIdx < tokens.length) ? Double.parseDouble(tokens[tokIdx++]) : 0.0;
+                }} else if (pType == boolean.class || pType == Boolean.class) {{
+                    invokeArgs[i] = (tokIdx < tokens.length) ? Boolean.parseBoolean(tokens[tokIdx++]) : false;
                 }} else if (pType == String.class) {{
-                    invokeArgs[0] = rawInput;
-                }} else if (pType == int[].class) {{
-                    String[] parts = rawInput.split("\\\\s+");
-                    int[] arr = new int[parts.length];
-                    for (int i = 0; i < parts.length; i++) {{
-                        try {{ arr[i] = Integer.parseInt(parts[i]); }} catch(Exception ignored) {{}}
+                    if (paramTypes.length == 1) {{
+                        invokeArgs[i] = rawInput;
+                    }} else {{
+                        invokeArgs[i] = (tokIdx < tokens.length) ? tokens[tokIdx++] : "";
                     }}
-                    invokeArgs[0] = arr;
+                }} else if (pType == int[].class) {{
+                    int remaining = tokens.length - tokIdx;
+                    int[] arr = new int[remaining > 0 ? remaining : 0];
+                    for (int j = 0; j < arr.length; j++) {{
+                        try {{ arr[j] = Integer.parseInt(tokens[tokIdx++]); }} catch(Exception ignored) {{}}
+                    }}
+                    invokeArgs[i] = arr;
+                }} else {{
+                    invokeArgs[i] = null;
                 }}
             }}
+
             Object res = target.invoke(sol, invokeArgs);
             if (res != null) {{
                 if (res instanceof Boolean) {{
@@ -692,9 +816,11 @@ public class Main {{
                 tc_input = tc.input.strip()
                 expected = tc.expectedOutput.strip()
 
+                tc_t0 = time.time()
                 rc, run_out, run_err, timed_out = _run_process_safe(
                     [java_cmd, "-cp", tmpdir, "Main"], input_str=tc_input, timeout=3.0, cwd=tmpdir
                 )
+                tc_time_ms = max(1, int((time.time() - tc_t0) * 1000))
 
                 if timed_out:
                     actual_out = "Time Limit Exceeded ( > 3.0s )"
@@ -722,7 +848,7 @@ public class Main {{
                     "expected_output": expected,
                     "actual_output": actual_out,
                     "passed": is_passed,
-                    "execution_time_ms": int((time.time() - start_time) * 1000) + 10,
+                    "execution_time_ms": tc_time_ms,
                     "status": status_str,
                 })
         finally:
@@ -753,8 +879,60 @@ public class Main {{
                 "error": "g++ compiler not found on this server.",
             }
 
-        needs_main = "int main(" not in code and "int main (" not in code
-        if needs_main:
+        import re
+        has_main = bool(re.search(r'\bint\s+main\s*\(', code))
+        if has_main:
+            cpp_source = code
+        else:
+            entry = req.entry_point if req.entry_point else "solve"
+            has_sol_class = bool(re.search(r'\bclass\s+Solution\b', code))
+
+            if has_sol_class:
+                m_match = re.search(r'([\w:<>, ]+[\*&]?)\s+' + re.escape(entry) + r'\s*\((.*?)\)', code)
+                if not m_match:
+                    m_match = re.search(r'([\w:<>, ]+[\*&]?)\s+(\w+)\s*\((.*?)\)', code)
+                    if m_match:
+                        entry = m_match.group(2)
+                        params = m_match.group(3).strip()
+                    else:
+                        params = ""
+                else:
+                    params = m_match.group(2).strip()
+
+                main_body = "    Solution sol;\n"
+                if not params or params == "void":
+                    main_body += f"    auto res = sol.{entry}();\n    cout << boolalpha << res << endl;\n"
+                elif "vector" in params:
+                    main_body += f"    vector<int> v; int _x;\n    while (cin >> _x) v.push_back(_x);\n    auto res = sol.{entry}(v);\n    cout << boolalpha << res << endl;\n"
+                elif "string" in params:
+                    main_body += f"    string s;\n    if (cin >> s) {{\n        auto res = sol.{entry}(s);\n        cout << boolalpha << res << endl;\n    }}\n"
+                elif "," in params:
+                    main_body += f"    int a = 0, b = 0;\n    if (cin >> a >> b) {{\n        auto res = sol.{entry}(a, b);\n        cout << boolalpha << res << endl;\n    }}\n"
+                else:
+                    main_body += f"    int n = 0;\n    if (cin >> n) {{\n        auto res = sol.{entry}(n);\n        cout << boolalpha << res << endl;\n    }}\n"
+            else:
+                f_match = re.search(r'([\w:<>, ]+[\*&]?)\s+' + re.escape(entry) + r'\s*\((.*?)\)', code)
+                if not f_match:
+                    f_match = re.search(r'([\w:<>, ]+[\*&]?)\s+(\w+)\s*\((.*?)\)', code)
+                    if f_match:
+                        entry = f_match.group(2)
+                        params = f_match.group(3).strip()
+                    else:
+                        params = ""
+                else:
+                    params = f_match.group(2).strip()
+
+                if not params or params == "void":
+                    main_body = f"    {entry}();\n"
+                elif "vector" in params:
+                    main_body = f"    vector<int> v; int _x;\n    while (cin >> _x) v.push_back(_x);\n    cout << boolalpha << {entry}(v) << endl;\n"
+                elif "string" in params:
+                    main_body = f"    string s;\n    if (cin >> s) cout << boolalpha << {entry}(s) << endl;\n"
+                elif "," in params:
+                    main_body = f"    int a = 0, b = 0;\n    if (cin >> a >> b) cout << boolalpha << {entry}(a, b) << endl;\n"
+                else:
+                    main_body = f"    int n = 0;\n    if (cin >> n) cout << boolalpha << {entry}(n) << endl;\n"
+
             cpp_source = f"""#include <iostream>
 #include <vector>
 #include <string>
@@ -769,15 +947,21 @@ public class Main {{
 #include <sstream>
 using namespace std;
 
+template <typename T>
+ostream& operator<<(ostream& os, const vector<T>& v) {{
+    for (size_t i = 0; i < v.size(); ++i) {{
+        if (i > 0) os << " ";
+        os << v[i];
+    }}
+    return os;
+}}
+
 {code}
 
 int main() {{
-    solve();
-    return 0;
+{main_body}    return 0;
 }}
 """
-        else:
-            cpp_source = code
 
         tmpdir = tempfile.mkdtemp(prefix="cpp_run_")
         try:
@@ -818,9 +1002,11 @@ int main() {{
                 tc_input = tc.input.strip()
                 expected = tc.expectedOutput.strip()
 
+                tc_t0 = time.time()
                 rc, run_out, run_err, timed_out = _run_process_safe(
                     [bin_file], input_str=tc_input, timeout=3.0, cwd=tmpdir
                 )
+                tc_time_ms = max(1, int((time.time() - tc_t0) * 1000))
 
                 if timed_out:
                     actual_out = "Time Limit Exceeded ( > 3.0s )"
@@ -848,7 +1034,7 @@ int main() {{
                     "expected_output": expected,
                     "actual_output": actual_out,
                     "passed": is_passed,
-                    "execution_time_ms": int((time.time() - start_time) * 1000) + 10,
+                    "execution_time_ms": tc_time_ms,
                     "status": status_str,
                 })
         finally:

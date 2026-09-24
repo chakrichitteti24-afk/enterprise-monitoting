@@ -178,13 +178,17 @@ export const DeanStudentsPage: React.FC = () => {
   };
 
   const handleDeleteStudent = async (student: Student) => {
+    setIsSubmitting(true);
     try {
       await removeStudent(student.id);
       setDeleteConfirmStudent(null);
       setSuccessMessage(`Student ${student.name} (${student.rollNo}) de-enrolled.`);
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err) {
+    } catch (err: any) {
+      alert(err?.message || 'Failed to de-enroll student. Check your connection.');
       console.error(err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -889,9 +893,10 @@ export const DeanStudentsPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => handleDeleteStudent(deleteConfirmStudent)}
-                  className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors disabled:opacity-50"
                 >
-                  Confirm De-enroll
+                  {isSubmitting ? 'Removing...' : 'Confirm De-enroll'}
                 </button>
               </div>
             </motion.div>

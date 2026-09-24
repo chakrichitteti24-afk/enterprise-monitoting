@@ -8,9 +8,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install system dependencies for PostgreSQL & cryptography
+# Install system dependencies: GCC, G++, OpenJDK (javac/java), Node.js, PostgreSQL dev, curl
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
+    g++ \
+    default-jdk-headless \
+    nodejs \
     libpq-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*

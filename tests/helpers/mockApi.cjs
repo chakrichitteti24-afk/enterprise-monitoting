@@ -432,22 +432,11 @@ class MockApiClient {
         } else if (language === 'python' || language === 'py') {
           actual = runPythonHelper(cleanCode, rawInput, (body && body.entry_point) || 'solve');
         } else if (language === 'cpp' || language === 'c++' || language === 'c') {
-          // If code contains cout << "Even", evaluate accurately
-          if (cleanCode.includes('cout << "Even"') || cleanCode.includes("cout << 'Even'")) {
-            actual = 'Even';
-          } else if (cleanCode.includes('return 0') || cleanCode.includes('cout')) {
-            actual = expected;
-          } else {
-            actual = '0';
-          }
+          const match = cleanCode.match(/cout\s*<<\s*["']([^"']+)["']/);
+          actual = match ? match[1] : '';
         } else if (language === 'java') {
-          if (cleanCode.includes('System.out.println("Even")')) {
-            actual = 'Even';
-          } else if (cleanCode.includes('System.out.println') || cleanCode.includes('return')) {
-            actual = expected;
-          } else {
-            actual = '0';
-          }
+          const match = cleanCode.match(/System\.out\.print(?:ln)?\s*\(\s*["']([^"']+)["']\s*\)/);
+          actual = match ? match[1] : '';
         }
 
         const aClean = String(actual).trim();
@@ -571,6 +560,12 @@ async function executeRealCode(code, language, testCases, entryPoint = 'solve', 
       }
     } else if (language === 'python' || language === 'py') {
       actual = runPythonHelper(cleanCode, rawInput, entryPoint || 'solve');
+    } else if (language === 'cpp' || language === 'c++' || language === 'c') {
+      const match = cleanCode.match(/cout\s*<<\s*["']([^"']+)["']/);
+      actual = match ? match[1] : '';
+    } else if (language === 'java') {
+      const match = cleanCode.match(/System\.out\.print(?:ln)?\s*\(\s*["']([^"']+)["']\s*\)/);
+      actual = match ? match[1] : '';
     }
 
     const aClean = String(actual).trim();

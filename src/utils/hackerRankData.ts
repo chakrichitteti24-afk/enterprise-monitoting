@@ -602,7 +602,7 @@ export const getProblemDossier = (problem: Problem): ProblemDossier => {
     java: `import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        // Read input from sc and compute result for ${cleanTitle}\n        System.out.println(${javaReturnVal});\n    }\n}`,
     cpp: `#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\n\nint main() {\n    // Read input from cin and compute result for ${cleanTitle}\n    cout << ${cppReturnVal} << endl;\n    return 0;\n}`,
     python: `import sys\n\ndef main():\n    # Read input from sys.stdin and compute result for ${cleanTitle}\n    # data = sys.stdin.read().split()\n    print(${pythonReturnVal})\n\nif __name__ == '__main__':\n    main()`,
-    javascript: `const fs = require('fs');\n\nfunction main() {\n    // Read input from stdin and compute result for ${cleanTitle}\n    // const input = fs.readFileSync(0, 'utf-8').trim();\n    console.log(${jsReturnVal});\n}\n\nmain();`,
+    javascript: `// Competitive Programming & Sandbox JavaScript Solution\nconst fs = typeof require !== 'undefined' ? require('fs') : null;\n\nfunction main() {\n    // Read input from stdin or implement solve(input)\n    // const input = fs ? fs.readFileSync(0, 'utf-8').trim() : '';\n    console.log(${jsReturnVal});\n}\n\nmain();`,
   };
 
   return {

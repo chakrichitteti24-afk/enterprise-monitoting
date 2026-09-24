@@ -443,3 +443,32 @@ export async function getMentorTeamStudentsApi() {
 export async function getMentorTeamDetailApi() {
   return apiRequest<any>('/mentor/team');
 }
+
+/** All mentors for Dean */
+export async function getDeanMentorsApi() {
+  return apiRequest<any[]>('/dean/mentors');
+}
+
+/** Autosave exam code answers to localStorage */
+export function saveExamAnswersLocal(examId: string, answers: Record<string, string>): void {
+  try {
+    localStorage.setItem(`gkce_exam_answers_${examId}`, JSON.stringify(answers));
+  } catch {}
+}
+
+/** Load saved exam answers from localStorage */
+export function loadExamAnswersLocal(examId: string): Record<string, string> {
+  try {
+    const saved = localStorage.getItem(`gkce_exam_answers_${examId}`);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return {};
+}
+
+/** Clear saved exam answers from localStorage */
+export function clearExamAnswersLocal(examId: string): void {
+  try {
+    localStorage.removeItem(`gkce_exam_answers_${examId}`);
+  } catch {}
+}
+

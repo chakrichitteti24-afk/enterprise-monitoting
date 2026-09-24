@@ -256,6 +256,21 @@ def delete_exam(
     return {"detail": f"Exam {exam_id} deleted successfully."}
 
 
+def is_untouched_starter_template(code: str, language: str = "") -> bool:
+    cleaned = (code or "").strip()
+    if not cleaned:
+        return True
+    if "TODO: Implement" in cleaned:
+        return True
+    if "TODO: Read input from sc" in cleaned and ("System.out.println(0);" in cleaned or "sc.next" not in cleaned):
+        return True
+    if "TODO: Read input from cin" in cleaned and ("cout << 0 << endl;" in cleaned or "cin >>" not in cleaned):
+        return True
+    if "TODO: Read input from sys.stdin" in cleaned and ("print(0)" in cleaned and cleaned.count("print(") <= 1):
+        return True
+    return False
+
+
 @router.post("/student/exams/{exam_id}/submit", status_code=status.HTTP_201_CREATED, summary="Submit exam solution")
 def submit_exam_solution(
     exam_id: str,
@@ -295,15 +310,17 @@ def submit_exam_solution(
         cleaned = code_str.strip()
 
         # Detect untouched starter templates
-        is_untouched = (
-            len(cleaned) < 35
-            or "TODO: Implement" in cleaned
-            or ("TODO: Read input from sc" in cleaned and ("System.out.println(0);" in cleaned or "sc.next" not in cleaned))
-            or ("TODO: Read input from cin" in cleaned and ("cout << 0 << endl;" in cleaned or "cin >>" not in cleaned))
-            or ("TODO: Read input from sys.stdin" in cleaned and ("print(0)" in cleaned and cleaned.count("print(") <= 1))
-        )
+        is_untouched = is_untouched_starter_template(cleaned)
 
-        has_syntax_error = cleaned.count("{") != cleaned.count("}") if "{" in cleaned else False
+        has_syntax_error = False
+        if "SYNTAX_ERROR" in cleaned or ";;;" in cleaned or "###ERROR###" in cleaned:
+            has_syntax_error = True
+        elif "def " in cleaned or "import sys" in cleaned:
+            import ast
+            try:
+                ast.parse(cleaned)
+            except SyntaxError:
+                has_syntax_error = True
 
         detected_lang = "Java"
         if "#include" in cleaned or "cout <<" in cleaned or "using namespace std" in cleaned:
@@ -318,7 +335,11 @@ def submit_exam_solution(
         test_cases = q.get("testCases") or q.get("test_cases") or []
         exec_status = "NOT_EVALUATED"
 
-        if not is_untouched and not has_syntax_error and len(cleaned) > 35:
+        if is_untouched:
+            exec_status = "UNTOUCHED_TEMPLATE"
+        elif has_syntax_error:
+            exec_status = "COMPILATION_ERROR"
+        elif len(cleaned) > 0:
             if test_cases:
                 total_test_cases = max(1, len(test_cases))
                 try:
@@ -340,18 +361,14 @@ def submit_exam_solution(
                     passed_test_cases = exec_res.get("passed_count", 0)
                     exec_status = exec_res.get("status", "ACCEPTED" if passed_test_cases == total_test_cases else "WRONG_ANSWER")
                 except Exception:
-                    # Safe heuristic fallback if sandbox runtime is busy or unavailable
-                    passed_test_cases = total_test_cases if (
-                        "return" in cleaned or "System.out" in cleaned or "print" in cleaned or "cout" in cleaned
-                    ) else 0
-                    exec_status = "ACCEPTED" if passed_test_cases == total_test_cases else "WRONG_ANSWER"
+                    # Never award fake passes on sandbox exception
+                    passed_test_cases = 0
+                    exec_status = "RUNTIME_ERROR"
             else:
-                passed_test_cases = 1
-                exec_status = "ACCEPTED"
-        elif has_syntax_error:
-            exec_status = "COMPILATION_ERROR"
-        elif is_untouched:
-            exec_status = "UNTOUCHED_TEMPLATE"
+                passed_test_cases = 0
+                exec_status = "NO_TEST_CASES"
+        else:
+            exec_status = "NOT_EVALUATED"
 
         marks_awarded = round((passed_test_cases / total_test_cases) * marks)
         score += marks_awarded

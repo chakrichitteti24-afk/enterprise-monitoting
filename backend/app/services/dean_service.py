@@ -580,6 +580,10 @@ class DeanService:
                 
         return self.mentor_service._build_mentor_out(mentor)
 
+    def get_all_mentors(self) -> List[MentorOut]:
+        mentors = self.mentor_repo.get_all_with_relations()
+        return [self.mentor_service._build_mentor_out(m) for m in mentors]
+
     def delete_mentor(self, mentor_id: int):
         mentor = self.mentor_repo.get_by_id(mentor_id)
         if not mentor:

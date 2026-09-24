@@ -46,6 +46,7 @@ import {
   getMentorTeamStudentsApi,
   getMentorTeamDetailApi,
   createMentorApi,
+  getDeanMentorsApi,
 } from '../lib/api';
 
 interface AuthContextType {
@@ -603,6 +604,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             mentor_name: updates.mentorName,
             status: updates.status ? updates.status.toUpperCase().replace(' ', '_') : undefined,
           });
+          syncFromBackend(currentUser.role as UserRole).catch(() => {});
         } catch (err) {
           console.warn('Backend updateTeam not reachable, updating local state', err);
         }
@@ -675,17 +677,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const numId = parseInt(teamId.replace(/\D/g, ''), 10);
       if (!isNaN(numId)) {
-        try {
-          await deleteTeamApi(numId);
-        } catch (err) {
-          console.warn('Backend deleteTeam not reachable, updating local state', err);
-        }
+        await deleteTeamApi(numId);
       }
-      setTeams(prev => prev.filter(t => t.id !== teamId));
+      setTeams(prev => {
+        const filtered = prev.filter(t => t.id !== teamId);
+        try { localStorage.setItem('gkce_teams_v6', JSON.stringify(filtered)); } catch {}
+        return filtered;
+      });
       const teamMockIdx = ALL_TEAMS.findIndex(t => t.id === teamId);
       if (teamMockIdx >= 0) {
         ALL_TEAMS.splice(teamMockIdx, 1);
       }
+      syncFromBackend(currentUser.role as UserRole).catch(() => {});
     } catch (err) {
       console.error('Error removing team:', err);
       throw err;
@@ -766,7 +769,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         mentorFeedbackNotes: [],
       };
 
-      setStudents(prev => [newS, ...prev.filter(s => s.id !== createdStudentId && s.rollNo !== roll)]);
+      setStudents(prev => {
+        const next = [newS, ...prev.filter(s => s.id !== createdStudentId && s.rollNo !== roll)];
+        try { localStorage.setItem('gkce_students_v6', JSON.stringify(next)); } catch {}
+        return next;
+      });
 
       // Synchronize in-memory ALL_STUDENTS
       if (!ALL_STUDENTS.some(s => s.id === newS.id || s.rollNo === newS.rollNo)) {
@@ -774,19 +781,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Synchronize team's studentIds
-      setTeams(prev =>
-        prev.map(t =>
+      setTeams(prev => {
+        const next = prev.map(t =>
           t.id === matchedTeam.id || t.teamNumber === matchedTeam.teamNumber
             ? { ...t, studentIds: [...(t.studentIds || []).filter(id => id !== newS.id), newS.id] }
             : t
-        )
-      );
+        );
+        try { localStorage.setItem('gkce_teams_v6', JSON.stringify(next)); } catch {}
+        return next;
+      });
 
       // Synchronize in-memory ALL_TEAMS
       const targetTeamMock = ALL_TEAMS.find(t => t.id === matchedTeam.id || t.teamNumber === matchedTeam.teamNumber);
       if (targetTeamMock) {
         targetTeamMock.studentIds = [...(targetTeamMock.studentIds || []).filter((id: string) => id !== newS.id), newS.id];
       }
+
+      // ✅ Re-sync from DB
+      syncFromBackend(currentUser.role as UserRole).catch(() => {});
     } catch (err) {
       console.error('Error adding student:', err);
       throw err;
@@ -843,28 +855,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const numId = parseInt(studentId.replace(/\D/g, ''), 10);
       if (!isNaN(numId)) {
-        try {
-          if (currentUser.role === 'MENTOR') {
-            await deleteStudentAsMentorApi(numId);
-          } else {
-            await deleteStudentApi(numId);
-          }
-        } catch (err) {
-          console.warn('Backend deleteStudent not reachable, updating local state', err);
+        // ✅ DB delete must succeed
+        if (currentUser.role === 'MENTOR') {
+          await deleteStudentAsMentorApi(numId);
+        } else {
+          await deleteStudentApi(numId);
         }
       }
-      setStudents(prev => prev.filter(s => s.id !== studentId));
-      setTeams(prev =>
-        prev.map(t => ({
+      setStudents(prev => {
+        const filtered = prev.filter(s => s.id !== studentId);
+        try { localStorage.setItem('gkce_students_v6', JSON.stringify(filtered)); } catch {}
+        return filtered;
+      });
+      setTeams(prev => {
+        const updated = prev.map(t => ({
           ...t,
           studentIds: (t.studentIds || []).filter(id => id !== studentId),
-        }))
-      );
+        }));
+        try { localStorage.setItem('gkce_teams_v6', JSON.stringify(updated)); } catch {}
+        return updated;
+      });
       // Also update in-memory ALL_STUDENTS
       const mockIdx = ALL_STUDENTS.findIndex(s => s.id === studentId);
       if (mockIdx >= 0) {
         ALL_STUDENTS.splice(mockIdx, 1);
       }
+      // ✅ Trigger background sync so server metrics are refreshed
+      syncFromBackend(currentUser.role as UserRole).catch(() => {});
     } catch (err) {
       console.error('Error removing student:', err);
       throw err;
@@ -1117,20 +1134,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             return initialMapped;
           });
-          setStudents(prev => {
-            const updated = [...prev];
-            for (const bs of mappedStudents) {
-              const idx = updated.findIndex(
-                s => s.rollNo.toUpperCase() === bs.rollNo.toUpperCase() || s.id === bs.id
-              );
-              if (idx >= 0) {
-                updated[idx] = { ...updated[idx], ...bs };
-              } else {
-                updated.push(bs);
-              }
-            }
-            return updated;
-          });
+          // ✅ Authoritative replace: DB is the single source of truth across all devices
+          setStudents(mappedStudents);
+          try { localStorage.setItem('gkce_students_v6', JSON.stringify(mappedStudents)); } catch {}
         }
 
         if (teamsRes.status === 'fulfilled' && Array.isArray(teamsRes.value)) {
@@ -1149,14 +1155,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 next[idx] = {
                   ...next[idx],
                   ...mt,
-                  studentIds: Array.from(new Set([...(next[idx].studentIds || []), ...(mt.studentIds || [])])),
+                  studentIds: mt.studentIds,
                 };
               } else {
                 next.push(mt);
               }
             }
             // Recompute team progress and topic performance from actual mapped students
-            return next.map(t => {
+            const finalTeams = next.map(t => {
               const teamSts = mappedStudents.filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber);
               if (teamSts.length === 0) return t;
               const tSolved = teamSts.reduce((acc, s) => acc + (s.solved || 0), 0);
@@ -1186,6 +1192,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 topicPerformance: tPerf,
               };
             });
+            try { localStorage.setItem('gkce_teams_v6', JSON.stringify(finalTeams)); } catch {}
+            return finalTeams;
           });
         } else if (mappedStudents.length > 0) {
           setTeams(prev =>
@@ -1194,6 +1202,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               studentIds: mappedStudents.filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber).map(s => s.id),
             }))
           );
+        }
+
+        // ✅ Sync mentors from backend (DEAN only)
+        try {
+          const mentorsData = await getDeanMentorsApi();
+          if (Array.isArray(mentorsData) && mentorsData.length > 0) {
+            const mappedMentors = mentorsData.map((m: any) => ({
+              id: `mentor-${m.id}`,
+              name: m.name,
+              email: m.email,
+              avatar: m.avatar_url || `https://images.unsplash.com/photo-1507003211169?w=150&auto=format&fit=crop&q=80`,
+              department: m.department || 'Computer Science & Engg',
+              phone: m.phone || '+91 98480 10000',
+              experienceYears: m.experience_years || 5,
+              assignedTeamId: m.assigned_teams?.[0]?.id ? `team-${m.assigned_teams[0].id}` : undefined,
+              assignedTeamNumber: m.assigned_teams?.[0]?.team_number || '',
+              teamIds: (m.assigned_teams || []).map((t: any) => `team-${t.id}`),
+              teamNumbers: (m.assigned_teams || []).map((t: any) => t.team_number),
+            }));
+            setMentors(mappedMentors);
+            try { localStorage.setItem('gkce_mentors_v2', JSON.stringify(mappedMentors)); } catch {}
+          }
+        } catch (mentorSyncErr) {
+          console.warn('[syncFromBackend] Mentor sync failed:', mentorSyncErr);
         }
       } else if (role === 'MENTOR') {
         const [studentsRes, teamRes] = await Promise.allSettled([
@@ -1205,22 +1237,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (studentsRes.status === 'fulfilled' && Array.isArray(studentsRes.value)) {
           const backendStudents = studentsRes.value;
           setStudents(prev => {
-            const updated = [...prev];
+            const mentorTeamNumbers = new Set<string>();
+            const mentorTeamIds = new Set<string>();
+            for (const bs of backendStudents) {
+              if (bs.team_number) mentorTeamNumbers.add(bs.team_number);
+              if (bs.team_id) mentorTeamIds.add(`team-${bs.team_id}`);
+            }
+            if (currentUser.teamNumber) mentorTeamNumbers.add(currentUser.teamNumber);
+            if (currentUser.teamId) mentorTeamIds.add(currentUser.teamId);
+
+            // Keep students NOT in mentor's assigned team(s)
+            const otherStudents = prev.filter(s =>
+              !mentorTeamNumbers.has(s.teamNumber) && !mentorTeamIds.has(s.teamId)
+            );
+
             for (const bs of backendStudents) {
               const mapped = backendStudentToFrontend(bs, prev);
               const verifiedIds = verificationsMap[bs.roll_number] || verificationsMap[bs.id] || verificationsMap[`student-${bs.id}`] || [];
               const finalMapped = verifiedIds.length > 0 ? recalculateStudentMetrics(mapped, verifiedIds) : mapped;
-
-              const idx = updated.findIndex(
-                s => s.rollNo === bs.roll_number || s.id === `student-${bs.id}`
-              );
-              if (idx >= 0) {
-                updated[idx] = finalMapped;
-              } else {
-                updated.push(finalMapped);
-              }
               syncedMentorStudents.push(finalMapped);
             }
+            const updated = [...otherStudents, ...syncedMentorStudents];
+            try { localStorage.setItem('gkce_students_v6', JSON.stringify(updated)); } catch {}
             return updated;
           });
         }
@@ -1513,6 +1551,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('gkce_user_profile_v1');
       localStorage.removeItem('gkce_weekly_exams_v4');
       localStorage.removeItem('gkce_active_tab_v2');
+      // ✅ Also clear student/team/mentor caches so next user starts fresh
+      localStorage.removeItem('gkce_students_v6');
+      localStorage.removeItem('gkce_teams_v6');
+      localStorage.removeItem('gkce_mentors_v2');
     } catch {}
     setCurrentUser(DEAN_USER);
     setSelectedStudent(null);
@@ -2087,14 +2129,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Background Monitor: Automatically transition LIVE exams to COMPLETED once 90-min timeline concludes
+  // Background Monitor: Automatically transition LIVE exams to COMPLETED once timeline concludes
+  // ✅ Uses a ref to track in-progress completions to prevent duplicate API calls
+  const completingExamIds = React.useRef<Set<string>>(new Set());
   useEffect(() => {
     const timer = setInterval(() => {
       exams.forEach(ex => {
         if (ex.status === 'LIVE' && ex.launchedAt) {
           const remainingSecs = calculateExamRemainingSeconds(ex);
-          if (remainingSecs <= 0) {
-            setExamStatus(ex.id, 'COMPLETED', true);
+          if (remainingSecs <= 0 && !completingExamIds.current.has(ex.id)) {
+            completingExamIds.current.add(ex.id);
+            setExamStatus(ex.id, 'COMPLETED', true).finally(() => {
+              completingExamIds.current.delete(ex.id);
+            });
           }
         }
       });
@@ -2123,38 +2170,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Auto-grade evaluation (each answered question awards marks based on test case passes)
     const questions = exam.questions || [];
-    let score = 0;
-    let solvedCount = 0;
     const answerDetails: Record<string, any> = {};
 
     questions.forEach((q) => {
       const code = (answers[q.id] || '').trim();
-      const isUntouchedTemplate =
-        !code ||
-        code.length < 35 ||
-        code.includes('// TODO: Implement') ||
-        code.includes('# TODO: Implement') ||
-        (code.includes('TODO: Read input from sc') && (code.includes('System.out.println(0);') || !code.includes('sc.next'))) ||
-        (code.includes('TODO: Read input from cin') && (code.includes('cout << 0 << endl;') || !code.includes('cin >>'))) ||
-        (code.includes('TODO: Read input from sys.stdin') && code.includes('print(0)') && (code.match(/print\s*\(/g) || []).length <= 1);
-
-      const hasSyntaxError = code.includes('{') && (code.match(/\{/g) || []).length !== (code.match(/\}/g) || []).length;
-      const hasLogic =
-        !isUntouchedTemplate &&
-        !hasSyntaxError &&
-        (code.includes('return') || code.includes('System.out') || code.includes('print') || code.includes('cout'));
-
-      let passedTestCases = 0;
-      const totalTestCases = q.testCases?.length || 1;
-
-      if (!isUntouchedTemplate && !hasSyntaxError && hasLogic) {
-        passedTestCases = totalTestCases; // Solved
-      }
-
-      const marksEarned = Number(((passedTestCases / totalTestCases) * q.marks).toFixed(1));
-      score += marksEarned;
-      if (passedTestCases === totalTestCases) solvedCount += 1;
-
       let detectedLang = 'Java';
       if (code.includes('#include') || code.includes('cout <<') || code.includes('using namespace std')) {
         detectedLang = 'C++';
@@ -2167,9 +2186,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       answerDetails[q.id] = {
         code,
         language: detectedLang,
-        passedTestCases,
-        totalTestCases,
-        marksAwarded: marksEarned,
+        passedTestCases: 0,
+        totalTestCases: q.testCases?.length || 1,
+        marksAwarded: 0,
       };
     });
 
@@ -2182,10 +2201,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       examId,
       randomizedSetCode: setCode,
       status: 'EVALUATED',
-      score,
+      score: 0,
       totalMarks: exam.totalMarks,
-      questionsSolved: solvedCount,
-      passedCount: solvedCount,
+      questionsSolved: 0,
+      passedCount: 0,
       totalQuestionCount: questions.length,
       submittedAt: new Date().toISOString(),
       timeSpentMinutes: Math.min(exam.durationMinutes, 45),
@@ -2204,14 +2223,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       if (backendRes && typeof backendRes.score === 'number') {
         newSubmission.score = backendRes.score;
-        newSubmission.questionsSolved = backendRes.questions_solved ?? backendRes.questionsSolved ?? newSubmission.questionsSolved;
+        newSubmission.questionsSolved = backendRes.questions_solved ?? backendRes.questionsSolved ?? 0;
         newSubmission.passedCount = newSubmission.questionsSolved;
+        newSubmission.status = backendRes.status || 'EVALUATED';
         if (backendRes.answers) {
           newSubmission.answers = backendRes.answers;
         }
       }
     } catch (err) {
-      console.warn('[Neon DB] submitExamSolutionApi deferred:', err);
+      console.warn('[Backend] submitExamSolutionApi deferred:', err);
+      newSubmission.status = 'PENDING_VERIFICATION';
     }
 
     // Update Exam submissions in state with verified score
