@@ -237,7 +237,7 @@ def create_mentor_student(
     description="Deletes a student strictly from the mentor's assigned team.",
 )
 def delete_mentor_student(
-    student_id: int,
+    student_id: str,
     current_user: User = Depends(require_mentor),
     db: Session = Depends(get_db),
 ):

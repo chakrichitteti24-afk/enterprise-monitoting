@@ -206,7 +206,7 @@ export async function createStudentAsMentorApi(payload: {
 }
 
 export async function updateStudentApi(
-  studentId: number,
+  studentId: number | string,
   payload: {
     name?: string;
     roll_number?: string;
@@ -223,13 +223,13 @@ export async function updateStudentApi(
   });
 }
 
-export async function deleteStudentApi(studentId: number) {
+export async function deleteStudentApi(studentId: number | string) {
   return apiRequest<{ detail: string }>(`/dean/students/${studentId}`, {
     method: 'DELETE',
   });
 }
 
-export async function deleteStudentAsMentorApi(studentId: number) {
+export async function deleteStudentAsMentorApi(studentId: number | string) {
   return apiRequest<{ detail: string }>(`/mentor/students/${studentId}`, {
     method: 'DELETE',
   });
@@ -422,10 +422,10 @@ export async function getStudentMeDetailApi() {
   return apiRequest<any>('/student/me');
 }
 
-/** All students (up to 200) for Dean */
+/** All students (up to 500) for Dean */
 export async function getDeanStudentsAllApi() {
   return apiRequest<{ items: any[]; total: number; page: number; limit: number }>(
-    '/dean/students?page=1&limit=200'
+    '/dean/students?page=1&limit=500'
   );
 }
 

@@ -221,7 +221,7 @@ class MentorService:
         student_with_rel = self.student_repo.get_by_id_with_relations(student.id)
         return self.student_service._build_student_out(student_with_rel)
 
-    def delete_student(self, mentor_id: int, student_id: int) -> Dict[str, str]:
+    def delete_student(self, mentor_id: int, student_id: Any) -> Dict[str, str]:
         from fastapi import HTTPException, status
         from app.models.user import User
 
@@ -230,7 +230,21 @@ class MentorService:
             raise PermissionDeniedException(detail="Forbidden: Mentor has no assigned teams.")
 
         assigned_team_ids = [t.id for t in mentor.assigned_teams]
-        student = self.student_repo.get_by_id(student_id)
+
+        student = None
+        try:
+            clean_str = str(student_id).replace("student-", "").strip()
+            num_id = int(clean_str)
+            student = self.student_repo.get_by_id(num_id)
+        except (ValueError, TypeError):
+            pass
+
+        if not student:
+            clean_identifier = str(student_id).strip()
+            student = self.student_repo.get_by_roll_number(clean_identifier)
+            if not student and clean_identifier.startswith("student-"):
+                student = self.student_repo.get_by_roll_number(clean_identifier.replace("student-", ""))
+
         if not student:
             raise ResourceNotFoundException("Student", str(student_id))
 
@@ -238,6 +252,23 @@ class MentorService:
             raise PermissionDeniedException(detail="Forbidden: You can only delete students enrolled in your assigned teams.")
 
         user_id = student.user_id
+        student_roll = student.roll_number
+        st_id_int = student.id
+
+        try:
+            from app.models.verification import StudentVerifiedProblem
+            from app.models.exam import StudentExamSubmission
+            self.db.query(StudentVerifiedProblem).filter(
+                StudentVerifiedProblem.student_identifier.in_([str(st_id_int), f"student-{st_id_int}", student_roll])
+            ).delete(synchronize_session=False)
+
+            self.db.query(StudentExamSubmission).filter(
+                (StudentExamSubmission.student_id.in_([str(st_id_int), f"student-{st_id_int}"])) |
+                (StudentExamSubmission.student_id == student_roll)
+            ).delete(synchronize_session=False)
+        except Exception:
+            pass
+
         self.db.delete(student)
         if user_id:
             user = self.db.query(User).filter(User.id == user_id).first()

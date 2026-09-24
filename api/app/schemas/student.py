@@ -58,6 +58,9 @@ class StudentUpdate(BaseModel):
     team_number: Optional[str] = None
     dsa_level: Optional[DSALevel] = None
     status: Optional[StudentStatus] = None
+    github_username: Optional[str] = None
+    github_url: Optional[str] = None
+    leetcode_username: Optional[str] = None
 
     @field_validator("dsa_level", mode="before")
     @classmethod
@@ -96,6 +99,13 @@ class StudentUpdate(BaseModel):
             if v_clean in mapping:
                 return mapping[v_clean]
         return v
+
+
+class StudentProfileUpdate(BaseModel):
+    github_username: Optional[str] = Field(default=None, max_length=255)
+    github_url: Optional[str] = Field(default=None, max_length=500)
+    leetcode_username: Optional[str] = Field(default=None, max_length=255)
+    avatar_url: Optional[str] = Field(default=None, max_length=500000)
 
 
 class AvatarUpdate(BaseModel):

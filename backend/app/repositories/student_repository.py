@@ -49,7 +49,7 @@ class StudentRepository(BaseRepository[Student]):
             .where(Student.user_id == user_id)
             .options(
                 joinedload(Student.user),
-                joinedload(Student.team),
+                joinedload(Student.team).joinedload(Team.mentor).joinedload(Mentor.user),
                 joinedload(Student.progress),
             )
         )
@@ -61,7 +61,7 @@ class StudentRepository(BaseRepository[Student]):
             .where(Student.team_id == team_id)
             .options(
                 joinedload(Student.user),
-                joinedload(Student.team),
+                joinedload(Student.team).joinedload(Team.mentor).joinedload(Mentor.user),
                 joinedload(Student.progress),
             )
             .order_by(Student.id)
@@ -84,7 +84,7 @@ class StudentRepository(BaseRepository[Student]):
             .join(Team, Student.team_id == Team.id)
             .options(
                 joinedload(Student.user),
-                joinedload(Student.team),
+                joinedload(Student.team).joinedload(Team.mentor).joinedload(Mentor.user),
                 joinedload(Student.progress),
             )
         )

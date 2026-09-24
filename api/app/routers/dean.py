@@ -226,7 +226,7 @@ def create_student(
     description="Updates student info, DSA competency level, status, or reassigns team.",
 )
 def update_student(
-    student_id: int,
+    student_id: str,
     student_in: StudentUpdate,
     current_user: User = Depends(require_dean),
     db: Session = Depends(get_db),
@@ -241,7 +241,7 @@ def update_student(
     description="Removes student record and user credentials from system.",
 )
 def delete_student(
-    student_id: int,
+    student_id: str,
     current_user: User = Depends(require_dean),
     db: Session = Depends(get_db),
 ):
@@ -266,6 +266,20 @@ def create_mentor(
 ):
     dean_service = DeanService(db)
     return dean_service.create_mentor(mentor_in)
+
+
+@router.get(
+    "/mentors",
+    response_model=List[MentorOut],
+    summary="Get all faculty mentors (Dean only)",
+    description="Returns all faculty mentor profiles with their assigned teams.",
+)
+def get_all_mentors(
+    current_user: User = Depends(require_dean),
+    db: Session = Depends(get_db),
+):
+    dean_service = DeanService(db)
+    return dean_service.get_all_mentors()
 
 
 @router.delete(

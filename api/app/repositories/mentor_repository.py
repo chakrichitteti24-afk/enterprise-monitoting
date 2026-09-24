@@ -17,10 +17,10 @@ class MentorRepository(BaseRepository[Mentor]):
             .where(Mentor.id == mentor_id)
             .options(
                 joinedload(Mentor.user),
-                joinedload(Mentor.assigned_team),
+                joinedload(Mentor.assigned_teams),
             )
         )
-        return self.db.scalars(stmt).first()
+        return self.db.scalars(stmt).unique().first()
 
     def get_by_user_id(self, user_id: int) -> Optional[Mentor]:
         stmt = (
@@ -28,18 +28,18 @@ class MentorRepository(BaseRepository[Mentor]):
             .where(Mentor.user_id == user_id)
             .options(
                 joinedload(Mentor.user),
-                joinedload(Mentor.assigned_team),
+                joinedload(Mentor.assigned_teams),
             )
         )
-        return self.db.scalars(stmt).first()
+        return self.db.scalars(stmt).unique().first()
 
     def get_all_with_relations(self) -> List[Mentor]:
         stmt = (
             select(Mentor)
             .options(
                 joinedload(Mentor.user),
-                joinedload(Mentor.assigned_team),
+                joinedload(Mentor.assigned_teams),
             )
             .order_by(Mentor.id)
         )
-        return list(self.db.scalars(stmt).all())
+        return list(self.db.scalars(stmt).unique().all())

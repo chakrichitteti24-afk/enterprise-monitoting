@@ -363,25 +363,32 @@ class DeanService:
     def update_team(self, team_id: int, team_in: TeamUpdate) -> TeamOut:
         team = self.team_repo.get_by_id(team_id)
         if not team:
+            team = self.team_repo.get_by_team_number(f"Team {team_id:02d}") or self.team_repo.get_by_team_number(f"Team {team_id}")
+        if not team:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Team {team_id} not found.",
             )
 
-        if team_in.name is not None:
-            team.name = team_in.name
+        if team_in.name is not None and team_in.name.strip():
+            team.name = team_in.name.strip()
 
-        if team_in.mentor_id is not None:
-            if team_in.mentor_id > 0:
-                team.mentor_id = team_in.mentor_id
-            else:
-                team.mentor_id = None
-        elif team_in.mentor_name is not None:
-            new_mentor = self.db.query(Mentor).join(User).filter(User.name == team_in.mentor_name).first()
-            if new_mentor:
-                team.mentor_id = new_mentor.id
-            else:
-                team.mentor_id = None
+        # Resolve mentor safely
+        new_mentor = None
+        if team_in.mentor_id is not None and team_in.mentor_id > 0:
+            new_mentor = self.mentor_repo.get_by_id(team_in.mentor_id)
+
+        # Fallback to lookup by mentor_name if mentor_id not found in DB
+        if not new_mentor and team_in.mentor_name:
+            clean_name = team_in.mentor_name.strip()
+            new_mentor = self.db.query(Mentor).join(User).filter(func.lower(User.name) == clean_name.lower()).first()
+            if not new_mentor:
+                new_mentor = self.db.query(Mentor).join(User).filter(User.name.ilike(f"%{clean_name}%")).first()
+
+        if new_mentor:
+            team.mentor_id = new_mentor.id
+        elif team_in.mentor_id == 0 or (team_in.mentor_name and team_in.mentor_name.strip().lower() in ("unassigned", "none", "")):
+            team.mentor_id = None
 
         self.db.commit()
         full_team = self.team_repo.get_by_id_with_details(team.id) or team
@@ -475,8 +482,21 @@ class DeanService:
         full_student = self.student_repo.get_by_id_with_relations(student.id) or student
         return self.student_service._build_student_out(full_student)
 
-    def update_student(self, student_id: int, student_in: StudentUpdate) -> StudentOut:
-        student = self.student_repo.get_by_id(student_id)
+    def update_student(self, student_id: Any, student_in: StudentUpdate) -> StudentOut:
+        student = None
+        try:
+            clean_str = str(student_id).replace("student-", "").strip()
+            num_id = int(clean_str)
+            student = self.student_repo.get_by_id(num_id)
+        except (ValueError, TypeError):
+            pass
+
+        if not student:
+            clean_identifier = str(student_id).strip()
+            student = self.student_repo.get_by_roll_number(clean_identifier)
+            if not student and clean_identifier.startswith("student-"):
+                student = self.student_repo.get_by_roll_number(clean_identifier.replace("student-", ""))
+
         if not student:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -524,23 +544,59 @@ class DeanService:
         full_student = self.student_repo.get_by_id_with_relations(student.id) or student
         return self.student_service._build_student_out(full_student)
 
-    def delete_student(self, student_id: int):
-        student = self.student_repo.get_by_id(student_id)
+    def delete_student(self, student_id_or_roll: Any):
+        student = None
+        # Check by numeric ID if possible
+        try:
+            clean_str = str(student_id_or_roll).replace("student-", "").strip()
+            num_id = int(clean_str)
+            student = self.student_repo.get_by_id(num_id)
+        except (ValueError, TypeError):
+            pass
+
+        # If not found by numeric ID, check by roll number
+        if not student:
+            clean_identifier = str(student_id_or_roll).strip()
+            student = self.student_repo.get_by_roll_number(clean_identifier)
+            if not student and clean_identifier.startswith("student-"):
+                student = self.student_repo.get_by_roll_number(clean_identifier.replace("student-", ""))
+
         if not student:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Student {student_id} not found.",
+                detail=f"Student {student_id_or_roll} not found in database.",
             )
 
         user_id = student.user_id
-        self.db.delete(student)
+        student_roll = student.roll_number
+        st_id_int = student.id
+
+        # Clean up related records without cascading foreign keys
+        try:
+            from app.models.verification import StudentVerifiedProblem
+            from app.models.exam import StudentExamSubmission
+            self.db.query(StudentVerifiedProblem).filter(
+                StudentVerifiedProblem.student_identifier.in_([str(st_id_int), f"student-{st_id_int}", student_roll])
+            ).delete(synchronize_session=False)
+
+            self.db.query(StudentExamSubmission).filter(
+                (StudentExamSubmission.student_id.in_([str(st_id_int), f"student-{st_id_int}"])) |
+                (StudentExamSubmission.student_roll_no == student_roll)
+            ).delete(synchronize_session=False)
+        except Exception as cleanup_err:
+            print(f"[delete_student] Cleanup warning: {cleanup_err}", flush=True)
+
         if user_id:
             user = self.db.query(User).filter(User.id == user_id).first()
             if user:
                 self.db.delete(user)
+            else:
+                self.db.delete(student)
+        else:
+            self.db.delete(student)
 
         self.db.commit()
-        return {"detail": f"Student {student_id} successfully de-enrolled."}
+        return {"detail": f"Student {student_roll} successfully de-enrolled."}
 
     # -------------------------------------------------------------
     # Mentor Administrative Management

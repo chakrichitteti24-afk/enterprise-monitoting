@@ -595,18 +595,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateTeam = async (teamId: string, updates: Partial<Team>) => {
     try {
       const numId = parseInt(teamId.replace(/\D/g, ''), 10);
+      const mentorNumId = updates.mentorId ? parseInt(updates.mentorId.replace(/\D/g, ''), 10) : undefined;
       if (!isNaN(numId)) {
         try {
-          const mentorNumId = updates.mentorId ? parseInt(updates.mentorId.replace(/\D/g, ''), 10) : undefined;
           await updateTeamApi(numId, {
             name: updates.name,
-            mentor_id: mentorNumId,
+            mentor_id: (!isNaN(mentorNumId!) && mentorNumId! > 0) ? mentorNumId : undefined,
             mentor_name: updates.mentorName,
             status: updates.status ? updates.status.toUpperCase().replace(' ', '_') : undefined,
           });
-          syncFromBackend(currentUser.role as UserRole).catch(() => {});
         } catch (err) {
-          console.warn('Backend updateTeam not reachable, updating local state', err);
+          console.error('[updateTeam] Backend updateTeamApi failed:', err);
+          throw err;
         }
       }
 
@@ -667,6 +667,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           })
         );
       }
+      syncFromBackend(currentUser.role as UserRole).catch(() => {});
     } catch (err) {
       console.error('Error updating team:', err);
       throw err;
@@ -720,7 +721,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email,
           team_id: teamNumId,
           team_number: matchedTeam?.teamNumber,
-          password: studentData.password,
+          password: studentData.password || 'gkce@1234',
           dsa_level: dsaLevel.toUpperCase(),
           status: studentStatus.toUpperCase().replace(' ', '_'),
         };
@@ -731,8 +732,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (res && res.id) {
           createdStudentId = `student-${res.id}`;
         }
-      } catch (err) {
-        console.warn('Backend createStudent not reachable, using local state only', err);
+      } catch (err: any) {
+        console.error('[addStudent] Backend createStudent failed:', err);
+        throw err;
       }
 
       const initialTopicProgress: Record<DSATopic, { solved: number; total: number; percentage: number }> = DSA_TOPICS.reduce((acc, topic) => {
@@ -807,25 +809,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateStudent = async (studentId: string, updates: Partial<Student>) => {
     try {
+      const targetStudent = students.find(s => s.id === studentId || s.rollNo === studentId);
+      const studentRoll = targetStudent?.rollNo;
       const numId = parseInt(studentId.replace(/\D/g, ''), 10);
-      if (!isNaN(numId)) {
-        try {
-          const payload: any = {};
-          if (updates.name) payload.name = updates.name;
-          if (updates.rollNo) payload.roll_number = updates.rollNo;
-          if (updates.email) payload.email = updates.email;
-          if (updates.teamNumber) payload.team_number = updates.teamNumber;
-          if (updates.dsaLevel) payload.dsa_level = updates.dsaLevel.toUpperCase();
-          if (updates.status) payload.status = updates.status.toUpperCase().replace(' ', '_');
-          await updateStudentApi(numId, payload);
-        } catch (err) {
-          console.warn('Backend updateStudent not reachable, updating local state', err);
-        }
+      const identifier = (!isNaN(numId) && numId > 0 && numId < 1000000) ? numId : (studentRoll || studentId);
+
+      const payload: any = {};
+      if (updates.name) payload.name = updates.name;
+      if (updates.rollNo) payload.roll_number = updates.rollNo;
+      if (updates.email) payload.email = updates.email;
+      if (updates.teamNumber) payload.team_number = updates.teamNumber;
+      if (updates.dsaLevel) payload.dsa_level = updates.dsaLevel.toUpperCase();
+      if (updates.status) payload.status = updates.status.toUpperCase().replace(' ', '_');
+
+      try {
+        await updateStudentApi(identifier, payload);
+      } catch (err) {
+        console.warn('Backend updateStudent error, updating local state', err);
       }
 
-      setStudents(prev =>
-        prev.map(s => {
-          if (s.id === studentId) {
+      setStudents(prev => {
+        const next = prev.map(s => {
+          if (s.id === studentId || (studentRoll && s.rollNo === studentRoll)) {
             const matchedTeam = teams.find(t => t.teamNumber === updates.teamNumber || t.id === updates.teamId);
             return {
               ...s,
@@ -837,14 +842,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             };
           }
           return s;
-        })
-      );
+        });
+        try { localStorage.setItem('gkce_students_v6', JSON.stringify(next)); } catch {}
+        return next;
+      });
 
       // Also update in-memory ALL_STUDENTS
-      const mockIdx = ALL_STUDENTS.findIndex(s => s.id === studentId || s.rollNo === updates.rollNo);
+      const mockIdx = ALL_STUDENTS.findIndex(s => s.id === studentId || (studentRoll && s.rollNo === studentRoll) || s.rollNo === updates.rollNo);
       if (mockIdx >= 0) {
         ALL_STUDENTS[mockIdx] = { ...ALL_STUDENTS[mockIdx], ...updates };
       }
+      syncFromBackend(currentUser.role as UserRole).catch(() => {});
     } catch (err) {
       console.error('Error updating student:', err);
       throw err;
@@ -853,34 +861,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const removeStudent = async (studentId: string) => {
     try {
+      const targetStudent = students.find(s => s.id === studentId || s.rollNo === studentId);
+      const studentRoll = targetStudent?.rollNo;
       const numId = parseInt(studentId.replace(/\D/g, ''), 10);
-      if (!isNaN(numId)) {
-        // ✅ DB delete must succeed
+      const identifierToDelete = (!isNaN(numId) && numId > 0 && numId < 1000000) ? numId : (studentRoll || studentId);
+
+      try {
         if (currentUser.role === 'MENTOR') {
-          await deleteStudentAsMentorApi(numId);
+          await deleteStudentAsMentorApi(identifierToDelete);
         } else {
-          await deleteStudentApi(numId);
+          await deleteStudentApi(identifierToDelete);
+        }
+      } catch (primaryErr) {
+        if (studentRoll && String(identifierToDelete) !== studentRoll) {
+          try {
+            if (currentUser.role === 'MENTOR') {
+              await deleteStudentAsMentorApi(studentRoll);
+            } else {
+              await deleteStudentApi(studentRoll);
+            }
+          } catch (retryErr) {
+            console.error('[removeStudent] Retry deletion by roll number failed:', retryErr);
+            throw retryErr;
+          }
+        } else {
+          console.error('[removeStudent] Deletion failed:', primaryErr);
+          throw primaryErr;
         }
       }
+
       setStudents(prev => {
-        const filtered = prev.filter(s => s.id !== studentId);
+        const filtered = prev.filter(s => s.id !== studentId && s.rollNo !== studentId && (!studentRoll || s.rollNo !== studentRoll));
         try { localStorage.setItem('gkce_students_v6', JSON.stringify(filtered)); } catch {}
         return filtered;
       });
       setTeams(prev => {
         const updated = prev.map(t => ({
           ...t,
-          studentIds: (t.studentIds || []).filter(id => id !== studentId),
+          studentIds: (t.studentIds || []).filter(id => id !== studentId && (!targetStudent || id !== targetStudent.id)),
         }));
         try { localStorage.setItem('gkce_teams_v6', JSON.stringify(updated)); } catch {}
         return updated;
       });
       // Also update in-memory ALL_STUDENTS
-      const mockIdx = ALL_STUDENTS.findIndex(s => s.id === studentId);
+      const mockIdx = ALL_STUDENTS.findIndex(s => s.id === studentId || (studentRoll && s.rollNo === studentRoll));
       if (mockIdx >= 0) {
         ALL_STUDENTS.splice(mockIdx, 1);
       }
-      // ✅ Trigger background sync so server metrics are refreshed
+      // Trigger background sync so server metrics are refreshed
       syncFromBackend(currentUser.role as UserRole).catch(() => {});
     } catch (err) {
       console.error('Error removing student:', err);
@@ -1119,10 +1147,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (role === 'DEAN') {
-        const [studentsRes, teamsRes] = await Promise.allSettled([
+        const [studentsRes, teamsRes, mentorsRes] = await Promise.allSettled([
           getDeanStudentsAllApi(),
           getDeanTeamsApi(),
+          getDeanMentorsApi(),
         ]);
+
+        let mappedMentors: Mentor[] = [];
+        if (mentorsRes.status === 'fulfilled' && Array.isArray(mentorsRes.value) && mentorsRes.value.length > 0) {
+          mappedMentors = mentorsRes.value.map((m: any) => ({
+            id: `mentor-${m.id}`,
+            name: m.name,
+            email: m.email,
+            avatar: m.avatar_url || `https://images.unsplash.com/photo-1507003211169?w=150&auto=format&fit=crop&q=80`,
+            department: m.department || 'Computer Science & Engg',
+            phone: m.phone || '+91 98480 10000',
+            experienceYears: m.experience_years || 5,
+            assignedTeamId: m.assigned_teams?.[0]?.id ? `team-${m.assigned_teams[0].id}` : '',
+            assignedTeamNumber: m.assigned_teams?.[0]?.team_number || '',
+            assignedTeamIds: (m.assigned_teams || []).map((t: any) => `team-${t.id}`),
+            teamIds: (m.assigned_teams || []).map((t: any) => `team-${t.id}`),
+            teamNumbers: (m.assigned_teams || []).map((t: any) => t.team_number),
+          }));
+          setMentors(mappedMentors);
+          try { localStorage.setItem('gkce_mentors_v2', JSON.stringify(mappedMentors)); } catch {}
+        }
 
         let mappedStudents: ReturnType<typeof backendStudentToFrontend>[] = [];
         if (studentsRes.status === 'fulfilled' && studentsRes.value?.items) {
@@ -1134,67 +1183,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             return initialMapped;
           });
-          // ✅ Authoritative replace: DB is the single source of truth across all devices
-          setStudents(mappedStudents);
-          try { localStorage.setItem('gkce_students_v6', JSON.stringify(mappedStudents)); } catch {}
         }
 
         if (teamsRes.status === 'fulfilled' && Array.isArray(teamsRes.value)) {
-          setTeams(prev => {
-            const mapped = teamsRes.value.map((t: any) => {
-              const ft = backendTeamToFrontend(t, prev);
-              ft.studentIds = mappedStudents
-                .filter(s => s.teamId === ft.id || s.teamNumber === ft.teamNumber)
-                .map(s => s.id);
-              return ft;
-            });
-            const next = [...prev];
-            for (const mt of mapped) {
-              const idx = next.findIndex(t => t.id === mt.id || t.teamNumber === mt.teamNumber);
-              if (idx >= 0) {
-                next[idx] = {
-                  ...next[idx],
-                  ...mt,
-                  studentIds: mt.studentIds,
-                };
-              } else {
-                next.push(mt);
+          const mappedTeams = teamsRes.value.map((t: any) => {
+            const ft = backendTeamToFrontend(t);
+            if (mappedMentors.length > 0) {
+              const matchedM = mappedMentors.find(m => m.id === `mentor-${t.mentor_id}` || m.name === t.mentor_name);
+              if (matchedM) {
+                ft.mentorId = matchedM.id;
+                ft.mentorName = matchedM.name;
+                ft.mentorEmail = matchedM.email;
+                ft.mentorDepartment = matchedM.department;
+                ft.mentorAvatar = matchedM.avatar;
               }
             }
-            // Recompute team progress and topic performance from actual mapped students
-            const finalTeams = next.map(t => {
-              const teamSts = mappedStudents.filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber);
-              if (teamSts.length === 0) return t;
-              const tSolved = teamSts.reduce((acc, s) => acc + (s.solved || 0), 0);
-              const tAttempted = teamSts.reduce((acc, s) => acc + (s.attempted || 0), 0);
-              const tAvgProg = Number((teamSts.reduce((acc, s) => acc + s.progress, 0) / teamSts.length).toFixed(1));
-              const tAvgStreak = Number((teamSts.reduce((acc, s) => acc + s.streak, 0) / teamSts.length).toFixed(1));
-
-              const tPerf: Record<string, number> = {};
-              const topicCaps: Record<string, number> = { ...TOPIC_CURRICULUM_TOTALS };
-              for (const top of Object.keys(topicCaps)) {
-                const cap = topicCaps[top];
-                if (cap > 0) {
-                  const totalTopicCap = cap * teamSts.length;
-                  const solvedTopic = teamSts.reduce((acc, s) => acc + (s.topicProgress[top as DSATopic]?.solved || 0), 0);
-                  tPerf[top] = Math.min(100, Number(((solvedTopic / Math.max(1, totalTopicCap)) * 100).toFixed(1)));
-                } else {
-                  tPerf[top] = 0;
-                }
-              }
-
-              return {
-                ...t,
-                totalSolved: Math.max(t.totalSolved, tSolved),
-                totalAttempted: Math.max(t.totalAttempted, tAttempted),
-                avgProgress: Math.max(t.avgProgress, tAvgProg),
-                avgStreak: Math.max(t.avgStreak, tAvgStreak),
-                topicPerformance: tPerf,
-              };
-            });
-            try { localStorage.setItem('gkce_teams_v6', JSON.stringify(finalTeams)); } catch {}
-            return finalTeams;
+            ft.studentIds = mappedStudents
+              .filter(s => s.teamId === ft.id || s.teamNumber === ft.teamNumber)
+              .map(s => s.id);
+            return ft;
           });
+
+          // Ensure student mentor fields match their assigned team's updated mentor
+          mappedStudents = mappedStudents.map(s => {
+            const parentTeam = mappedTeams.find(t => t.id === s.teamId || t.teamNumber === s.teamNumber);
+            if (parentTeam && parentTeam.mentorName && parentTeam.mentorName !== 'Unassigned') {
+              return {
+                ...s,
+                mentorId: parentTeam.mentorId || s.mentorId,
+                mentorName: parentTeam.mentorName || s.mentorName,
+              };
+            }
+            return s;
+          });
+
+          // Recompute team progress and topic performance from actual mapped students
+          const finalTeams = mappedTeams.map(t => {
+            const teamSts = mappedStudents.filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber);
+            if (teamSts.length === 0) return t;
+            const tSolved = teamSts.reduce((acc, s) => acc + (s.solved || 0), 0);
+            const tAttempted = teamSts.reduce((acc, s) => acc + (s.attempted || 0), 0);
+            const tAvgProg = Number((teamSts.reduce((acc, s) => acc + s.progress, 0) / teamSts.length).toFixed(1));
+            const tAvgStreak = Number((teamSts.reduce((acc, s) => acc + s.streak, 0) / teamSts.length).toFixed(1));
+
+            const tPerf: Record<string, number> = {};
+            const topicCaps: Record<string, number> = { ...TOPIC_CURRICULUM_TOTALS };
+            for (const top of Object.keys(topicCaps)) {
+              const cap = topicCaps[top];
+              if (cap > 0) {
+                const totalTopicCap = cap * teamSts.length;
+                const solvedTopic = teamSts.reduce((acc, s) => acc + (s.topicProgress[top as DSATopic]?.solved || 0), 0);
+                tPerf[top] = Math.min(100, Number(((solvedTopic / Math.max(1, totalTopicCap)) * 100).toFixed(1)));
+              } else {
+                tPerf[top] = 0;
+              }
+            }
+
+            return {
+              ...t,
+              totalSolved: Math.max(t.totalSolved, tSolved),
+              totalAttempted: Math.max(t.totalAttempted, tAttempted),
+              avgProgress: Math.max(t.avgProgress, tAvgProg),
+              avgStreak: Math.max(t.avgStreak, tAvgStreak),
+              topicPerformance: tPerf,
+            };
+          });
+
+          setTeams(finalTeams);
+          try { localStorage.setItem('gkce_teams_v6', JSON.stringify(finalTeams)); } catch {}
         } else if (mappedStudents.length > 0) {
           setTeams(prev =>
             prev.map(t => ({
@@ -1204,29 +1260,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           );
         }
 
-        // ✅ Sync mentors from backend (DEAN only)
-        try {
-          const mentorsData = await getDeanMentorsApi();
-          if (Array.isArray(mentorsData) && mentorsData.length > 0) {
-            const mappedMentors = mentorsData.map((m: any) => ({
-              id: `mentor-${m.id}`,
-              name: m.name,
-              email: m.email,
-              avatar: m.avatar_url || `https://images.unsplash.com/photo-1507003211169?w=150&auto=format&fit=crop&q=80`,
-              department: m.department || 'Computer Science & Engg',
-              phone: m.phone || '+91 98480 10000',
-              experienceYears: m.experience_years || 5,
-              assignedTeamId: m.assigned_teams?.[0]?.id ? `team-${m.assigned_teams[0].id}` : '',
-              assignedTeamNumber: m.assigned_teams?.[0]?.team_number || '',
-              assignedTeamIds: (m.assigned_teams || []).map((t: any) => `team-${t.id}`),
-              teamIds: (m.assigned_teams || []).map((t: any) => `team-${t.id}`),
-              teamNumbers: (m.assigned_teams || []).map((t: any) => t.team_number),
-            }));
-            setMentors(mappedMentors);
-            try { localStorage.setItem('gkce_mentors_v2', JSON.stringify(mappedMentors)); } catch {}
-          }
-        } catch (mentorSyncErr) {
-          console.warn('[syncFromBackend] Mentor sync failed:', mentorSyncErr);
+        if (mappedStudents.length > 0) {
+          // Authoritative replace: DB is the single source of truth across all devices
+          setStudents(mappedStudents);
+          try { localStorage.setItem('gkce_students_v6', JSON.stringify(mappedStudents)); } catch {}
         }
       } else if (role === 'MENTOR') {
         const [studentsRes, teamRes] = await Promise.allSettled([
@@ -1869,6 +1906,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearInterval(interval);
     };
   }, [isAuthenticated]);
+
+  // Cross-device automatic synchronization (on window focus & every 20s)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const onFocus = () => {
+      syncFromBackend(currentUser.role as UserRole).catch(() => {});
+    };
+
+    window.addEventListener('focus', onFocus);
+    const interval = setInterval(() => {
+      syncFromBackend(currentUser.role as UserRole).catch(() => {});
+    }, 20000);
+
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      clearInterval(interval);
+    };
+  }, [isAuthenticated, currentUser.role]);
 
   // Mentor verification toggle
   const toggleMentorProblemVerification = async (studentId: string, problemId: string, verified: boolean) => {
