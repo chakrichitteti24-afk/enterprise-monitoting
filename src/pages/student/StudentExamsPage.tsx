@@ -784,7 +784,7 @@ export const StudentExamsPage: React.FC = () => {
                         {/* Evaluation Benchmarks */}
                         <div className="space-y-2">
                           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                            Evaluation Benchmarks ({((currentQuestion.testCases || []).filter(tc => !tc.isHidden).length || (currentQuestion.testCases || []).length || 1)} Visible Test Case{(((currentQuestion.testCases || []).filter(tc => !tc.isHidden).length || (currentQuestion.testCases || []).length || 1) > 1 ? 's' : ''}):
+                            Evaluation Benchmarks ({((currentQuestion.testCases || []).filter(tc => !tc.isHidden).length || (currentQuestion.testCases || []).length || 1)} Visible Test Case{((currentQuestion.testCases || []).filter(tc => !tc.isHidden).length || (currentQuestion.testCases || []).length || 1) > 1 ? 's' : ''}):
                           </div>
                           {((currentQuestion.testCases || []).filter(tc => !tc.isHidden).length > 0
                             ? (currentQuestion.testCases || []).filter(tc => !tc.isHidden)

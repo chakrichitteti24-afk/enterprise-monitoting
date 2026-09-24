@@ -149,7 +149,7 @@ export interface StudentExamSubmission {
   teamNumber: string;
   examId: string;
   randomizedSetCode?: string; // e.g. "SET-A842"
-  status: 'SUBMITTED' | 'IN_PROGRESS' | 'EVALUATED' | 'MISSED';
+  status: 'SUBMITTED' | 'IN_PROGRESS' | 'EVALUATED' | 'MISSED' | 'PENDING_VERIFICATION';
   score: number;
   totalMarks: number;
   questionsSolved: number;

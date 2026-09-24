@@ -1216,8 +1216,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               department: m.department || 'Computer Science & Engg',
               phone: m.phone || '+91 98480 10000',
               experienceYears: m.experience_years || 5,
-              assignedTeamId: m.assigned_teams?.[0]?.id ? `team-${m.assigned_teams[0].id}` : undefined,
+              assignedTeamId: m.assigned_teams?.[0]?.id ? `team-${m.assigned_teams[0].id}` : '',
               assignedTeamNumber: m.assigned_teams?.[0]?.team_number || '',
+              assignedTeamIds: (m.assigned_teams || []).map((t: any) => `team-${t.id}`),
               teamIds: (m.assigned_teams || []).map((t: any) => `team-${t.id}`),
               teamNumbers: (m.assigned_teams || []).map((t: any) => t.team_number),
             }));
