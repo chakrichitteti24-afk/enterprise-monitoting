@@ -447,6 +447,16 @@ function buildOfficialExam(weekNumber, title, scheduledDate, startTime = '10:00 
   };
 }
 
+function parseUtcTimestamp(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return NaN;
+  const trimmed = dateStr.trim();
+  if (!trimmed) return NaN;
+  if (trimmed.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+    return new Date(trimmed).getTime();
+  }
+  return new Date(`${trimmed}Z`).getTime();
+}
+
 function calculateExamRemainingSeconds(exam, nowMs) {
   const durationMins = exam.durationMinutes || 90;
   const totalDurationMs = durationMins * 60 * 1000;
@@ -462,11 +472,15 @@ function calculateExamRemainingSeconds(exam, nowMs) {
     return durationMins * 60;
   }
 
-  const launchTime = new Date(exam.launchedAt).getTime();
+  const launchTime = parseUtcTimestamp(exam.launchedAt);
+  if (isNaN(launchTime)) {
+    return durationMins * 60;
+  }
   const totalPaused = exam.totalPausedMs || 0;
 
   if (exam.status === 'PAUSED') {
-    const freezeTime = exam.pausedAt ? new Date(exam.pausedAt).getTime() : (nowMs || Date.now());
+    const parsedFreeze = parseUtcTimestamp(exam.pausedAt);
+    const freezeTime = !isNaN(parsedFreeze) ? parsedFreeze : (nowMs || Date.now());
     const elapsedBeforePause = Math.max(0, (freezeTime - launchTime) - totalPaused);
     return Math.max(0, Math.floor((totalDurationMs - elapsedBeforePause) / 1000));
   }
@@ -499,5 +513,6 @@ module.exports = {
   convertProblemToExamQuestion,
   buildOfficialExam,
   calculateExamRemainingSeconds,
+  parseUtcTimestamp,
 };
 

@@ -213,6 +213,21 @@ export const buildOfficialExam = (
 };
 
 /**
+ * Safely parses an ISO date string as UTC.
+ * If the string lacks a timezone offset, treats it as UTC ('Z')
+ * to avoid local client timezone shifts (e.g. IST +5:30).
+ */
+export const parseUtcTimestamp = (dateStr?: string | null): number => {
+  if (!dateStr || typeof dateStr !== 'string') return NaN;
+  const trimmed = dateStr.trim();
+  if (!trimmed) return NaN;
+  if (trimmed.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+    return new Date(trimmed).getTime();
+  }
+  return new Date(`${trimmed}Z`).getTime();
+};
+
+/**
  * Calculates remaining active seconds for an exam based on official 90-min launch timeline.
  * Handles LIVE ticking, PAUSED frozen state, and accumulated paused time.
  */
@@ -231,11 +246,15 @@ export const calculateExamRemainingSeconds = (exam: WeeklyExam, nowMs?: number):
     return durationMins * 60;
   }
 
-  const launchTime = new Date(exam.launchedAt).getTime();
+  const launchTime = parseUtcTimestamp(exam.launchedAt);
+  if (isNaN(launchTime)) {
+    return durationMins * 60;
+  }
   const totalPaused = exam.totalPausedMs || 0;
 
   if (exam.status === 'PAUSED') {
-    const freezeTime = exam.pausedAt ? new Date(exam.pausedAt).getTime() : (nowMs || Date.now());
+    const parsedFreeze = parseUtcTimestamp(exam.pausedAt);
+    const freezeTime = !isNaN(parsedFreeze) ? parsedFreeze : (nowMs || Date.now());
     const elapsedBeforePause = Math.max(0, (freezeTime - launchTime) - totalPaused);
     return Math.max(0, Math.floor((totalDurationMs - elapsedBeforePause) / 1000));
   }

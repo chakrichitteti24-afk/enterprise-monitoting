@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { WeeklyExam, ExamQuestion, StudentExamSubmission } from '../../types';
-import { getShuffledQuestionsForStudent, getExamTier, calculateExamRemainingSeconds } from '../../data/mockExams';
+import { getShuffledQuestionsForStudent, getExamTier, calculateExamRemainingSeconds, ROOT_OFFICIAL_20_QUESTIONS } from '../../data/mockExams';
 import { executeRealCode } from '../../utils/realCodeRunner';
 import { CodeEditorWithSyntax } from '../../components/coding/CodeEditorWithSyntax';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,11 +21,29 @@ import {
   Shuffle,
   FileText,
   Loader2,
+  RefreshCw,
 } from 'lucide-react';
 
 export const StudentExamsPage: React.FC = () => {
-  const { currentUser, exams, submitExamSolution } = useAuth();
+  const { currentUser, exams, submitExamSolution, refreshExams } = useAuth();
   const student = currentUser.studentData;
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Synchronize exams from backend immediately on mount and poll every 5s for live updates
+  useEffect(() => {
+    refreshExams();
+    const interval = setInterval(refreshExams, 5000);
+    return () => clearInterval(interval);
+  }, [refreshExams]);
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshExams();
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
 
   const [mobileExamTab, setMobileExamTab] = useState<'QUESTION' | 'EDITOR' | 'BENCH'>('QUESTION');
   const [activeLiveExam, setActiveLiveExam] = useState<WeeklyExam | null>(null);
@@ -155,8 +173,12 @@ export const StudentExamsPage: React.FC = () => {
     }
 
     const studentIdentifier = student?.rollNo || student?.id || 'STUDENT_DEFAULT';
+    const sourceQuestions = (exam.questions && exam.questions.length > 0)
+      ? exam.questions
+      : ROOT_OFFICIAL_20_QUESTIONS;
+
     const { shuffledQuestions: randomizedQs, setCode } = getShuffledQuestionsForStudent(
-      exam.questions || [],
+      sourceQuestions,
       studentIdentifier,
       exam.id
     );
@@ -293,16 +315,27 @@ export const StudentExamsPage: React.FC = () => {
           </p>
         </div>
 
-        {student && (
-          <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 px-4 py-2.5 rounded-2xl shrink-0">
-            <div className="text-right">
-              <div className="text-[10px] uppercase font-bold text-slate-400">Assigned Cohort</div>
-              <div className="text-xs font-extrabold text-slate-900 font-mono">
-                {student.teamNumber} &bull; <span className="text-blue-700">{student.rollNo}</span>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {student && (
+            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 px-4 py-2 rounded-2xl shrink-0">
+              <div className="text-right">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Assigned Cohort</div>
+                <div className="text-xs font-extrabold text-slate-900 font-mono">
+                  {student.teamNumber} &bull; <span className="text-blue-700">{student.rollNo}</span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+          <button
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            title="Sync latest exam updates from Root"
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-2xl bg-white border border-slate-200/80 hover:bg-slate-50 text-slate-600 text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-blue-600 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Sync</span>
+          </button>
+        </div>
       </div>
 
       {/* Submission Success Banner */}
@@ -352,6 +385,14 @@ export const StudentExamsPage: React.FC = () => {
           <div className="mt-4 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-[11px] font-semibold">
             📋 Awaiting Dean (Root) to schedule first assessment
           </div>
+          <button
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>Check for Launched Exam</span>
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 items-stretch">

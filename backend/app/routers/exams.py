@@ -61,6 +61,14 @@ class ExamSubmitSchema(BaseModel):
     answers: Dict[str, Any]
 
 
+def ensure_utc_iso(dt: Optional[datetime]) -> Optional[str]:
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.isoformat()
+
+
 def format_exam(exam: WeeklyExam) -> Dict[str, Any]:
     submissions_list = []
     for sub in exam.submissions:
@@ -78,17 +86,12 @@ def format_exam(exam: WeeklyExam) -> Dict[str, Any]:
             "passedCount": sub.passed_count,
             "totalQuestionCount": sub.total_question_count,
             "timeSpentMinutes": sub.time_spent_minutes,
-            "submittedAt": sub.submitted_at.isoformat() if sub.submitted_at else None,
+            "submittedAt": ensure_utc_iso(sub.submitted_at),
             "answers": sub.answers or {},
         })
 
-    launched_at_iso = None
-    if getattr(exam, "launched_at", None):
-        launched_at_iso = exam.launched_at.isoformat()
-
-    paused_at_iso = None
-    if getattr(exam, "paused_at", None):
-        paused_at_iso = exam.paused_at.isoformat()
+    launched_at_iso = ensure_utc_iso(getattr(exam, "launched_at", None))
+    paused_at_iso = ensure_utc_iso(getattr(exam, "paused_at", None))
 
     return {
         "id": exam.id,
@@ -149,14 +152,20 @@ def create_exam(
     launched_dt = None
     if payload.launchedAt:
         try:
-            launched_dt = datetime.fromisoformat(payload.launchedAt.replace("Z", "+00:00"))
+            cleaned = payload.launchedAt.replace("Z", "+00:00")
+            launched_dt = datetime.fromisoformat(cleaned)
+            if launched_dt and launched_dt.tzinfo is None:
+                launched_dt = launched_dt.replace(tzinfo=timezone.utc)
         except Exception:
             pass
 
     paused_dt = None
     if payload.pausedAt:
         try:
-            paused_dt = datetime.fromisoformat(payload.pausedAt.replace("Z", "+00:00"))
+            cleaned = payload.pausedAt.replace("Z", "+00:00")
+            paused_dt = datetime.fromisoformat(cleaned)
+            if paused_dt and paused_dt.tzinfo is None:
+                paused_dt = paused_dt.replace(tzinfo=timezone.utc)
         except Exception:
             pass
 
@@ -225,12 +234,20 @@ def update_exam(
         exam.questions = payload.questions
     if payload.launchedAt is not None:
         try:
-            exam.launched_at = datetime.fromisoformat(payload.launchedAt.replace("Z", "+00:00")) if payload.launchedAt else None
+            cleaned = payload.launchedAt.replace("Z", "+00:00") if payload.launchedAt else None
+            dt = datetime.fromisoformat(cleaned) if cleaned else None
+            if dt and dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            exam.launched_at = dt
         except Exception:
             pass
     if payload.pausedAt is not None:
         try:
-            exam.paused_at = datetime.fromisoformat(payload.pausedAt.replace("Z", "+00:00")) if payload.pausedAt else None
+            cleaned = payload.pausedAt.replace("Z", "+00:00") if payload.pausedAt else None
+            dt = datetime.fromisoformat(cleaned) if cleaned else None
+            if dt and dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            exam.paused_at = dt
         except Exception:
             pass
     if payload.totalPausedMs is not None:

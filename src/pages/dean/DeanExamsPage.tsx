@@ -25,6 +25,7 @@ import {
 export const DeanExamsPage: React.FC = () => {
   const {
     exams,
+    refreshExams,
     createWeeklyExam,
     deleteWeeklyExam,
     setExamStatus,
@@ -36,6 +37,11 @@ export const DeanExamsPage: React.FC = () => {
   const [selectedExamForResults, setSelectedExamForResults] = useState<WeeklyExam | null>(null);
   const [inspectQuestionsExam, setInspectQuestionsExam] = useState<WeeklyExam | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // Sync exams from backend on mount
+  React.useEffect(() => {
+    refreshExams();
+  }, [refreshExams]);
 
   // 1-second ticker to smoothly render live countdown timelines
   React.useEffect(() => {
@@ -122,7 +128,11 @@ export const DeanExamsPage: React.FC = () => {
       return;
     }
     if (preset === 'ROOT_20_STANDARDIZED') {
-      const rootIds = ['1', '6', '7', '10', '21', '22', '26', '31', '34', '36', '40', '41', '46', '47', '52', '61', '62', '71', '81', '91'];
+      const rootIds = [
+        'prob-1', 'prob-6', 'prob-7', 'prob-10', 'prob-21', 'prob-22', 'prob-26',
+        'prob-31', 'prob-34', 'prob-36', 'prob-40', 'prob-41', 'prob-46', 'prob-47',
+        'prob-52', 'prob-61', 'prob-62', 'prob-71', 'prob-81', 'prob-91'
+      ];
       setSelectedProblemIds(rootIds);
       setTopicFocus('Root Official 20 Standardized DSA Challenges');
       setDurationMins(90);
@@ -160,16 +170,27 @@ export const DeanExamsPage: React.FC = () => {
   };
 
   const toggleProblemSelection = (id: string) => {
-    setSelectedProblemIds(prev =>
-      prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]
-    );
+    setSelectedProblemIds(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(pId => pId !== id);
+      }
+      if (prev.length >= 20) {
+        alert('Dean can assign up to 20 questions maximum per examination (1 to 20 questions).');
+        return prev;
+      }
+      return [...prev, id];
+    });
   };
 
   const handleCreateExam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!examTitle.trim()) return;
     if (selectedProblemIds.length === 0) {
-      alert('Please select at least 1 question for the examination from the 100 problems bank.');
+      alert('Please select at least 1 question for the examination (Dean can assign 1 to 20 questions).');
+      return;
+    }
+    if (selectedProblemIds.length > 20) {
+      alert('Dean can assign up to 20 questions maximum per examination.');
       return;
     }
 
@@ -177,7 +198,14 @@ export const DeanExamsPage: React.FC = () => {
 
     // Convert selected problem IDs from the 100 curriculum bank into ExamQuestion objects with week-tier test cases
     const selectedProblems = selectedProblemIds
-      .map(id => PROBLEMS_BANK_100.find(p => p.id === id))
+      .map(id =>
+        PROBLEMS_BANK_100.find(
+          p =>
+            p.id === id ||
+            p.id === `prob-${id}` ||
+            p.id.replace('prob-', '') === String(id).replace('prob-', '')
+        )
+      )
       .filter((p): p is Problem => p !== undefined);
 
     const generatedExamQuestions: ExamQuestion[] = selectedProblems.map((prob, idx) =>
@@ -752,8 +780,14 @@ export const DeanExamsPage: React.FC = () => {
                     <div>
                       <div className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
                         <span>2. Select Questions from 100 Curriculum Bank</span>
-                        <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-mono text-[11px] font-bold">
-                          {selectedProblemIds.length} Selected ({selectedProblemIds.length > 0 ? Number((totalMarks / selectedProblemIds.length).toFixed(1)) : 0} pts/ea)
+                        <span className={`px-2 py-0.5 rounded-full font-mono text-[11px] font-bold ${
+                          selectedProblemIds.length > 20
+                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                            : selectedProblemIds.length === 20
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {selectedProblemIds.length} / 20 Selected ({selectedProblemIds.length > 0 ? Number((totalMarks / selectedProblemIds.length).toFixed(1)) : 0} pts/ea)
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 mt-0.5">
@@ -941,8 +975,8 @@ export const DeanExamsPage: React.FC = () => {
                     </button>
                     <button
                       type="submit"
-                      disabled={selectedProblemIds.length === 0}
-                      className="px-5 py-2 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold shadow-xs transition-all"
+                      disabled={selectedProblemIds.length === 0 || selectedProblemIds.length > 20}
+                      className="px-5 py-2 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold shadow-xs transition-all cursor-pointer disabled:cursor-not-allowed"
                     >
                       Schedule Exam ({selectedProblemIds.length} Qs &bull; {currentTierInfo.tier})
                     </button>

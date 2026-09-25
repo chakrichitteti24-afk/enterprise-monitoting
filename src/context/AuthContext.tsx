@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { CurrentUser, Mentor, Problem, Student, Team, UserRole, DSATopic, WeeklyExam, ExamStatus, StudentExamSubmission } from '../types';
-import { INITIAL_WEEKLY_EXAMS, getShuffledQuestionsForStudent, calculateExamRemainingSeconds } from '../data/mockExams';
+import { INITIAL_WEEKLY_EXAMS, getShuffledQuestionsForStudent, calculateExamRemainingSeconds, ROOT_OFFICIAL_20_QUESTIONS } from '../data/mockExams';
 import { PROBLEMS_BANK_100 } from '../data/dsaCurriculum100';
 import {
   ALL_MENTORS,
@@ -88,6 +88,7 @@ interface AuthContextType {
   batchVerifyDayProblems: (studentId: string, dayNumber: number, verified: boolean) => void;
   batchVerifyTeamProblem: (teamIdentifier: string, problemId: string, verified: boolean) => void;
   exams: WeeklyExam[];
+  refreshExams: () => Promise<void>;
   createWeeklyExam: (examData: Partial<WeeklyExam>) => Promise<void>;
   updateWeeklyExam: (examId: string, updates: Partial<WeeklyExam>) => Promise<void>;
   deleteWeeklyExam: (examId: string) => Promise<void>;
@@ -532,6 +533,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     localStorage.setItem('gkce_weekly_exams_v4', JSON.stringify(exams));
   }, [exams]);
+
+  const refreshExams = useCallback(async () => {
+    try {
+      const res = await getWeeklyExamsApi();
+      if (Array.isArray(res)) {
+        const mappedExams: WeeklyExam[] = res.map((e: any) => ({
+          id: e.id,
+          weekNumber: e.week_number ?? e.weekNumber,
+          tier: e.tier,
+          tierBadge: e.tier_badge ?? e.tierBadge ?? '',
+          title: e.title,
+          description: e.description ?? '',
+          topicFocus: e.topic_focus ?? e.topicFocus ?? '',
+          scheduledDate: e.scheduled_date ?? e.scheduledDate ?? '',
+          startTime: e.start_time ?? e.startTime ?? '10:00 AM',
+          durationMinutes: e.duration_minutes ?? e.durationMinutes ?? 90,
+          totalMarks: e.total_marks ?? e.totalMarks ?? 100,
+          passMarks: e.pass_marks ?? e.passMarks ?? 50,
+          status: e.status,
+          createdBy: e.created_by ?? e.createdBy ?? '',
+          questions: e.questions ?? [],
+          submissions: e.submissions ?? [],
+          launchedAt: e.launched_at ?? e.launchedAt ?? undefined,
+          pausedAt: e.paused_at ?? e.pausedAt ?? undefined,
+          totalPausedMs: e.total_paused_ms ?? e.totalPausedMs ?? 0,
+        }));
+        setExams(mappedExams);
+        try { localStorage.setItem('gkce_weekly_exams_v4', JSON.stringify(mappedExams)); } catch {}
+      }
+    } catch (err) {
+      console.warn('[refreshExams] Failed to fetch weekly exams from backend:', err);
+    }
+  }, []);
+
+  // Periodic background sync for weekly exams so status (LIVE/PAUSED/COMPLETED) updates in real-time across tabs
+  useEffect(() => {
+    refreshExams();
+    const interval = setInterval(refreshExams, 10000);
+    const handleFocus = () => { refreshExams(); };
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [refreshExams]);
 
   const addTeam = async (teamData: Partial<Team>) => {
     try {
@@ -1105,45 +1151,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // syncFromBackend — fetches live DB data for the given role and updates state
   // ---------------------------------------------------------------------------
   const syncFromBackend = async (role: UserRole, userPayload?: any) => {
+    // ── Always sync exams from backend first (public endpoint, works for all roles & local mode) ──
+    await refreshExams();
+
     const token = getStoredToken();
     if (!token || token.startsWith('gkce_local_token_')) return; // no real JWT, skip
 
     try {
-      // ── Fetch verifications and exams for ALL roles in parallel ──
-      const [examsResSettled, verificationsResSettled] = await Promise.allSettled([
-        getWeeklyExamsApi(),
-        getVerificationsApi(),
-      ]);
-
+      // ── Fetch verifications for authenticated roles ──
       let verificationsMap: Record<string, string[]> = {};
-      if (verificationsResSettled.status === 'fulfilled' && verificationsResSettled.value && typeof verificationsResSettled.value === 'object') {
-        verificationsMap = verificationsResSettled.value;
-      }
-
-      if (examsResSettled.status === 'fulfilled' && Array.isArray(examsResSettled.value) && examsResSettled.value.length > 0) {
-        const mappedExams: WeeklyExam[] = examsResSettled.value.map((e: any) => ({
-          id: e.id,
-          weekNumber: e.week_number ?? e.weekNumber,
-          tier: e.tier,
-          tierBadge: e.tier_badge ?? e.tierBadge ?? '',
-          title: e.title,
-          description: e.description ?? '',
-          topicFocus: e.topic_focus ?? e.topicFocus ?? '',
-          scheduledDate: e.scheduled_date ?? e.scheduledDate ?? '',
-          startTime: e.start_time ?? e.startTime ?? '10:00 AM',
-          durationMinutes: e.duration_minutes ?? e.durationMinutes ?? 90,
-          totalMarks: e.total_marks ?? e.totalMarks ?? 100,
-          passMarks: e.pass_marks ?? e.passMarks ?? 50,
-          status: e.status,
-          createdBy: e.created_by ?? e.createdBy ?? '',
-          questions: e.questions ?? [],
-          submissions: e.submissions ?? [],
-          launchedAt: e.launched_at ?? e.launchedAt ?? undefined,
-          pausedAt: e.paused_at ?? e.pausedAt ?? undefined,
-          totalPausedMs: e.total_paused_ms ?? e.totalPausedMs ?? 0,
-        }));
-        setExams(mappedExams);
-        try { localStorage.setItem('gkce_weekly_exams_v4', JSON.stringify(mappedExams)); } catch {}
+      try {
+        const verificationsRes = await getVerificationsApi();
+        if (verificationsRes && typeof verificationsRes === 'object') {
+          verificationsMap = verificationsRes;
+        }
+      } catch (err) {
+        console.warn('[syncFromBackend] Verifications fetch deferred:', err);
       }
 
       if (role === 'DEAN') {
@@ -1587,7 +1610,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearStoredToken();
     try {
       localStorage.removeItem('gkce_user_profile_v1');
-      localStorage.removeItem('gkce_weekly_exams_v4');
+      // Do NOT purge gkce_weekly_exams_v4: exams are institutional curriculum data shared across sessions
       localStorage.removeItem('gkce_active_tab_v2');
       // ✅ Also clear student/team/mentor caches so next user starts fresh
       localStorage.removeItem('gkce_students_v6');
@@ -2081,7 +2104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       passMarks: examData.passMarks || 50,
       status: examData.status || 'SCHEDULED',
       createdBy: examData.createdBy || 'Root (Dean of Academic Affairs / Sudo Admin)',
-      questions: examData.questions && examData.questions.length > 0 ? examData.questions : [],
+      questions: examData.questions && examData.questions.length > 0 ? examData.questions : ROOT_OFFICIAL_20_QUESTIONS,
       submissions: [],
     };
 
@@ -2222,11 +2245,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Exam not found.');
     }
 
-    // Calculate student's randomized setCode
-    const { setCode } = getShuffledQuestionsForStudent(exam.questions || [], student.rollNo || student.id, examId);
+    // Calculate student's randomized setCode and questions
+    const questions = (exam.questions && exam.questions.length > 0) ? exam.questions : ROOT_OFFICIAL_20_QUESTIONS;
+    const { setCode } = getShuffledQuestionsForStudent(questions, student.rollNo || student.id, examId);
 
     // Auto-grade evaluation (each answered question awards marks based on test case passes)
-    const questions = exam.questions || [];
     const answerDetails: Record<string, any> = {};
 
     questions.forEach((q) => {
@@ -2357,6 +2380,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         batchVerifyDayProblems,
         batchVerifyTeamProblem,
         exams,
+        refreshExams,
         createWeeklyExam,
         updateWeeklyExam,
         deleteWeeklyExam,
