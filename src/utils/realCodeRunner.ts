@@ -21,6 +21,7 @@ export interface ExecutionResult {
     executionTimeMs: number;
     status: string;
   }>;
+  output?: string;
   logs: string;
   error?: string;
 }
@@ -112,6 +113,7 @@ export async function executeRealCode(
         totalCount: testCases.length,
         executionTimeMs: backendRes.execution_time_ms || Date.now() - startTime,
         testResults: results,
+        output: backendRes.output || results[0]?.actualOutput || '',
         logs,
         error: backendRes.error,
       };

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { WeeklyExam, ExamQuestion, Problem } from '../../types';
 import { PROBLEMS_BANK_100 } from '../../data/dsaCurriculum100';
-import { convertProblemToExamQuestion, getExamTier, calculateExamRemainingSeconds } from '../../data/mockExams';
+import { convertProblemToExamQuestion, getExamTier, calculateExamRemainingSeconds, ROOT_OFFICIAL_20_QUESTIONS } from '../../data/mockExams';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -1041,39 +1041,59 @@ export const DeanExamsPage: React.FC = () => {
 
               {/* Questions List */}
               <div className="overflow-y-auto flex-1 border border-slate-100 rounded-2xl divide-y divide-slate-100">
-                {(inspectQuestionsExam.questions || []).map((q, idx) => (
-                  <div key={q.id} className="p-3.5 hover:bg-slate-50/80 flex items-start justify-between gap-3 text-xs">
-                    <div className="flex items-start gap-3">
-                      <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 font-mono font-bold text-[11px] flex items-center justify-center shrink-0">
-                        {idx + 1}
-                      </span>
-                      <div className="space-y-1">
-                        <div className="font-bold text-slate-900">{q.title}</div>
-                        <div className="text-slate-500 text-[11px] line-clamp-2">{q.description}</div>
-                      </div>
-                    </div>
+                {(() => {
+                  let qList: any = inspectQuestionsExam.questions;
+                  if (typeof qList === 'string') {
+                    try { qList = JSON.parse(qList); } catch { qList = []; }
+                  }
+                  const displayQuestions = (Array.isArray(qList) && qList.length > 0)
+                    ? qList
+                    : ROOT_OFFICIAL_20_QUESTIONS;
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
-                        {q.topic}
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                          q.difficulty === 'Easy'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : q.difficulty === 'Medium'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-rose-100 text-rose-800'
-                        }`}
-                      >
-                        {q.difficulty}
-                      </span>
-                      <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">
-                        {q.marks} pts
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  return displayQuestions.map((q: any, idx: number) => {
+                    const sampleIn = q.testCases?.[0]?.input;
+                    const sampleOut = q.testCases?.[0]?.output;
+                    return (
+                      <div key={q.id || idx} className="p-3.5 hover:bg-slate-50/80 flex flex-col sm:flex-row sm:items-start justify-between gap-3 text-xs">
+                        <div className="flex items-start gap-3">
+                          <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 font-mono font-bold text-[11px] flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </span>
+                          <div className="space-y-1.5">
+                            <div className="font-bold text-slate-900">{q.title}</div>
+                            <div className="text-slate-500 text-[11px] line-clamp-2">{q.description}</div>
+                            {(sampleIn || sampleOut) && (
+                              <div className="flex items-center gap-3 text-[10px] font-mono text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/60 w-fit">
+                                {sampleIn && <span>Input: <strong className="text-emerald-700">{sampleIn}</strong></span>}
+                                {sampleOut && <span>Output: <strong className="text-blue-700">{sampleOut}</strong></span>}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-start">
+                          <span className="font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
+                            {q.topic}
+                          </span>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                              q.difficulty === 'Easy'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : q.difficulty === 'Medium'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-rose-100 text-rose-800'
+                            }`}
+                          >
+                            {q.difficulty}
+                          </span>
+                          <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">
+                            {q.marks || 5} pts
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </motion.div>
           </div>

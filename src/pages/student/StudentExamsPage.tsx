@@ -29,10 +29,10 @@ export const StudentExamsPage: React.FC = () => {
   const student = currentUser.studentData;
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Synchronize exams from backend immediately on mount and poll every 5s for live updates
+  // Synchronize exams from backend immediately on mount and poll every 3s for live updates
   useEffect(() => {
     refreshExams();
-    const interval = setInterval(refreshExams, 5000);
+    const interval = setInterval(refreshExams, 3000);
     return () => clearInterval(interval);
   }, [refreshExams]);
 
@@ -55,6 +55,8 @@ export const StudentExamsPage: React.FC = () => {
   const [testedQuestions, setTestedQuestions] = useState<Record<string, boolean>>({});
   const [selectedLanguage, setSelectedLanguage] = useState<'java' | 'cpp' | 'python'>('java');
   const [testOutput, setTestOutput] = useState<string | null>(null);
+  const [questionInputs, setQuestionInputs] = useState<Record<string, string>>({});
+  const [questionOutputs, setQuestionOutputs] = useState<Record<string, string>>({});
   const [isRunningTest, setIsRunningTest] = useState<boolean>(false);
   const [timeLeftSeconds, setTimeLeftSeconds] = useState<number>(5400); // 90 mins
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
@@ -173,8 +175,16 @@ export const StudentExamsPage: React.FC = () => {
     }
 
     const studentIdentifier = student?.rollNo || student?.id || 'STUDENT_DEFAULT';
-    const sourceQuestions = (exam.questions && exam.questions.length > 0)
-      ? exam.questions
+    let rawQs: any = exam.questions;
+    if (typeof rawQs === 'string') {
+      try {
+        rawQs = JSON.parse(rawQs);
+      } catch {
+        rawQs = [];
+      }
+    }
+    const sourceQuestions = (Array.isArray(rawQs) && rawQs.length > 0)
+      ? rawQs
       : ROOT_OFFICIAL_20_QUESTIONS;
 
     const { shuffledQuestions: randomizedQs, setCode } = getShuffledQuestionsForStudent(
@@ -256,30 +266,29 @@ export const StudentExamsPage: React.FC = () => {
     const activeLang = questionLanguages[currentQuestion.id] || selectedLanguage;
     const currentCode = (codeAnswers[currentQuestion.id]?.[activeLang] || getStarterCode(currentQuestion, activeLang)).trim();
 
-    const visibleCases = (currentQuestion.testCases || []).filter(tc => !tc.isHidden);
-    const sourceCases = visibleCases.length > 0 ? visibleCases : (currentQuestion.testCases || []);
-    const testCasesToRun = sourceCases.length > 0
-      ? sourceCases.map((tc, idx) => ({
-          id: idx + 1,
-          input: tc.input || '',
-          expectedOutput: tc.output || '',
-          isHidden: !!tc.isHidden,
-        }))
-      : [
-          {
-            id: 1,
-            input: '5',
-            expectedOutput: '15',
-            isHidden: false,
-          },
-        ];
+    const sampleIn = currentQuestion.testCases?.[0]?.input || '5';
+    const sampleExpected = currentQuestion.testCases?.[0]?.output || '';
+    const inputToUse = questionInputs[currentQuestion.id] !== undefined ? questionInputs[currentQuestion.id] : sampleIn;
+
+    const testCasesToRun = [
+      {
+        id: 1,
+        input: inputToUse,
+        expectedOutput: sampleExpected,
+        isHidden: false,
+      },
+    ];
 
     const result = await executeRealCode(currentCode, activeLang, testCasesToRun);
     setIsRunningTest(false);
 
-    const isFullyPassed = result.status === 'ACCEPTED' && result.passedCount === testCasesToRun.length;
-    setTestedQuestions(prev => ({ ...prev, [currentQuestion.id]: isFullyPassed }));
+    const actualOut = result.output || result.testResults?.[0]?.actualOutput || (result.status === 'COMPILATION_ERROR' ? (result.error || 'Compilation Error') : '(No output produced)');
+    setQuestionOutputs(prev => ({ ...prev, [currentQuestion.id]: actualOut }));
 
+    const hasError = result.status === 'COMPILATION_ERROR' || result.status === 'RUNTIME_ERROR' || actualOut.toLowerCase().includes('syntaxerror') || actualOut.toLowerCase().includes('runtime error') || actualOut.toLowerCase().includes('error:');
+    const isSuccess = !hasError && actualOut.trim().length > 0 && actualOut !== '(No output produced)';
+
+    setTestedQuestions(prev => ({ ...prev, [currentQuestion.id]: isSuccess }));
     setTestOutput(result.logs);
   };
 
@@ -822,27 +831,38 @@ export const StudentExamsPage: React.FC = () => {
                           <p className="whitespace-pre-line">{currentQuestion.description}</p>
                         </div>
 
-                        {/* Evaluation Benchmarks */}
-                        <div className="space-y-2">
-                          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                            Evaluation Benchmarks ({((currentQuestion.testCases || []).filter(tc => !tc.isHidden).length || (currentQuestion.testCases || []).length || 1)} Visible Test Case{((currentQuestion.testCases || []).filter(tc => !tc.isHidden).length || (currentQuestion.testCases || []).length || 1) > 1 ? 's' : ''}):
+                        {/* Sample Input & Output */}
+                        <div className="space-y-2.5">
+                          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                            <span>Sample Input & Output:</span>
                           </div>
-                          {((currentQuestion.testCases || []).filter(tc => !tc.isHidden).length > 0
-                            ? (currentQuestion.testCases || []).filter(tc => !tc.isHidden)
-                            : (currentQuestion.testCases || []).slice(0, 2)
+                          {((currentQuestion.testCases && currentQuestion.testCases.length > 0)
+                            ? currentQuestion.testCases.slice(0, 2)
+                            : [{ input: '5', output: '15' }]
                           ).map((tc, i) => (
-                            <div key={i} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono space-y-2 shadow-inner">
-                              <div className="text-[10px] font-bold text-slate-400">Sample Benchmark {i + 1}</div>
-                              <div>
-                                <div className="text-[10px] text-slate-500 uppercase font-bold">Standard Input:</div>
-                                <div className="text-emerald-400 bg-slate-900/80 px-2.5 py-1.5 rounded-lg mt-1 border border-slate-800 whitespace-pre-wrap">
-                                  {tc.input}
-                                </div>
+                            <div key={i} className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-mono space-y-2.5 shadow-inner">
+                              <div className="flex items-center justify-between text-[11px] font-bold text-slate-400">
+                                <span className="text-indigo-300 font-semibold">Sample Example {i + 1}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setQuestionInputs(prev => ({ ...prev, [currentQuestion.id]: tc.input }))}
+                                  className="text-blue-400 hover:text-blue-300 font-sans cursor-pointer text-[11px] underline underline-offset-2"
+                                >
+                                  Load as Input &uarr;
+                                </button>
                               </div>
-                              <div>
-                                <div className="text-[10px] text-slate-500 uppercase font-bold">Expected Output:</div>
-                                <div className="text-blue-400 bg-slate-900/80 px-2.5 py-1.5 rounded-lg mt-1 border border-slate-800 whitespace-pre-wrap">
-                                  {tc.output}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <div>
+                                  <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Input:</div>
+                                  <div className="text-emerald-400 bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-800/80 whitespace-pre-wrap font-mono text-xs">
+                                    {tc.input}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Expected Output:</div>
+                                  <div className="text-blue-400 bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-800/80 whitespace-pre-wrap font-mono text-xs">
+                                    {tc.output}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -940,48 +960,64 @@ export const StudentExamsPage: React.FC = () => {
                       />
                     </div>
 
-                    {/* Test Bench Output */}
-                    <div className="space-y-1.5 shrink-0">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                        <span>Evaluation Test Bench Logs</span>
-                        {testOutput && (
+                    {/* Input & Output Console */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 shrink-0 pt-1">
+                      {/* Input (stdin) */}
+                      <div className="space-y-1.5">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                          <span>Input (stdin)</span>
                           <button
-                            onClick={() => setTestOutput(null)}
-                            className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                            type="button"
+                            onClick={() => {
+                              if (!currentQuestion) return;
+                              const sampleIn = currentQuestion.testCases?.[0]?.input || '';
+                              setQuestionInputs(prev => ({ ...prev, [currentQuestion.id]: sampleIn }));
+                            }}
+                            className="text-[10px] text-blue-400 hover:text-blue-300 font-sans cursor-pointer"
                           >
-                            Clear
+                            Reset to Sample
                           </button>
-                        )}
+                        </div>
+                        <textarea
+                          value={questionInputs[currentQuestion?.id || ''] ?? (currentQuestion?.testCases?.[0]?.input || '')}
+                          onChange={e => {
+                            if (!currentQuestion) return;
+                            const val = e.target.value;
+                            setQuestionInputs(prev => ({ ...prev, [currentQuestion.id]: val }));
+                          }}
+                          placeholder="Provide input here..."
+                          rows={3}
+                          className="w-full p-2.5 rounded-xl bg-[#050d1a] border border-slate-800 text-xs font-mono text-slate-100 placeholder:text-slate-600 resize-none focus:outline-hidden focus:border-blue-500"
+                        />
                       </div>
-                      {testOutput ? (
-                        <div className="p-3.5 rounded-2xl bg-[#050d1a] border border-slate-800 text-xs font-mono max-h-44 overflow-y-auto space-y-1 custom-scrollbar shadow-inner">
-                          {testOutput.split('\n').map((tLine, tIdx) => {
-                            const isPass = tLine.includes('PASSED') || tLine.includes('passed') || tLine.includes('✅') || tLine.includes('SUCCESS');
-                            const isFail = tLine.includes('FAILED') || tLine.includes('Error') || tLine.includes('ERROR') || tLine.includes('❌');
-                            const isMetric = tLine.includes('Runtime:') || tLine.includes('Memory:');
-                            return (
-                              <div
-                                key={tIdx}
-                                className={
-                                  isPass
-                                    ? 'text-emerald-300 font-semibold'
-                                    : isFail
-                                    ? 'text-rose-400 font-bold'
-                                    : isMetric
-                                    ? 'text-amber-300 font-mono'
-                                    : 'text-slate-300'
-                                }
-                              >
-                                {tLine}
-                              </div>
-                            );
-                          })}
+
+                      {/* Output */}
+                      <div className="space-y-1.5">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                          <span>Output</span>
+                          {questionOutputs[currentQuestion?.id || ''] && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!currentQuestion) return;
+                                setQuestionOutputs(prev => ({ ...prev, [currentQuestion.id]: '' }));
+                              }}
+                              className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                            >
+                              Clear
+                            </button>
+                          )}
                         </div>
-                      ) : (
-                        <div className="p-3 rounded-2xl bg-[#050d1a] border border-slate-800/60 text-xs text-slate-500 font-mono text-center">
-                          Click "Run Test Bench" below to evaluate your solution against test cases.
+                        <div className="w-full h-[76px] p-2.5 rounded-xl bg-[#050d1a] border border-slate-800 text-xs font-mono text-slate-100 overflow-y-auto whitespace-pre-wrap custom-scrollbar">
+                          {questionOutputs[currentQuestion?.id || ''] ? (
+                            <span className={questionOutputs[currentQuestion?.id || ''].toLowerCase().includes('error') ? 'text-rose-400' : 'text-emerald-300 font-semibold'}>
+                              {questionOutputs[currentQuestion?.id || '']}
+                            </span>
+                          ) : (
+                            <span className="text-slate-600 italic">Click "Run Code" to view output</span>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
 
@@ -995,25 +1031,25 @@ export const StudentExamsPage: React.FC = () => {
                       {isRunningTest ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-                          <span>Compiling & Testing...</span>
+                          <span>Compiling & Running...</span>
                         </>
                       ) : (
                         <>
                           <Play className="w-3.5 h-3.5 fill-white text-white" />
-                          <span>Run Test Bench</span>
+                          <span>Run Code</span>
                         </>
                       )}
                     </button>
 
                     <div className="flex items-center gap-2">
                       {testedQuestions[currentQuestion?.id || ''] ? (
-                        <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-xl">
+                        <span className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-xl shadow-xs">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Passed Benchmark</span>
+                          <span>Successfully Accepted</span>
                         </span>
                       ) : (
                         <span className="text-[11px] text-slate-400 font-mono">
-                          Q{selectedQuestionIdx + 1} not tested yet
+                          Ready to Run
                         </span>
                       )}
                     </div>

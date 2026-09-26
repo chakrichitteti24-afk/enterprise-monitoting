@@ -53,31 +53,6 @@ export async function apiRequest<T>(
 ): Promise<T> {
   let token = getStoredToken();
 
-  // If token is missing, attempt transparent auto-login using cached institutional profile
-  if (!token && endpoint !== '/auth/login') {
-    try {
-      const cached = localStorage.getItem('gkce_user_profile_v1');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed?.email) {
-          const pwd = parsed.role === 'DEAN' ? 'gkce@1234' : parsed.role === 'MENTOR' ? 'Mentor@GKCE2026' : 'gkce@1234';
-          const autoRes = await fetch(`${API_BASE_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: parsed.email, password: pwd }),
-          });
-          if (autoRes.ok) {
-            const authData = await autoRes.json();
-            if (authData.access_token) {
-              setStoredToken(authData.access_token);
-              token = authData.access_token;
-            }
-          }
-        }
-      }
-    } catch {}
-  }
-
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
@@ -92,33 +67,9 @@ export async function apiRequest<T>(
     headers,
   });
 
-  // If 401 Unauthorized received, attempt single transparent re-login and retry
+  // If 401 Unauthorized received, clear stored token
   if (response.status === 401 && endpoint !== '/auth/login') {
-    try {
-      const cached = localStorage.getItem('gkce_user_profile_v1');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed?.email) {
-          const pwd = parsed.role === 'DEAN' ? 'gkce@1234' : parsed.role === 'MENTOR' ? 'Mentor@GKCE2026' : 'gkce@1234';
-          const retryAuthRes = await fetch(`${API_BASE_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: parsed.email, password: pwd }),
-          });
-          if (retryAuthRes.ok) {
-            const retryData = await retryAuthRes.json();
-            if (retryData.access_token) {
-              setStoredToken(retryData.access_token);
-              headers['Authorization'] = `Bearer ${retryData.access_token}`;
-              response = await fetch(`${API_BASE_URL}${endpoint}`, {
-                ...options,
-                headers,
-              });
-            }
-          }
-        }
-      }
-    } catch {}
+    clearStoredToken();
   }
 
   if (!response.ok) {
@@ -389,11 +340,14 @@ export async function verifyTeamProblemApi(payload: {
 export async function runCodeApi(payload: {
   code: string;
   language: string;
-  test_cases: Array<{ id?: number; input: string; expectedOutput: string; isHidden?: boolean }>;
+  test_cases?: Array<{ id?: number; input: string; expectedOutput: string; isHidden?: boolean }>;
+  input?: string;
+  expected_output?: string;
   entry_point?: string;
 }) {
   return apiRequest<{
     status: string;
+    output?: string;
     passed_count: number;
     total_count: number;
     execution_time_ms: number;

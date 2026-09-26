@@ -1,8 +1,9 @@
 from typing import List, Optional, Dict, Any
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
 from app.database.session import get_db
-from app.core.dependencies import require_mentor, check_student_access, require_roles, get_optional_user
+from app.core.dependencies import require_mentor, check_student_access, require_roles, get_optional_user, get_current_user
 from app.core.exceptions import PermissionDeniedException, ResourceNotFoundException
 from app.models.user import User
 from app.models.enums import UserRole
@@ -280,7 +281,7 @@ class TeamVerifySchema(BaseModel):
 
 @router.get("/verifications", summary="Get all verified problem completions")
 def get_all_verifications(
-    current_user: Optional[User] = Depends(get_optional_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     from app.models.student import Student
@@ -299,6 +300,20 @@ def get_all_verifications(
             res[canonical_id] = []
         if r.problem_id not in res[canonical_id]:
             res[canonical_id].append(r.problem_id)
+
+    # Also include solved submissions from Submissions table
+    from app.models.submission import Submission
+    from app.models.enums import SubmissionStatus
+    solved_submissions = db.query(Submission).filter(Submission.status == SubmissionStatus.SOLVED).all()
+    for sub in solved_submissions:
+        s = next((st for st in students if st.id == sub.student_id), None)
+        if s:
+            canonical_id = s.roll_number
+            if canonical_id not in res:
+                res[canonical_id] = []
+            pid = f"prob-{sub.problem_id}"
+            if pid not in res[canonical_id]:
+                res[canonical_id].append(pid)
             
     # Include both roll_number and student-<id> formats for complete frontend compatibility
     final_res: Dict[str, List[str]] = {}
@@ -412,10 +427,12 @@ def _sync_student_progress_db(db: Session, student_id_or_roll: str):
 @router.post("/verify", summary="Toggle single problem verification")
 def toggle_problem_verification(
     payload: SingleVerifySchema,
-    current_user: User = Depends(require_roles(UserRole.MENTOR, UserRole.DEAN)),
+    current_user: User = Depends(require_roles(UserRole.MENTOR, UserRole.DEAN, UserRole.STUDENT)),
     db: Session = Depends(get_db),
 ):
     from app.models.student import Student
+    from app.models.submission import Submission
+    from app.models.enums import SubmissionStatus
     student_id = payload.student_identifier.strip()
     problem_id = payload.problem_id.strip()
 
@@ -430,6 +447,21 @@ def toggle_problem_verification(
             pass
     if not student:
         student = db.query(Student).filter(Student.roll_number == student_id).first()
+
+    # Strict RBAC:
+    if current_user.role == UserRole.STUDENT:
+        student_prof = current_user.student_profile
+        if not student_prof or not student or student.id != student_prof.id:
+            raise PermissionDeniedException(
+                detail="Forbidden: Student can only verify their own practice problems."
+            )
+    elif current_user.role == UserRole.MENTOR:
+        mentor = current_user.mentor_profile
+        assigned_team_ids = [t.id for t in mentor.assigned_teams] if mentor else []
+        if not student or student.team_id not in assigned_team_ids:
+            raise PermissionDeniedException(
+                detail="Forbidden: Mentor can only verify problems for students in their assigned team(s)."
+            )
 
     canonical_identifier = student.roll_number if student else student_id
     possible_identifiers = list({student_id, canonical_identifier, f"student-{student.id}" if student else student_id})
@@ -452,6 +484,32 @@ def toggle_problem_verification(
             )
             db.add(new_record)
             db.commit()
+
+        # Ensure a solved submission also exists
+        if student:
+            try:
+                p_num = int(problem_id.replace("prob-", "")) if "prob-" in problem_id else int(problem_id)
+                sub_exist = db.query(Submission).filter(
+                    Submission.student_id == student.id,
+                    Submission.problem_id == p_num,
+                    Submission.status == SubmissionStatus.SOLVED,
+                ).first()
+                if not sub_exist:
+                    new_sub = Submission(
+                        student_id=student.id,
+                        problem_id=p_num,
+                        status=SubmissionStatus.SOLVED,
+                        score=100.0,
+                        runtime_ms=15,
+                        memory_mb=40.0,
+                        code_snippet="// Solved in GKCE practice arena",
+                        language="Java",
+                        submitted_at=datetime.now(timezone.utc),
+                    )
+                    db.add(new_sub)
+                    db.commit()
+            except Exception:
+                pass
     else:
         if existing:
             db.delete(existing)
@@ -491,6 +549,15 @@ def batch_verify_problems(
             pass
     if not student:
         student = db.query(Student).filter(Student.roll_number == student_id).first()
+
+    # Strict RBAC: If mentor, ensure student belongs to one of their assigned teams
+    if current_user.role == UserRole.MENTOR:
+        mentor = current_user.mentor_profile
+        assigned_team_ids = [t.id for t in mentor.assigned_teams] if mentor else []
+        if not student or student.team_id not in assigned_team_ids:
+            raise PermissionDeniedException(
+                detail="Forbidden: Mentor can only verify problems for students in their assigned team(s)."
+            )
 
     canonical_identifier = student.roll_number if student else student_id
     possible_identifiers = list({student_id, canonical_identifier, f"student-{student.id}" if student else student_id})
@@ -553,6 +620,18 @@ def verify_team_problem(
             pass
     if not team:
         team = db.query(Team).filter(Team.team_number == t_id_str).first()
+
+    if not team:
+        raise ResourceNotFoundException("Team", t_id_str)
+
+    # Strict RBAC: If mentor, ensure team belongs to them
+    if current_user.role == UserRole.MENTOR:
+        mentor = current_user.mentor_profile
+        assigned_team_ids = [t.id for t in mentor.assigned_teams] if mentor else []
+        if team.id not in assigned_team_ids:
+            raise PermissionDeniedException(
+                detail=f"Forbidden: Mentor can only verify teams assigned to them ({assigned_team_ids})."
+            )
 
     students = team.students if team else []
     for s in students:

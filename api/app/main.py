@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -5,38 +6,44 @@ from app.core.config import settings
 from app.database.base import Base
 from app.routers import auth, student, mentor, dean, problems, submissions, exams, code_runner
 
-# Ensure database tables exist for SQLite fallback; Neon PostgreSQL is initialized via init_neon_db
-if settings.DATABASE_URL.startswith("sqlite"):
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Ensure database tables exist for SQLite fallback; Neon PostgreSQL is initialized via init_neon_db
+    if settings.DATABASE_URL.startswith("sqlite"):
+        try:
+            from app.database.session import engine
+            import app.models
+            Base.metadata.create_all(bind=engine)
+        except Exception as e:
+            print("SQLite init:", e)
+
     try:
         from app.database.session import engine
-        import app.models
-        Base.metadata.create_all(bind=engine)
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            if "sqlite" in settings.DATABASE_URL:
+                res = conn.execute(text("PRAGMA table_info(weekly_exams);")).fetchall()
+                col_names = [r[1] for r in res]
+                if "launched_at" not in col_names:
+                    conn.execute(text("ALTER TABLE weekly_exams ADD COLUMN launched_at DATETIME;"))
+                if "paused_at" not in col_names:
+                    conn.execute(text("ALTER TABLE weekly_exams ADD COLUMN paused_at DATETIME;"))
+                if "total_paused_ms" not in col_names:
+                    conn.execute(text("ALTER TABLE weekly_exams ADD COLUMN total_paused_ms INTEGER DEFAULT 0;"))
+                conn.commit()
+            else:
+                conn.execute(text("ALTER TABLE weekly_exams ADD COLUMN IF NOT EXISTS launched_at TIMESTAMP WITH TIME ZONE;"))
+                conn.execute(text("ALTER TABLE weekly_exams ADD COLUMN IF NOT EXISTS paused_at TIMESTAMP WITH TIME ZONE;"))
+                conn.execute(text("ALTER TABLE weekly_exams ADD COLUMN IF NOT EXISTS total_paused_ms INTEGER DEFAULT 0;"))
+                conn.commit()
     except Exception as e:
-        print("SQLite init:", e)
+        print("[DB Column Check]", e)
+    yield
 
-try:
-    from app.database.session import engine
-    from sqlalchemy import text
-    with engine.connect() as conn:
-        if "sqlite" in settings.DATABASE_URL:
-            res = conn.execute(text("PRAGMA table_info(weekly_exams);")).fetchall()
-            col_names = [r[1] for r in res]
-            if "launched_at" not in col_names:
-                conn.execute(text("ALTER TABLE weekly_exams ADD COLUMN launched_at DATETIME;"))
-            if "paused_at" not in col_names:
-                conn.execute(text("ALTER TABLE weekly_exams ADD COLUMN paused_at DATETIME;"))
-            if "total_paused_ms" not in col_names:
-                conn.execute(text("ALTER TABLE weekly_exams ADD COLUMN total_paused_ms INTEGER DEFAULT 0;"))
-            conn.commit()
-        else:
-            conn.execute(text("ALTER TABLE weekly_exams ADD COLUMN IF NOT EXISTS launched_at TIMESTAMP WITH TIME ZONE;"))
-            conn.execute(text("ALTER TABLE weekly_exams ADD COLUMN IF NOT EXISTS paused_at TIMESTAMP WITH TIME ZONE;"))
-            conn.execute(text("ALTER TABLE weekly_exams ADD COLUMN IF NOT EXISTS total_paused_ms INTEGER DEFAULT 0;"))
-            conn.commit()
-except Exception as e:
-    print("[DB Column Check]", e)
 
 app = FastAPI(
+    lifespan=lifespan,
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     description="""

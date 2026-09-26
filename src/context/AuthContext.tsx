@@ -538,27 +538,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await getWeeklyExamsApi();
       if (Array.isArray(res)) {
-        const mappedExams: WeeklyExam[] = res.map((e: any) => ({
-          id: e.id,
-          weekNumber: e.week_number ?? e.weekNumber,
-          tier: e.tier,
-          tierBadge: e.tier_badge ?? e.tierBadge ?? '',
-          title: e.title,
-          description: e.description ?? '',
-          topicFocus: e.topic_focus ?? e.topicFocus ?? '',
-          scheduledDate: e.scheduled_date ?? e.scheduledDate ?? '',
-          startTime: e.start_time ?? e.startTime ?? '10:00 AM',
-          durationMinutes: e.duration_minutes ?? e.durationMinutes ?? 90,
-          totalMarks: e.total_marks ?? e.totalMarks ?? 100,
-          passMarks: e.pass_marks ?? e.passMarks ?? 50,
-          status: e.status,
-          createdBy: e.created_by ?? e.createdBy ?? '',
-          questions: e.questions ?? [],
-          submissions: e.submissions ?? [],
-          launchedAt: e.launched_at ?? e.launchedAt ?? undefined,
-          pausedAt: e.paused_at ?? e.pausedAt ?? undefined,
-          totalPausedMs: e.total_paused_ms ?? e.totalPausedMs ?? 0,
-        }));
+        const mappedExams: WeeklyExam[] = res.map((e: any) => {
+          let qList = e.questions;
+          if (typeof qList === 'string') {
+            try {
+              qList = JSON.parse(qList);
+            } catch {
+              qList = [];
+            }
+          }
+          if (!Array.isArray(qList) || qList.length === 0) {
+            qList = ROOT_OFFICIAL_20_QUESTIONS;
+          }
+
+          return {
+            id: e.id,
+            weekNumber: e.week_number ?? e.weekNumber,
+            tier: e.tier,
+            tierBadge: e.tier_badge ?? e.tierBadge ?? '',
+            title: e.title,
+            description: e.description ?? '',
+            topicFocus: e.topic_focus ?? e.topicFocus ?? '',
+            scheduledDate: e.scheduled_date ?? e.scheduledDate ?? '',
+            startTime: e.start_time ?? e.startTime ?? '10:00 AM',
+            durationMinutes: e.duration_minutes ?? e.durationMinutes ?? 90,
+            totalMarks: e.total_marks ?? e.totalMarks ?? 100,
+            passMarks: e.pass_marks ?? e.passMarks ?? 50,
+            status: e.status,
+            createdBy: e.created_by ?? e.createdBy ?? '',
+            questions: qList,
+            submissions: e.submissions ?? [],
+            launchedAt: e.launched_at ?? e.launchedAt ?? undefined,
+            pausedAt: e.paused_at ?? e.pausedAt ?? undefined,
+            totalPausedMs: e.total_paused_ms ?? e.totalPausedMs ?? 0,
+          };
+        });
         setExams(mappedExams);
         try { localStorage.setItem('gkce_weekly_exams_v4', JSON.stringify(mappedExams)); } catch {}
       }
@@ -1382,6 +1396,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setCurrentUser(prev => ({ ...prev, studentData: finalMapped }));
         }
       }
+      // Refresh weekly exams so all roles get latest exam states
+      await refreshExams();
     } catch (err) {
       console.warn('[syncFromBackend] Backend sync failed, using local state:', err);
     }
@@ -1402,34 +1418,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Ensure loading spinner is visible while we validate
       setIsLoadingAuth(true);
 
-      // If token is missing but we have a cached profile, attempt immediate silent re-authentication to get a real JWT
-      if (!token && cachedProfileRaw) {
-        try {
-          const cached = JSON.parse(cachedProfileRaw);
-          if (cached?.email) {
-            const pwd = cached.role === 'DEAN' ? 'gkce@1234' : cached.role === 'MENTOR' ? 'Mentor@GKCE2026' : 'gkce@1234';
-            try {
-              const res = await loginApi(cached.email, pwd);
-              if (res && res.access_token) {
-                token = res.access_token;
-                mapAndSetUser(res.user.role as any, res.user, false);
-                setIsAuthenticated(true);
-                syncFromBackend(res.user.role as any, res.user);
-                setIsLoadingAuth(false);
-                return;
-              }
-            } catch {
-              // Re-auth failed, clear ghost state
-              clearStoredToken();
-              try {
-                localStorage.removeItem('gkce_user_profile_v1');
-              } catch {}
-              setIsAuthenticated(false);
-              setIsLoadingAuth(false);
-              return;
-            }
-          }
-        } catch {}
+      // If token is missing, require user to log in cleanly
+      if (!token) {
+        setIsAuthenticated(false);
+        setIsLoadingAuth(false);
+        return;
       }
 
       // If we have a valid token, validate with /auth/me and hydrate
@@ -1670,44 +1663,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const targetStudent = students.find(s => s.id === studentId || s.rollNo === currentUser.studentData?.rollNo);
     if (!targetStudent) return false;
 
-    // Check if already solved
-    const alreadySolved = targetStudent.recentActivities.some(a => a.problemTitle === problem.title);
+    // Check if already marked verified/solved
+    const currentVerified = targetStudent.verifiedProblemIds || [];
+    const alreadySolved = currentVerified.includes(problem.id);
     if (alreadySolved) return true;
 
-    // Update Topic Progress
+    // Append newly solved problem id
+    const updatedVerified = [...currentVerified, problem.id];
+
+    // Compute updated student metrics using the single source of truth recalculateStudentMetrics
+    const updatedStudent = recalculateStudentMetrics(targetStudent, updatedVerified);
+
     const topic = problem.topic as DSATopic;
-    const currentTopicData = targetStudent.topicProgress[topic] || { solved: 0, total: 5, percentage: 0 };
-    const newTopicSolved = Math.min(currentTopicData.total, currentTopicData.solved + 1);
-    const newTopicPct = Number(((newTopicSolved / currentTopicData.total) * 100).toFixed(1));
-
-    const updatedTopicProgress = {
-      ...targetStudent.topicProgress,
-      [topic]: {
-        ...currentTopicData,
-        solved: newTopicSolved,
-        percentage: newTopicPct,
-      },
-    };
-
-    // Update Difficulty Stats
-    const diffKey = problem.difficulty.toLowerCase() as 'easy' | 'medium' | 'hard';
-    const currentDiff = targetStudent.difficultyStats[diffKey] || { solved: 0, total: 10 };
-    const updatedDifficultyStats = {
-      ...targetStudent.difficultyStats,
-      [diffKey]: {
-        ...currentDiff,
-        solved: currentDiff.solved + 1,
-      },
-    };
-
-    const newSolved = targetStudent.solved + 1;
-    const newAttempted = Math.max(targetStudent.attempted + 1, newSolved);
-    const newPending = Math.max(0, TOTAL_CURRICULUM_PROBLEMS - newSolved);
-    const newProgress = Math.min(100, Number(((newSolved / TOTAL_CURRICULUM_PROBLEMS) * 100).toFixed(1)));
-    const newStreak = targetStudent.streak + 1;
-    const newLongestStreak = Math.max(targetStudent.longestStreak, newStreak);
-    const newLevel = newProgress >= 85 ? 'Mastery' : newProgress >= 65 ? 'Advanced' : newProgress >= 40 ? 'Intermediate' : 'Beginner';
-
     const newActivity = {
       id: `act-${Date.now()}`,
       studentId: targetStudent.id,
@@ -1720,84 +1687,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const todayStr = new Date().toISOString().split('T')[0];
-    const updatedSubmissions = [...targetStudent.submissionsHistory, { date: todayStr, count: 1 }];
+    const updatedSubmissions = [...(targetStudent.submissionsHistory || []), { date: todayStr, count: 1 }];
 
-    const updatedStudent: Student = {
-      ...targetStudent,
-      solved: newSolved,
-      attempted: newAttempted,
-      pending: newPending,
-      progress: newProgress,
-      streak: newStreak,
-      longestStreak: newLongestStreak,
-      dsaLevel: newLevel as any,
-      topicProgress: updatedTopicProgress,
-      difficultyStats: updatedDifficultyStats,
-      recentActivities: [newActivity, ...targetStudent.recentActivities],
-      submissionsHistory: updatedSubmissions,
-    };
+    updatedStudent.recentActivities = [
+      newActivity,
+      ...(targetStudent.recentActivities || []).filter(a => a.problemTitle !== problem.title),
+    ];
+    updatedStudent.submissionsHistory = updatedSubmissions;
 
     // Update Students State
-    setStudents(prev => prev.map(s => s.id === targetStudent.id ? updatedStudent : s));
+    setStudents(prev => prev.map(s => (s.id === targetStudent.id || s.rollNo === targetStudent.rollNo) ? updatedStudent : s));
 
-    // Update Current User
+    // Update Current User State
     setCurrentUser(prev => ({
       ...prev,
       studentData: updatedStudent,
     }));
 
     // Update Assigned Team Stats
-    setTeams(prevTeams =>
-      prevTeams.map(t => {
-        if (t.id === targetStudent.teamId || t.teamNumber === targetStudent.teamNumber) {
-          const teamSts = students.map(s => s.id === targetStudent.id ? updatedStudent : s)
-            .filter(s => s.teamId === t.id || s.teamNumber === t.teamNumber);
-          const tSolved = teamSts.reduce((acc, s) => acc + s.solved, 0);
-          const tAttempted = teamSts.reduce((acc, s) => acc + s.attempted, 0);
-          const tAvgProg = teamSts.length > 0 ? Number((teamSts.reduce((acc, s) => acc + s.progress, 0) / teamSts.length).toFixed(1)) : 0;
-          const tAvgStreak = teamSts.length > 0 ? Number((teamSts.reduce((acc, s) => acc + s.streak, 0) / teamSts.length).toFixed(1)) : 0;
-
-          const tPerf: Record<string, number> = {};
-          const topicCaps: Record<string, number> = {
-            ...TOPIC_CURRICULUM_TOTALS,
-          };
-          for (const top of Object.keys(updatedTopicProgress)) {
-            const cap = topicCaps[top] || 0;
-            if (cap > 0) {
-              const totalTopicCap = cap * teamSts.length;
-              const solvedTopic = teamSts.reduce((acc, s) => acc + (s.topicProgress[top as DSATopic]?.solved || 0), 0);
-              tPerf[top] = Math.min(100, Number(((solvedTopic / Math.max(1, totalTopicCap)) * 100).toFixed(1)));
-            } else {
-              tPerf[top] = 0;
-            }
-          }
-
-          return {
-            ...t,
-            totalSolved: tSolved,
-            totalAttempted: tAttempted,
-            avgProgress: tAvgProg,
-            avgStreak: tAvgStreak,
-            topicPerformance: tPerf,
-          };
-        }
-        return t;
-      })
+    recalculateTeamMetrics(
+      targetStudent.teamNumber,
+      students.map(s => (s.id === targetStudent.id || s.rollNo === targetStudent.rollNo) ? updatedStudent : s)
     );
 
-    // Persist submission to backend DB and re-sync progress
+    // Persist submission to backend DB (both submissions table and verifications table)
     try {
       const pNum = parseInt(problem.id.replace('prob-', ''), 10) || 1;
-      await submitSolutionApi({
-        problem_id: pNum,
-        status: 'SOLVED',
-        score: 100,
-        language: 'Java',
-      });
-      // Re-fetch from DB so progress is accurate on all devices
-      syncFromBackend('STUDENT');
+      await Promise.allSettled([
+        submitSolutionApi({
+          problem_id: pNum,
+          status: 'SOLVED',
+          score: 100,
+          language: 'Java',
+        }),
+        toggleMentorVerificationApi({
+          student_identifier: targetStudent.rollNo || targetStudent.id,
+          problem_id: problem.id,
+          verified: true,
+          day_number: problem.dayNumber,
+        }),
+      ]);
     } catch {
-      // Local state already updated — backend sync will catch up on next poll
+      // Local state already updated
     }
 
     return true;
@@ -1866,14 +1797,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const backendVerified = verificationsMap[st.rollNo] || verificationsMap[st.id] || [];
             const currentVerified = st.verifiedProblemIds || [];
 
-            // Check if there is any difference
-            const isDiff =
-              backendVerified.length !== currentVerified.length ||
-              backendVerified.some(pid => !currentVerified.includes(pid));
+            // Merge local and backend verified so student's recently completed problems are never lost
+            const mergedVerified = Array.from(new Set([...currentVerified, ...backendVerified]));
+
+            const isDiff = mergedVerified.length !== currentVerified.length;
 
             if (isDiff) {
               hasAnyChanges = true;
-              return recalculateStudentMetrics(st, backendVerified);
+              const updatedSt = recalculateStudentMetrics(st, mergedVerified);
+              if (currentUser.studentData && (st.id === currentUser.studentData.id || st.rollNo === currentUser.studentData.rollNo)) {
+                setCurrentUser(curr => ({ ...curr, studentData: updatedSt }));
+              }
+              return updatedSt;
             }
             return st;
           });
@@ -2165,8 +2100,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const durationMinutes = targetExam.durationMinutes || 90;
 
     if (status === 'LIVE') {
-      if (!updatedLaunchedAt) {
-        // Initial launch by Dean: establish exact 90-min timeline
+      if (!updatedLaunchedAt || targetExam.status === 'SCHEDULED' || targetExam.status === 'COMPLETED') {
+        // Initial launch or re-launch by Dean: establish exact 90-min timeline
         updatedLaunchedAt = nowIso;
         updatedPausedAt = undefined;
         updatedTotalPausedMs = 0;
@@ -2183,30 +2118,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updatedPausedAt = undefined;
     }
 
+    const examQuestions = (targetExam.questions && targetExam.questions.length > 0)
+      ? targetExam.questions
+      : ROOT_OFFICIAL_20_QUESTIONS;
+
     const updatedExamFields: Partial<WeeklyExam> = {
       status,
       launchedAt: updatedLaunchedAt,
       pausedAt: updatedPausedAt,
       totalPausedMs: updatedTotalPausedMs,
       durationMinutes,
+      questions: examQuestions,
     };
 
     setExams(prev =>
       prev.map(ex => (ex.id === examId ? { ...ex, ...updatedExamFields } : ex))
     );
 
-    // Persist to Neon PostgreSQL
+    const payload = {
+      status,
+      launchedAt: updatedLaunchedAt,
+      pausedAt: updatedPausedAt,
+      totalPausedMs: updatedTotalPausedMs,
+      durationMinutes,
+      questions: examQuestions,
+    };
+
+    // Persist to Neon PostgreSQL with automatic create fallback
     try {
-      await updateWeeklyExamApi(examId, {
-        status,
-        launchedAt: updatedLaunchedAt,
-        pausedAt: updatedPausedAt,
-        totalPausedMs: updatedTotalPausedMs,
-        durationMinutes,
-      });
+      await updateWeeklyExamApi(examId, payload);
     } catch (err) {
-      console.warn('[Neon DB] updateWeeklyExamApi (status) deferred:', err);
+      console.warn('[Neon DB] updateWeeklyExamApi failed, attempting create fallback:', err);
+      try {
+        await createWeeklyExamApi({
+          ...targetExam,
+          ...payload,
+        });
+      } catch (createErr) {
+        console.error('[Neon DB] Failed to save exam status update:', createErr);
+      }
     }
+
+    // Immediately sync state with backend
+    await refreshExams();
   };
 
   // Background Monitor: Automatically transition LIVE exams to COMPLETED once timeline concludes

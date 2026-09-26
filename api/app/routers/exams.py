@@ -69,9 +69,23 @@ def ensure_utc_iso(dt: Optional[datetime]) -> Optional[str]:
     return dt.isoformat()
 
 
-def format_exam(exam: WeeklyExam) -> Dict[str, Any]:
+from app.core.dependencies import get_current_user, get_optional_user, require_dean, require_student
+from app.models.enums import UserRole
+
+def format_exam(exam: WeeklyExam, current_user: Optional[User] = None) -> Dict[str, Any]:
     submissions_list = []
+    student_id = current_user.student_profile.id if current_user and current_user.student_profile else None
+    student_roll = current_user.student_profile.roll_number if current_user and current_user.student_profile else None
+
     for sub in exam.submissions:
+        # If student, only include their own submission to prevent leaking other students' answers
+        if current_user and current_user.role == UserRole.STUDENT:
+            if sub.student_id not in [str(student_id), f"student-{student_id}", student_roll] and sub.student_roll_no != student_roll:
+                continue
+        # If unauthenticated, do not expose any student submissions
+        elif not current_user:
+            continue
+
         submissions_list.append({
             "id": sub.id,
             "studentId": sub.student_id,
@@ -93,6 +107,16 @@ def format_exam(exam: WeeklyExam) -> Dict[str, Any]:
     launched_at_iso = ensure_utc_iso(getattr(exam, "launched_at", None))
     paused_at_iso = ensure_utc_iso(getattr(exam, "paused_at", None))
 
+    raw_questions = exam.questions
+    if isinstance(raw_questions, str):
+        try:
+            import json
+            raw_questions = json.loads(raw_questions)
+        except Exception:
+            raw_questions = []
+    if not isinstance(raw_questions, list):
+        raw_questions = []
+
     return {
         "id": exam.id,
         "weekNumber": exam.week_number,
@@ -108,7 +132,7 @@ def format_exam(exam: WeeklyExam) -> Dict[str, Any]:
         "passMarks": exam.pass_marks,
         "status": exam.status,
         "createdBy": exam.created_by,
-        "questions": exam.questions or [],
+        "questions": raw_questions,
         "submissions": submissions_list,
         "launchedAt": launched_at_iso,
         "pausedAt": paused_at_iso,
@@ -117,7 +141,10 @@ def format_exam(exam: WeeklyExam) -> Dict[str, Any]:
 
 
 @router.get("/exams", response_model=List[Dict[str, Any]], summary="Get all weekly exams")
-def get_exams(db: Session = Depends(get_db)):
+def get_exams(
+    current_user: Optional[User] = Depends(get_optional_user),
+    db: Session = Depends(get_db)
+):
     exams = db.query(WeeklyExam).order_by(WeeklyExam.created_at.desc()).all()
     now = datetime.now(timezone.utc)
     updated_any = False
@@ -135,7 +162,7 @@ def get_exams(db: Session = Depends(get_db)):
                 updated_any = True
     if updated_any:
         db.commit()
-    return [format_exam(e) for e in exams]
+    return [format_exam(e, current_user) for e in exams]
 
 
 @router.post("/dean/exams", status_code=status.HTTP_201_CREATED, summary="Create scheduled exam")
@@ -230,8 +257,19 @@ def update_exam(
         exam.pass_marks = payload.passMarks
     if payload.status is not None:
         exam.status = payload.status
+        if payload.status == "LIVE" and not payload.launchedAt:
+            exam.launched_at = datetime.now(timezone.utc)
+            exam.total_paused_ms = 0
+            exam.paused_at = None
     if payload.questions is not None:
-        exam.questions = payload.questions
+        q_val = payload.questions
+        if isinstance(q_val, str):
+            try:
+                import json
+                q_val = json.loads(q_val)
+            except Exception:
+                q_val = []
+        exam.questions = q_val
     if payload.launchedAt is not None:
         try:
             cleaned = payload.launchedAt.replace("Z", "+00:00") if payload.launchedAt else None
@@ -292,8 +330,21 @@ def is_untouched_starter_template(code: str, language: str = "") -> bool:
 def submit_exam_solution(
     exam_id: str,
     payload: ExamSubmitSchema,
+    current_user: User = Depends(require_student),
     db: Session = Depends(get_db),
 ):
+    student_prof = current_user.student_profile
+    if not student_prof:
+        raise HTTPException(status_code=403, detail="Student profile required to submit exam.")
+
+    # Prevent submitting under another student's ID or roll number
+    valid_ids = [str(student_prof.id), f"student-{student_prof.id}", student_prof.roll_number]
+    if payload.studentId not in valid_ids and payload.studentRollNo != student_prof.roll_number:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Cannot submit an examination for another student.",
+        )
+
     exam = db.query(WeeklyExam).filter(WeeklyExam.id == exam_id).first()
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found.")

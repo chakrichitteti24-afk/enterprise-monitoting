@@ -14,18 +14,8 @@ from scripts.seed_data import seed as seed_database, DEAN_PASSWORD, MENTOR_PASSW
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
-    db = SessionLocal()
-    try:
-        # Check if we have the exact number of users seeded
-        if db.query(User).count() < 121:
-            from app.database.session import engine
-            from app.database.base import Base
-            # Wipe everything and recreate
-            Base.metadata.drop_all(bind=engine)
-            Base.metadata.create_all(bind=engine)
-            seed_database()
-    finally:
-        db.close()
+    # Never drop or wipe database in test session
+    pass
 
 
 @pytest.fixture
@@ -49,12 +39,12 @@ def dean_token(client: TestClient) -> str:
 
 @pytest.fixture
 def mentor_team1_token(client: TestClient) -> str:
-    return get_token(client, "suresh.kumar@gkce.edu.in", MENTOR_PASSWORD)
+    return get_token(client, "ksgayathri@gkce.edu.in", MENTOR_PASSWORD)
 
 
 @pytest.fixture
 def mentor_team2_token(client: TestClient) -> str:
-    return get_token(client, "radhika.p@gkce.edu.in", MENTOR_PASSWORD)
+    return get_token(client, "skshabana@gkce.edu.in", MENTOR_PASSWORD)
 
 
 @pytest.fixture

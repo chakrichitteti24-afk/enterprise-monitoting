@@ -58,12 +58,10 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
 
   const [mobileActiveView, setMobileActiveView] = useState<'PROBLEM' | 'EDITOR' | 'CONSOLE'>('PROBLEM');
   const [activeLeftTab, setActiveLeftTab] = useState<'DESCRIPTION' | 'EDITORIAL' | 'SUBMISSIONS'>('DESCRIPTION');
-  const [activeBottomTab, setActiveBottomTab] = useState<'TESTCASES' | 'CUSTOM_INPUT' | 'TERMINAL'>('TESTCASES');
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>('java');
-  const [selectedTestCaseIdx, setSelectedTestCaseIdx] = useState<number>(0);
   const [code, setCode] = useState<string>(dossier.starterTemplates.java);
-  const [customInput, setCustomInput] = useState<string>('');
-  const [useCustomInput, setUseCustomInput] = useState<boolean>(false);
+  const [inputData, setInputData] = useState<string>(() => dossier.testCases[0]?.input || '');
+  const [outputData, setOutputData] = useState<string>('');
   const [fontSize, setFontSize] = useState<number>(13);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -73,6 +71,12 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
   const [submissionSuccess, setSubmissionSuccess] = useState<boolean>(false);
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
   const [copiedInputIdx, setCopiedInputIdx] = useState<number | null>(null);
+  const [isCompleted, setIsCompleted] = useState<boolean>(isVerified);
+
+  useEffect(() => {
+    setIsCompleted(isVerified);
+  }, [isVerified, problem.id]);
+
   const [submissionsHistory, setSubmissionsHistory] = useState<
     Array<{ id: string; date: string; language: string; status: string; runtime: string; memory: string }>
   >(() => {
@@ -93,6 +97,8 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
   // Sync starter code when problem or language changes
   useEffect(() => {
     setCode(dossier.starterTemplates[selectedLanguage]);
+    setInputData(dossier.testCases[0]?.input || '');
+    setOutputData('');
     setTestResults(dossier.testCases);
     setTerminalLogs(null);
   }, [problem.id, selectedLanguage, dossier]);
@@ -105,6 +111,7 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
 
   const handleCopySampleInput = (idx: number, text: string) => {
     navigator.clipboard.writeText(text);
+    setInputData(text);
     setCopiedInputIdx(idx);
     setTimeout(() => setCopiedInputIdx(null), 1500);
   };
@@ -115,84 +122,81 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
     }
   };
 
-  // Run Code against sample test cases or custom input
+  // Run Code against input
   const handleRunCode = async () => {
     setIsRunning(true);
-    setActiveBottomTab('TERMINAL');
     setMobileActiveView('CONSOLE');
 
-    const isCustom = useCustomInput && customInput.trim().length > 0;
-    const testCasesToRun = isCustom
-      ? [
-          {
-            id: 1,
-            name: 'Custom Stdin',
-            input: customInput.trim(),
-            expectedOutput: '',
-            isHidden: false,
-          },
-        ]
-      : dossier.testCases;
+    const sampleExpected = dossier.testCases[0]?.expectedOutput || '';
+    const testCasesToRun = [
+      {
+        id: 1,
+        name: 'Stdin',
+        input: inputData,
+        expectedOutput: sampleExpected,
+        isHidden: false,
+      },
+    ];
 
     const result = await executeRealCode(code, selectedLanguage, testCasesToRun);
     setIsRunning(false);
 
-    if (isCustom) {
-      const customOut = result.testResults[0]?.actualOutput || '(No output produced)';
-      const isErr = result.status === 'COMPILATION_ERROR' || result.status === 'RUNTIME_ERROR';
-      setTerminalLogs(
-        `[Compilation] Process completed ${isErr ? 'with errors' : 'successfully'}.\n` +
-        `[Execution Mode] Custom Stdin Evaluation (${selectedLanguage.toUpperCase()})\n\n` +
-        `Input Stdin:\n${customInput.trim()}\n\n` +
-        `Output / Stdout:\n${customOut}\n\n` +
-        `Execution Time: ${result.executionTimeMs}ms\n` +
-        `Status: ${result.status}`
-      );
-    } else {
-      const updated = dossier.testCases.map((tc, idx) => {
-        const match = result.testResults.find(r => r.id === idx + 1);
-        return {
-          ...tc,
-          passed: match ? match.passed : false,
-          actualOutput: match ? match.actualOutput : 'Error',
-          executionTimeMs: match ? match.executionTimeMs : 15,
-        };
-      });
+    const actualOut = result.output || result.testResults[0]?.actualOutput || (result.status === 'COMPILATION_ERROR' ? (result.error || 'Compilation Error') : '(No output produced)');
+    setOutputData(actualOut);
+    setTerminalLogs(result.logs);
 
-      setTestResults(updated);
-      setTerminalLogs(result.logs);
+    // If code executed without compilation error and produced output:
+    const isError = result.status === 'COMPILATION_ERROR' || (result.status === 'RUNTIME_ERROR' && !result.output) || actualOut.includes('Compilation Error');
+    if (!isError && actualOut && actualOut !== '(No output produced)') {
+      setIsCompleted(true);
+      if (onSolve) {
+        await onSolve(problem);
+      }
+      const newSub = {
+        id: `sub-${Date.now()}`,
+        date: 'Just now',
+        language: selectedLanguage === 'java' ? 'Java 17' : selectedLanguage === 'cpp' ? 'C++ 11' : selectedLanguage === 'python' ? 'Python 3.10' : 'Node.js 18',
+        status: 'Accepted',
+        runtime: `${result.executionTimeMs || 15} ms`,
+        memory: 'Standard',
+      };
+      setSubmissionsHistory(prev => [newSub, ...prev]);
     }
   };
 
-  // Final Submission (Runs full test bench including hidden cases)
+  // Final Submission (Runs code and completes problem)
   const handleSubmitCode = async () => {
     setIsSubmitting(true);
-    setActiveBottomTab('TERMINAL');
     setMobileActiveView('CONSOLE');
 
-    const result = await executeRealCode(code, selectedLanguage, dossier.testCases);
+    const sampleExpected = dossier.testCases[0]?.expectedOutput || '';
+    const testCasesToRun = [
+      {
+        id: 1,
+        name: 'Stdin',
+        input: inputData || dossier.testCases[0]?.input || '',
+        expectedOutput: sampleExpected,
+        isHidden: false,
+      },
+    ];
+
+    const result = await executeRealCode(code, selectedLanguage, testCasesToRun);
     setIsSubmitting(false);
 
-    const updated = dossier.testCases.map((tc, idx) => {
-      const match = result.testResults.find(r => r.id === idx + 1);
-      return {
-        ...tc,
-        passed: match ? match.passed : false,
-        actualOutput: match ? match.actualOutput : 'Error',
-        executionTimeMs: match ? match.executionTimeMs : 15,
-      };
-    });
-    setTestResults(updated);
+    const actualOut = result.output || result.testResults[0]?.actualOutput || (result.status === 'COMPILATION_ERROR' ? (result.error || 'Compilation Error') : '(No output produced)');
+    setOutputData(actualOut);
 
-    if (result.status === 'ACCEPTED') {
+    const isError = result.status === 'COMPILATION_ERROR' || (result.status === 'RUNTIME_ERROR' && !result.output) || actualOut.includes('Compilation Error');
+    if (!isError && actualOut && actualOut !== '(No output produced)') {
+      setIsCompleted(true);
       setTerminalLogs(
         `======================================================\n` +
-        `   🏆 INSTITUTIONAL EVALUATION BENCHMARK: ACCEPTED     \n` +
+        `   🏆 INSTITUTIONAL EVALUATION: COMPLETED & ACCEPTED   \n` +
         `======================================================\n` +
         `Problem: ${problem.title} (Day ${problem.dayNumber} - Q${problem.dayQuestionNumber})\n` +
         `Language: ${selectedLanguage.toUpperCase()}\n` +
-        `Status: ACCEPTED ✅ (${result.passedCount}/${result.totalCount} Test Cases Passed)\n` +
-        `Runtime: ${result.executionTimeMs} ms\n` +
+        `Status: ACCEPTED ✅ (Output Generated Successfully)\n` +
+        `Runtime: ${result.executionTimeMs || 15} ms\n` +
         `Memory: Standard Sandbox Limit (256 MB)\n` +
         `Submission Timestamp: ${new Date().toLocaleTimeString()}\n` +
         `======================================================`
@@ -203,7 +207,7 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
         date: 'Just now',
         language: selectedLanguage === 'java' ? 'Java 17' : selectedLanguage === 'cpp' ? 'C++ 11' : selectedLanguage === 'python' ? 'Python 3.10' : 'Node.js 18',
         status: 'Accepted',
-        runtime: `${result.executionTimeMs} ms`,
+        runtime: `${result.executionTimeMs || 15} ms`,
         memory: 'Standard',
       };
       setSubmissionsHistory(prev => [newSub, ...prev]);
@@ -213,7 +217,7 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
         await onSolve(problem);
       }
     } else {
-      setTerminalLogs(result.logs);
+      setTerminalLogs(result.logs || actualOut);
     }
   };
 
@@ -264,6 +268,14 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
             >
               {problem.difficulty}
             </span>
+
+            {/* Solved / Completed Status Badge */}
+            {isCompleted && (
+              <span className="px-2 sm:px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold border border-emerald-500/40 bg-emerald-950/80 text-emerald-300 flex items-center gap-1 shrink-0 shadow-2xs">
+                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                <span>Completed</span>
+              </span>
+            )}
           </div>
 
           {/* Right Toolbar: Language, Run, Submit, Controls */}
@@ -486,23 +498,23 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
                     </div>
                   </div>
 
-                  {/* Sample Cases */}
+                  {/* Sample Input & Output */}
                   <div className="space-y-2.5 pt-1">
                     <div className="text-xs font-bold text-white uppercase tracking-wider">
-                      Sample Test Cases
+                      Sample Input & Output
                     </div>
 
                     {dossier.testCases.filter(tc => !tc.isHidden).map((tc, idx) => (
                       <div key={tc.id} className="p-3.5 rounded-2xl bg-[#061220] border border-white/5 space-y-2 relative group">
                         <div className="flex items-center justify-between text-xs font-bold text-emerald-400">
-                          <span>{tc.name}</span>
+                          <span>Example {idx + 1}</span>
                           <button
                             onClick={() => handleCopySampleInput(idx, tc.input)}
                             className="px-2 py-0.5 rounded-md bg-[#102339] hover:bg-[#183251] text-slate-300 text-[10px] font-mono flex items-center gap-1 transition-colors"
-                            title="Copy input vector"
+                            title="Copy and load input"
                           >
                             {copiedInputIdx === idx ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                            <span>{copiedInputIdx === idx ? 'Copied' : 'Copy'}</span>
+                            <span>{copiedInputIdx === idx ? 'Loaded as Input' : 'Use as Input'}</span>
                           </button>
                         </div>
 
@@ -703,38 +715,17 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
             >
               {/* Tab Selector Bar */}
               <div className="h-9 bg-[#061220] border-b border-white/10 px-3 flex items-center justify-between text-xs select-none">
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setActiveBottomTab('TESTCASES')}
-                    className={`px-3 py-1 rounded-lg font-bold transition-colors ${
-                      activeBottomTab === 'TESTCASES'
-                        ? 'bg-[#0e2136] text-white border-b-2 border-emerald-400'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    Test Cases
-                  </button>
-                  <button
-                    onClick={() => setActiveBottomTab('CUSTOM_INPUT')}
-                    className={`px-3 py-1 rounded-lg font-bold transition-colors ${
-                      activeBottomTab === 'CUSTOM_INPUT'
-                        ? 'bg-[#0e2136] text-white border-b-2 border-emerald-400'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    Custom Stdin
-                  </button>
-                  <button
-                    onClick={() => setActiveBottomTab('TERMINAL')}
-                    className={`px-3 py-1 rounded-lg font-bold transition-colors flex items-center gap-1.5 ${
-                      activeBottomTab === 'TERMINAL'
-                        ? 'bg-[#0e2136] text-emerald-300 border-b-2 border-emerald-400'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <span>Compiler Terminal</span>
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  </button>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                    <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Execution Console</span>
+                  </span>
+                  {isRunning && (
+                    <span className="text-[11px] text-cyan-400 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                      Running...
+                    </span>
+                  )}
                 </div>
 
                 <div className="text-[11px] text-slate-400 font-mono hidden sm:block">
@@ -742,159 +733,63 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
                 </div>
               </div>
 
-              {/* Console Body Area */}
-              <div className="flex-1 p-3.5 overflow-y-auto text-xs font-mono custom-scrollbar bg-[#030b14]">
-                {activeBottomTab === 'TESTCASES' && (
-                  <div className="space-y-3">
-                    {/* Case Pills (Case 0, Case 1, Case 2...) */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                      {testResults.map((tc, idx) => (
-                        <button
-                          key={tc.id}
-                          onClick={() => setSelectedTestCaseIdx(idx)}
-                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 border ${
-                            selectedTestCaseIdx === idx
-                              ? 'bg-[#102339] text-white border-emerald-500/50 shadow-xs'
-                              : 'bg-[#081525] text-slate-400 hover:bg-[#0e2136] border-white/5'
-                          }`}
-                        >
-                          {tc.passed !== undefined && (
-                            <span
-                              className={`w-2 h-2 rounded-full ${
-                                tc.passed ? 'bg-emerald-400' : 'bg-rose-500'
-                              }`}
-                            />
-                          )}
-                          <span>{tc.name}</span>
-                        </button>
-                      ))}
-                    </div>
+              {/* Console Body Area: Clean Input & Output */}
+              <div className="flex-1 p-3 grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-hidden bg-[#030b14]">
+                {/* Left: Input (stdin) */}
+                <div className="flex flex-col h-full space-y-1 min-h-0">
+                  <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+                    <span>Input (stdin)</span>
+                    <button
+                      onClick={() => setInputData(dossier.testCases[0]?.input || '')}
+                      className="text-[10px] text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer font-sans"
+                    >
+                      Reset to Sample
+                    </button>
+                  </div>
+                  <textarea
+                    value={inputData}
+                    onChange={e => setInputData(e.target.value)}
+                    placeholder="Type custom input vector here..."
+                    className="w-full flex-1 p-2.5 bg-[#081525] border border-white/10 text-slate-100 placeholder:text-slate-600 rounded-xl font-mono text-xs resize-none focus:outline-hidden focus:border-emerald-500 custom-scrollbar"
+                  />
+                </div>
 
-                    {/* Active Selected Test Case Inputs & Output */}
-                    {testResults[selectedTestCaseIdx] && (
+                {/* Right: Output */}
+                <div className="flex flex-col h-full space-y-1 min-h-0">
+                  <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+                    <span>Output</span>
+                    {outputData && (
+                      <button
+                        onClick={() => setOutputData('')}
+                        className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors cursor-pointer font-sans"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <div className="w-full flex-1 p-2.5 bg-[#081525] border border-white/10 text-slate-100 rounded-xl font-mono text-xs overflow-y-auto whitespace-pre-wrap custom-scrollbar">
+                    {isRunning ? (
+                      <div className="text-cyan-400 flex items-center gap-2">
+                        <Terminal className="w-3.5 h-3.5 animate-spin" />
+                        <span>Compiling and running...</span>
+                      </div>
+                    ) : outputData ? (
                       <div className="space-y-2">
-                        {testResults[selectedTestCaseIdx].isHidden ? (
-                          <div className="p-4 bg-[#081525] rounded-2xl border border-white/5 text-slate-400 text-center">
-                            🔒 Private institutional test case. Revealed upon final submission evaluation.
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                            <div className="p-2.5 bg-[#081525] rounded-xl border border-white/5 space-y-1">
-                              <div className="text-[10px] text-slate-400 font-sans font-bold uppercase">Input:</div>
-                              <div className="text-slate-100 whitespace-pre-wrap">
-                                {testResults[selectedTestCaseIdx].input}
-                              </div>
-                            </div>
-                            <div className="p-2.5 bg-[#081525] rounded-xl border border-white/5 space-y-1">
-                              <div className="text-[10px] text-slate-400 font-sans font-bold uppercase">Expected Output:</div>
-                              <div className="text-cyan-300 whitespace-pre-wrap">
-                                {testResults[selectedTestCaseIdx].expectedOutput}
-                              </div>
-                            </div>
+                        {isCompleted && !outputData.toLowerCase().includes('compilation error') && !outputData.toLowerCase().includes('error:') && (
+                          <div className="px-2.5 py-1 rounded-lg bg-emerald-950/70 border border-emerald-500/30 text-emerald-300 text-[11px] font-sans font-bold flex items-center gap-1.5 shadow-2xs">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <span>✓ Program Executed Successfully & Question Marked Completed</span>
                           </div>
                         )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {activeBottomTab === 'CUSTOM_INPUT' && (
-                  <div className="space-y-2 h-full flex flex-col">
-                    <div className="flex items-center gap-2 text-xs text-slate-400">
-                      <input
-                        type="checkbox"
-                        id="customInputToggle"
-                        checked={useCustomInput}
-                        onChange={e => setUseCustomInput(e.target.checked)}
-                        className="rounded bg-[#0e2136] border-white/10 text-emerald-500"
-                      />
-                      <label htmlFor="customInputToggle" className="cursor-pointer font-sans">
-                        Enable Custom Stdin execution
-                      </label>
-                    </div>
-                    <textarea
-                      value={customInput}
-                      onChange={e => setCustomInput(e.target.value)}
-                      placeholder="Type custom test input vector here (e.g. 5\n10 20 30 40 50)..."
-                      className="w-full flex-1 p-2.5 bg-[#081525] border border-white/10 text-slate-100 placeholder:text-slate-500 rounded-xl font-mono text-xs resize-none focus:outline-hidden focus:border-blue-500"
-                    />
-                  </div>
-                )}
-
-                {activeBottomTab === 'TERMINAL' && (
-                  <div className="h-full flex flex-col">
-                    {isRunning ? (
-                      <div className="flex items-center gap-2 text-cyan-400 p-2">
-                        <Terminal className="w-4 h-4 animate-spin text-cyan-400" />
-                        <span className="text-slate-200">Compiling and executing test suite...</span>
-                      </div>
-                    ) : isSubmitting ? (
-                      <div className="flex items-center gap-2 text-emerald-400 p-2">
-                        <Terminal className="w-4 h-4 animate-spin text-emerald-400" />
-                        <span className="text-slate-200">Evaluating submission against institutional benchmark...</span>
-                      </div>
-                    ) : terminalLogs ? (
-                      <div className="space-y-1.5 leading-relaxed font-mono text-xs">
-                        {terminalLogs.split('\n').map((line, lIdx) => {
-                          const isSuccess = line.includes('ACCEPTED') || line.includes('PASSED') || line.includes('Pass') || line.includes('🎉');
-                          const isError = line.includes('FAILED') || line.includes('Error') || line.includes('Exception');
-                          const isPrompt = line.startsWith('>') || line.startsWith('[');
-                          const isDivider = line.startsWith('===');
-                          const isStat = line.includes('Runtime:') || line.includes('Memory Used:') || line.includes('Submission Timestamp:');
-
-                          if (isDivider) {
-                            return <div key={lIdx} className="text-slate-600 select-none py-0.5">{line}</div>;
-                          }
-                          if (isSuccess && (line.includes('ACCEPTED') || line.includes('🏆'))) {
-                            return (
-                              <div key={lIdx} className="p-2 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 font-bold flex items-center gap-2 my-1">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                                <span>{line}</span>
-                              </div>
-                            );
-                          }
-                          if (isError) {
-                            return (
-                              <div key={lIdx} className="p-2 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 font-bold flex items-center gap-2 my-1">
-                                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                                <span>{line}</span>
-                              </div>
-                            );
-                          }
-                          if (isStat) {
-                            const [label, ...valParts] = line.split(':');
-                            const val = valParts.join(':');
-                            return (
-                              <div key={lIdx} className="text-slate-400 flex items-center gap-2">
-                                <span className="text-slate-500">{label}:</span>
-                                <span className="text-amber-300 font-semibold">{val}</span>
-                              </div>
-                            );
-                          }
-                          if (isPrompt) {
-                            return (
-                              <div key={lIdx} className="flex items-start gap-1.5 text-slate-300">
-                                <span className="text-cyan-400 font-bold select-none">&gt;</span>
-                                <span className={line.includes('Pass') ? 'text-emerald-300' : 'text-slate-200'}>
-                                  {line.replace(/^>\s*/, '')}
-                                </span>
-                              </div>
-                            );
-                          }
-                          return (
-                            <div key={lIdx} className={isSuccess ? 'text-emerald-300' : 'text-slate-300'}>
-                              {line}
-                            </div>
-                          );
-                        })}
+                        <span className={outputData.toLowerCase().includes('error') ? 'text-rose-400' : 'text-emerald-300 font-semibold'}>
+                          {outputData}
+                        </span>
                       </div>
                     ) : (
-                      <div className="text-slate-500 p-2 font-mono text-xs">
-                        Click "Run" or "Submit" to inspect compiler logs and test runner benchmarks.
-                      </div>
+                      <span className="text-slate-600 italic">Click "Run" or "Submit" to compile and see output here.</span>
                     )}
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </section>
@@ -926,11 +821,11 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
 
               <div>
                 <div className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider">
-                  Test-Bench Passed
+                  Question Completed
                 </div>
-                <h3 className="text-lg sm:text-xl font-bold text-white mt-1">Accepted! All Cases Passed</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-white mt-1">Accepted! Successfully Completed</h3>
                 <p className="text-xs text-slate-300 mt-1">
-                  Your solution for <strong>{problem.title}</strong> has been evaluated and recorded in your curriculum progress.
+                  Your solution for <strong>{problem.title}</strong> has been executed successfully and marked completed in your curriculum progress.
                 </p>
               </div>
 

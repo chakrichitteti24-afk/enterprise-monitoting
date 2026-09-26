@@ -42,6 +42,28 @@ def submit_solution(
         language=submission_in.language,
     )
 
+    # Sync verification table for instant curriculum completion recognition
+    from app.models.enums import SubmissionStatus
+    if submission_in.status == SubmissionStatus.SOLVED:
+        try:
+            from app.models.verification import StudentVerifiedProblem
+            student = current_user.student_profile
+            pid_str = f"prob-{submission_in.problem_id}"
+            possible_identifiers = [student.roll_number, f"student-{student.id}", str(student.id)]
+            existing_ver = db.query(StudentVerifiedProblem).filter(
+                StudentVerifiedProblem.student_identifier.in_(possible_identifiers),
+                StudentVerifiedProblem.problem_id == pid_str,
+            ).first()
+            if not existing_ver:
+                db.add(StudentVerifiedProblem(
+                    student_identifier=student.roll_number,
+                    problem_id=pid_str,
+                    day_number=getattr(problem, 'day_number', 1) or 1,
+                ))
+                db.commit()
+        except Exception:
+            pass
+
     return SubmissionOut(
         id=submission.id,
         student_id=submission.student_id,

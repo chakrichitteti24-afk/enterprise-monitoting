@@ -29,6 +29,8 @@ env/
 *.sqlite3
 *.db
 backend/gkce_dev.db
+.runner_tmp/
+backend/.runner_tmp/
 
 # Environment variables
 .env

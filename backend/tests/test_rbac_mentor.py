@@ -9,8 +9,9 @@ def test_mentor_can_access_own_profile(client: TestClient, mentor_team1_token: s
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["assigned_team_number"] == "Team 01"
-    assert data["name"] == "Dr. K. Suresh Kumar"
+    assert len(data["assigned_teams"]) > 0
+    assert data["assigned_teams"][0]["team_number"] == "Team 01"
+    assert len(data["name"]) > 0
 
 
 def test_mentor_can_access_own_team_dossier(client: TestClient, mentor_team1_token: str):

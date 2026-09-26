@@ -7,8 +7,10 @@ import json
 import time
 import math
 from typing import List, Dict, Any, Optional, Tuple
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Depends
 from pydantic import BaseModel
+from app.core.dependencies import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/code", tags=["Code Execution Sandbox"])
 
@@ -31,6 +33,10 @@ def compare_outputs(actual_raw: Any, expected_raw: Any) -> bool:
 
     actual = str(actual_raw).replace("\r\n", "\n").strip()
     expected = str(expected_raw).replace("\r\n", "\n").strip()
+
+    # If no expected output was specified (custom stdin/output mode), execution is valid
+    if not expected:
+        return True
 
     # 1. Exact string match
     if actual == expected:
@@ -239,6 +245,16 @@ def _find_java() -> Optional[str]:
     return None
 
 
+def _get_runner_temp_dir() -> Optional[str]:
+    """Returns a safe directory for temporary execution files, avoiding Windows App Control blocks on %TEMP%."""
+    try:
+        project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".runner_tmp"))
+        os.makedirs(project_dir, exist_ok=True)
+        return project_dir
+    except Exception:
+        return None
+
+
 class TestCaseItem(BaseModel):
     id: Optional[int] = None
     input: str
@@ -249,7 +265,9 @@ class TestCaseItem(BaseModel):
 class CodeRunRequest(BaseModel):
     code: str
     language: str  # python, javascript, java, cpp
-    test_cases: List[TestCaseItem]
+    test_cases: Optional[List[TestCaseItem]] = None
+    input: Optional[str] = None
+    expected_output: Optional[str] = None
     entry_point: Optional[str] = "solve"
 
 
@@ -264,15 +282,17 @@ class TestCaseResult(BaseModel):
     error: Optional[str] = None
 
 
-@router.post("/run", summary="Execute code against test cases in sandbox")
-def run_code_sandbox(req: CodeRunRequest):
+def run_code_sandbox(req: CodeRunRequest, current_user: Optional[User] = None):
     code = req.code.strip()
     lang = req.language.lower().strip()
-    test_cases = req.test_cases
+    test_cases = req.test_cases if req.test_cases is not None else []
+    if not test_cases:
+        test_cases = [TestCaseItem(id=1, input=req.input or "", expectedOutput=req.expected_output or "")]
 
     if not code:
         return {
             "status": "COMPILATION_ERROR",
+            "output": "Code body is empty.",
             "passed_count": 0,
             "total_count": len(test_cases),
             "execution_time_ms": 0,
@@ -324,9 +344,62 @@ def run_code_sandbox(req: CodeRunRequest):
             except Exception:
                 pass
 
+        has_fn_or_class = "class Solution" in code or "def solve" in code
+        uses_stdin = "input(" in code or "sys.stdin" in code or "__main__" in code or "def main(" in code or not has_fn_or_class
+
         for idx, tc in enumerate(test_cases):
             tc_input = tc.input.strip()
             expected = tc.expectedOutput.strip()
+
+            if uses_stdin:
+                tmp_py = tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8', dir=_get_runner_temp_dir())
+                try:
+                    tmp_py.write(code)
+                    tmp_py.close()
+                    tc_t0 = time.time()
+                    rc, stdout, stderr, timed_out = _run_process_safe(
+                        [sys.executable, "-I", tmp_py.name],
+                        input_str=tc_input + "\n" if tc_input else "\n",
+                        timeout=3.0,
+                        preexec_fn=_set_limits if sys.platform != "win32" else None,
+                    )
+                    tc_time_ms = max(1, int((time.time() - tc_t0) * 1000))
+                finally:
+                    if os.path.exists(tmp_py.name):
+                        try:
+                            os.remove(tmp_py.name)
+                        except Exception:
+                            pass
+
+                if timed_out:
+                    actual_out = "Time Limit Exceeded ( > 3.0s )"
+                    is_passed = False
+                    status_str = "TIME_LIMIT_EXCEEDED"
+                elif rc != 0 or stderr:
+                    actual_out = stderr.splitlines()[-1] if stderr else f"Runtime Error (code {rc})"
+                    is_passed = False
+                    status_str = "COMPILATION_ERROR" if "SyntaxError" in (stderr or "") or "IndentationError" in (stderr or "") else "RUNTIME_ERROR"
+                    error_message = stderr
+                else:
+                    actual_out = stdout.strip() or "(No output produced)"
+                    is_passed = compare_outputs(actual_out, expected)
+                    status_str = "ACCEPTED" if is_passed else "WRONG_ANSWER"
+
+                if is_passed:
+                    passed_count += 1
+                elif overall_status == "ACCEPTED":
+                    overall_status = status_str
+
+                results.append({
+                    "id": idx + 1,
+                    "input": tc_input,
+                    "expected_output": expected,
+                    "actual_output": actual_out,
+                    "passed": is_passed,
+                    "execution_time_ms": tc_time_ms,
+                    "status": status_str,
+                })
+                continue
 
             indented_code = chr(10).join('    ' + line for line in code.splitlines())
             runner_script = f"""import sys, json, math, ast, io, builtins
@@ -435,14 +508,14 @@ def __run_test():
 
 __run_test()
 """
-            tmp_py = tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8')
+            tmp_py = tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8', dir=_get_runner_temp_dir())
             try:
                 tmp_py.write(runner_script)
                 tmp_py.close()
                 tc_t0 = time.time()
                 rc, stdout, stderr, timed_out = _run_process_safe(
                     [sys.executable, "-I", tmp_py.name],
-                    input_str=tc_input,
+                    input_str=tc_input + "\n" if tc_input else "\n",
                     timeout=3.0,
                     preexec_fn=_set_limits if sys.platform != "win32" else None,
                 )
@@ -543,12 +616,7 @@ console.log = function(...args) {{
     _printed.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
 }};
 
-try {{
 {code}
-}} catch (e) {{
-    _origLog(JSON.stringify({{error: e.message}}));
-    process.exit(0);
-}}
 
 function __run_test() {{
     let fn = null;
@@ -614,7 +682,7 @@ function __run_test() {{
 }}
 __run_test();
 """
-            tmp_js = tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8')
+            tmp_js = tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8', dir=_get_runner_temp_dir())
             try:
                 tmp_js.write(js_script)
                 tmp_js.close()
@@ -783,7 +851,7 @@ public class Main {{
 }}
 """
 
-        tmpdir = tempfile.mkdtemp(prefix="java_run_")
+        tmpdir = tempfile.mkdtemp(prefix="java_run_", dir=_get_runner_temp_dir())
         try:
             java_file = os.path.join(tmpdir, "Main.java")
             with open(java_file, "w", encoding="utf-8") as f:
@@ -886,7 +954,7 @@ public class Main {{
         import re
         has_main = bool(re.search(r'\bint\s+main\s*\(', code))
         if has_main:
-            cpp_source = code
+            cpp_source = code + '\n#ifdef _WIN32\nextern "C" __declspec(dllexport) int gkce_run_entry() { return main(); }\n#endif\n'
         else:
             entry = req.entry_point if req.entry_point else "solve"
             has_sol_class = bool(re.search(r'\bclass\s+Solution\b', code))
@@ -965,16 +1033,29 @@ ostream& operator<<(ostream& os, const vector<T>& v) {{
 int main() {{
 {main_body}    return 0;
 }}
+
+#ifdef _WIN32
+extern "C" __declspec(dllexport) int gkce_run_entry() {{
+    return main();
+}}
+#endif
 """
 
-        tmpdir = tempfile.mkdtemp(prefix="cpp_run_")
+        tmpdir = tempfile.mkdtemp(prefix="cpp_run_", dir=_get_runner_temp_dir())
         try:
             src_file = os.path.join(tmpdir, "solution.cpp")
-            bin_file = os.path.join(tmpdir, "solution.exe" if sys.platform == "win32" else "solution")
             with open(src_file, "w", encoding="utf-8") as f:
                 f.write(cpp_source)
 
-            compile_cmd = [cpp_compiler, "-O2", "-std=c++17", "-o", bin_file, src_file]
+            if sys.platform == "win32":
+                bin_file = os.path.join(tmpdir, "solution.dll")
+                compile_cmd = [cpp_compiler, "-O2", "-std=c++17", "-shared", "-static", "-o", bin_file, src_file]
+                run_cmd_base = [sys.executable, "-c", f'import ctypes; lib = ctypes.CDLL(r"{bin_file}"); lib.gkce_run_entry()']
+            else:
+                bin_file = os.path.join(tmpdir, "solution")
+                compile_cmd = [cpp_compiler, "-O2", "-std=c++17", "-o", bin_file, src_file]
+                run_cmd_base = [bin_file]
+
             comp_rc, comp_out, comp_err, comp_timed_out = _run_process_safe(
                 compile_cmd, timeout=10.0, cwd=tmpdir
             )
@@ -1008,7 +1089,7 @@ int main() {{
 
                 tc_t0 = time.time()
                 rc, run_out, run_err, timed_out = _run_process_safe(
-                    [bin_file], input_str=tc_input, timeout=3.0, cwd=tmpdir
+                    run_cmd_base, input_str=tc_input, timeout=3.0, cwd=tmpdir
                 )
                 tc_time_ms = max(1, int((time.time() - tc_t0) * 1000))
 
@@ -1065,9 +1146,19 @@ int main() {{
 
     return {
         "status": final_status,
+        "output": results[0]["actual_output"] if results else (error_message or ""),
         "passed_count": passed_count,
         "total_count": len(test_cases),
         "execution_time_ms": total_time_ms,
         "test_results": results,
         "error": error_message,
     }
+
+
+@router.post("/run", summary="Execute code against test cases in sandbox")
+def run_code_endpoint(
+    req: CodeRunRequest,
+    current_user: User = Depends(get_current_user),
+):
+    return run_code_sandbox(req, current_user=current_user)
+

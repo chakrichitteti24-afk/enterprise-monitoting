@@ -21,6 +21,7 @@ export const StudentProblemsPage: React.FC = () => {
   const [selectedDay, setSelectedDay] = useState<number | 'All'>('All');
   const [selectedTopic, setSelectedTopic] = useState<string>('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('All');
+  const [selectedStatus, setSelectedStatus] = useState<'All' | 'Solved' | 'Unsolved'>('All');
   const [activeProblem, setActiveProblem] = useState<Problem | null>(null);
 
   const verifiedProblemIds = new Set(currentUser.studentData?.verifiedProblemIds || []);
@@ -33,9 +34,14 @@ export const StudentProblemsPage: React.FC = () => {
       const matchesDay = selectedDay === 'All' || p.dayNumber === selectedDay;
       const matchesTopic = selectedTopic === 'All' || p.topic === selectedTopic || p.dayTopic === selectedTopic;
       const matchesDifficulty = selectedDifficulty === 'All' || p.difficulty === selectedDifficulty;
-      return matchesSearch && matchesDay && matchesTopic && matchesDifficulty;
+      const isSolved = verifiedProblemIds.has(p.id);
+      const matchesStatus =
+        selectedStatus === 'All' ||
+        (selectedStatus === 'Solved' && isSolved) ||
+        (selectedStatus === 'Unsolved' && !isSolved);
+      return matchesSearch && matchesDay && matchesTopic && matchesDifficulty && matchesStatus;
     });
-  }, [searchQuery, selectedDay, selectedTopic, selectedDifficulty]);
+  }, [searchQuery, selectedDay, selectedTopic, selectedDifficulty, selectedStatus, verifiedProblemIds]);
 
   const verifiedCount = PROBLEMS_BANK.filter((p) => verifiedProblemIds.has(p.id)).length;
   const overallProgressPct = Number(((verifiedCount / Math.max(1, PROBLEMS_BANK.length)) * 100).toFixed(1));
@@ -176,6 +182,16 @@ export const StudentProblemsPage: React.FC = () => {
               <option value="Medium">Medium</option>
               <option value="Hard">Hard</option>
             </select>
+
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value as any)}
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden shrink-0 font-medium"
+            >
+              <option value="All">All Statuses ({verifiedCount}/{PROBLEMS_BANK.length})</option>
+              <option value="Solved">✓ Solved ({verifiedCount})</option>
+              <option value="Unsolved">⏳ Unsolved ({PROBLEMS_BANK.length - verifiedCount})</option>
+            </select>
           </div>
         </div>
       </div>
@@ -189,7 +205,7 @@ export const StudentProblemsPage: React.FC = () => {
           <div className="space-y-1.5">
             <h3 className="text-base font-bold text-slate-900">No Matching Problems Found</h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              No problems match your current combination of search keyword, day, topic, or difficulty filter.
+              No problems match your current combination of search keyword, day, topic, difficulty, or status filter.
             </p>
           </div>
           <button
@@ -198,6 +214,7 @@ export const StudentProblemsPage: React.FC = () => {
               setSelectedDay('All');
               setSelectedTopic('All');
               setSelectedDifficulty('All');
+              setSelectedStatus('All');
             }}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold transition-all shadow-xs"
           >
