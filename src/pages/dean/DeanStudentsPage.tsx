@@ -23,6 +23,7 @@ import {
   Key,
 } from 'lucide-react';
 import { Student, DSALevel, StudentStatus } from '../../types';
+import { GithubIcon, LinkedinIcon } from '../../components/ui/SocialIcons';
 
 export const DeanStudentsPage: React.FC = () => {
   const { students, teams, setSelectedStudent, addStudent, updateStudent, removeStudent } = useAuth();
@@ -39,6 +40,8 @@ export const DeanStudentsPage: React.FC = () => {
   const [nameInput, setNameInput] = useState('');
   const [rollInput, setRollInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
+  const [githubInput, setGithubInput] = useState('');
+  const [linkedinInput, setLinkedinInput] = useState('');
   const [teamNumberInput, setTeamNumberInput] = useState(teams[0]?.teamNumber || 'Team 01');
   const [dsaLevelInput, setDsaLevelInput] = useState<DSALevel>('Beginner');
   const [statusInput, setStatusInput] = useState<StudentStatus>('Active');
@@ -70,6 +73,8 @@ export const DeanStudentsPage: React.FC = () => {
     setRollInput(`24F81A05${nextRollNum < 1000 ? nextRollNum : Math.floor(100 + Math.random() * 899)}`);
     setNameInput('');
     setEmailInput('');
+    setGithubInput('');
+    setLinkedinInput('');
     setTeamNumberInput(teams[0]?.teamNumber || 'Team 01');
     setDsaLevelInput('Beginner');
     setStatusInput('Active');
@@ -82,6 +87,8 @@ export const DeanStudentsPage: React.FC = () => {
     setNameInput(student.name);
     setRollInput(student.rollNo);
     setEmailInput(student.email);
+    setGithubInput(student.githubUrl || student.githubRepoLink || '');
+    setLinkedinInput(student.linkedinUrl || '');
     setTeamNumberInput(student.teamNumber);
     setDsaLevelInput(student.dsaLevel);
     setStatusInput(student.status);
@@ -126,12 +133,16 @@ export const DeanStudentsPage: React.FC = () => {
         teamNumber: targetTeam,
         dsaLevel: dsaLevelInput,
         status: statusInput,
+        githubUrl: githubInput.trim() || undefined,
+        linkedinUrl: linkedinInput.trim() || undefined,
       });
 
       setIsEnrollOpen(false);
       setNameInput('');
       setRollInput('');
       setEmailInput('');
+      setGithubInput('');
+      setLinkedinInput('');
       setCurrentPage(1);
       setSearchQuery('');
 
@@ -166,6 +177,8 @@ export const DeanStudentsPage: React.FC = () => {
         teamNumber: teamNumberInput,
         dsaLevel: dsaLevelInput,
         status: statusInput,
+        githubUrl: githubInput.trim() || undefined,
+        linkedinUrl: linkedinInput.trim() || undefined,
       });
       setSuccessMessage(`Student ${studentName} (${studentRoll}) updated!`);
       setTimeout(() => setSuccessMessage(null), 4000);
@@ -387,6 +400,43 @@ export const DeanStudentsPage: React.FC = () => {
                       <span>•</span>
                       <span>{s.teamNumber}</span>
                     </div>
+                    {/* Social profiles row */}
+                    <div className="flex items-center gap-1.5 mt-1.5" onClick={(e) => e.stopPropagation()}>
+                      {s.githubUrl ? (
+                        <a
+                          href={s.githubUrl.startsWith('http') ? s.githubUrl : `https://${s.githubUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-1.5 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200 text-[10px] font-semibold inline-flex items-center gap-1 transition-colors"
+                          title={`GitHub: ${s.githubUrl}`}
+                        >
+                          <GithubIcon className="w-3 h-3 text-slate-900" />
+                          <span>GitHub</span>
+                        </a>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded-md bg-slate-50 text-slate-300 border border-slate-100 text-[10px] inline-flex items-center gap-1 cursor-not-allowed">
+                          <GithubIcon className="w-3 h-3 opacity-30" />
+                          <span>No GitHub</span>
+                        </span>
+                      )}
+                      {s.linkedinUrl ? (
+                        <a
+                          href={s.linkedinUrl.startsWith('http') ? s.linkedinUrl : `https://${s.linkedinUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-1.5 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[10px] font-semibold inline-flex items-center gap-1 transition-colors"
+                          title={`LinkedIn: ${s.linkedinUrl}`}
+                        >
+                          <LinkedinIcon className="w-3 h-3 text-blue-700" />
+                          <span>LinkedIn</span>
+                        </a>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded-md bg-slate-50 text-slate-300 border border-slate-100 text-[10px] inline-flex items-center gap-1 cursor-not-allowed">
+                          <LinkedinIcon className="w-3 h-3 opacity-30" />
+                          <span>No LinkedIn</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -454,6 +504,7 @@ export const DeanStudentsPage: React.FC = () => {
                 <th className="py-3.5 px-4">DSA Progress</th>
                 <th className="py-3.5 px-4">Problems Solved</th>
                 <th className="py-3.5 px-4">Streak</th>
+                <th className="py-3.5 px-4 text-center">Profiles</th>
                 <th className="py-3.5 px-4">Status</th>
                 <th className="py-3.5 px-6 text-right">Actions</th>
               </tr>
@@ -461,7 +512,7 @@ export const DeanStudentsPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100 text-xs">
               {paginatedStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={9} className="py-12 text-center text-slate-400">
                     No students match your filter criteria.
                   </td>
                 </tr>
@@ -512,6 +563,46 @@ export const DeanStudentsPage: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4">
                       <StreakBadge streak={s.streak} size="sm" />
+                    </td>
+                    <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-center gap-1.5">
+                        {s.githubUrl ? (
+                          <a
+                            href={s.githubUrl.startsWith('http') ? s.githubUrl : `https://${s.githubUrl}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`GitHub: ${s.githubUrl}`}
+                            className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200 transition-colors inline-flex items-center justify-center shadow-2xs"
+                          >
+                            <GithubIcon className="w-3.5 h-3.5" />
+                          </a>
+                        ) : (
+                          <span
+                            title="GitHub not connected by student"
+                            className="p-1.5 rounded-xl bg-slate-50 text-slate-300 border border-slate-100 inline-flex items-center justify-center cursor-not-allowed"
+                          >
+                            <GithubIcon className="w-3.5 h-3.5 opacity-30" />
+                          </span>
+                        )}
+                        {s.linkedinUrl ? (
+                          <a
+                            href={s.linkedinUrl.startsWith('http') ? s.linkedinUrl : `https://${s.linkedinUrl}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`LinkedIn: ${s.linkedinUrl}`}
+                            className="p-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors inline-flex items-center justify-center shadow-2xs"
+                          >
+                            <LinkedinIcon className="w-3.5 h-3.5" />
+                          </a>
+                        ) : (
+                          <span
+                            title="LinkedIn not connected by student"
+                            className="p-1.5 rounded-xl bg-slate-50 text-slate-300 border border-slate-100 inline-flex items-center justify-center cursor-not-allowed"
+                          >
+                            <LinkedinIcon className="w-3.5 h-3.5 opacity-30" />
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4">
                       <StatusBadge status={s.status} size="sm" />
@@ -696,6 +787,30 @@ export const DeanStudentsPage: React.FC = () => {
                   </select>
                 </div>
 
+                {/* Professional Profiles */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">GitHub Profile (Optional)</label>
+                    <input
+                      type="text"
+                      value={githubInput}
+                      onChange={(e) => setGithubInput(e.target.value)}
+                      placeholder="e.g. github.com/username"
+                      className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 outline-hidden font-medium font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">LinkedIn Profile (Optional)</label>
+                    <input
+                      type="text"
+                      value={linkedinInput}
+                      onChange={(e) => setLinkedinInput(e.target.value)}
+                      placeholder="e.g. linkedin.com/in/username"
+                      className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 outline-hidden font-medium font-mono"
+                    />
+                  </div>
+                </div>
+
                 {/* Auto-Generated Login Credentials Preview */}
                 <div className="p-3.5 bg-blue-50/80 border border-blue-100 rounded-2xl space-y-1.5 text-xs text-blue-950">
                   <div className="font-bold flex items-center gap-1.5 text-blue-800 text-xs">
@@ -841,6 +956,30 @@ export const DeanStudentsPage: React.FC = () => {
                     <option value="Needs Attention">Needs Attention</option>
                     <option value="Inactive">Inactive</option>
                   </select>
+                </div>
+
+                {/* Professional Profiles */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">GitHub Profile</label>
+                    <input
+                      type="text"
+                      value={githubInput}
+                      onChange={(e) => setGithubInput(e.target.value)}
+                      placeholder="e.g. github.com/username"
+                      className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 outline-hidden font-medium font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">LinkedIn Profile</label>
+                    <input
+                      type="text"
+                      value={linkedinInput}
+                      onChange={(e) => setLinkedinInput(e.target.value)}
+                      placeholder="e.g. linkedin.com/in/username"
+                      className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 outline-hidden font-medium font-mono"
+                    />
+                  </div>
                 </div>
 
                 <div className="pt-3 flex gap-2 justify-end">

@@ -18,7 +18,10 @@ import {
   Sparkles,
   BookOpen,
   Radio,
+  ExternalLink,
+  AlertTriangle,
 } from 'lucide-react';
+import { GithubIcon, LinkedinIcon } from '../../components/ui/SocialIcons';
 
 export const StudentDashboard: React.FC = () => {
   const { currentUser, setActiveTab, exams } = useAuth();
@@ -36,6 +39,8 @@ export const StudentDashboard: React.FC = () => {
       </div>
     );
   }
+
+  const isSocialMissing = !student.githubUrl || !student.linkedinUrl;
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -79,6 +84,40 @@ export const StudentDashboard: React.FC = () => {
           </button>
         </motion.div>
       )}
+
+      {/* ⚠️ Mandatory Social Profiles Reminder Banner */}
+      {isSocialMissing && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 sm:p-4.5 rounded-3xl bg-amber-50/90 border border-amber-200/90 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200">
+              <AlertTriangle className="w-5 h-5 text-amber-700" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-bold text-amber-900 flex items-center gap-2 flex-wrap">
+                <span>Action Required: Professional Accounts Pending</span>
+                <span className="text-[10px] uppercase font-extrabold bg-amber-200/70 text-amber-900 px-2 py-0.5 rounded-full">
+                  Mandatory
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-amber-800 mt-0.5 leading-relaxed">
+                Connect your <strong>GitHub</strong> & <strong>LinkedIn</strong> accounts so Faculty Mentors and Root (Dean) can review your coding repositories and placement readiness.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setActiveTab('profile')}
+            className="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 inline-flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span>Link Accounts Now</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </button>
+        </motion.div>
+      )}
+
       {/* Top Banner / Welcome with RBAC Tier 3 Badge */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/85 backdrop-blur-xl p-5 md:p-6 rounded-3xl border border-slate-200/80 shadow-xs">
         <div className="min-w-0">
@@ -131,38 +170,104 @@ export const StudentDashboard: React.FC = () => {
           className="col-span-1 h-full"
         >
           <div className="flex flex-col justify-between h-full pt-1">
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-              <UserAvatar
-                src={student.avatar}
-                name={student.name}
-                id={student.rollNo}
-                role="STUDENT"
-                size="md"
-              />
-              <div className="min-w-0 flex-1">
-                <div className="font-bold text-sm text-slate-900 truncate leading-snug">{student.name}</div>
-                <div className="text-xs font-mono text-slate-500 mt-0.5">{student.rollNo}</div>
+            <div>
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+                <UserAvatar
+                  src={student.avatar}
+                  name={student.name}
+                  id={student.rollNo}
+                  role="STUDENT"
+                  size="md"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-sm text-slate-900 truncate leading-snug">{student.name}</div>
+                  <div className="text-xs font-mono text-slate-500 mt-0.5">{student.rollNo}</div>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-xs pt-2">
+                <div className="flex items-center justify-between gap-2 py-1 border-b border-slate-50">
+                  <span className="text-slate-500 shrink-0">Team</span>
+                  <span className="font-bold text-slate-800 text-right">{student.teamNumber}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2 py-1 border-b border-slate-50">
+                  <span className="text-slate-500 shrink-0">Mentor</span>
+                  <span className="font-semibold text-slate-800 text-right truncate max-w-[140px]">{student.mentorName}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2 py-1 border-b border-slate-50">
+                  <span className="text-slate-500 shrink-0">DSA Level</span>
+                  <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md text-[11px] border border-blue-100/60">
+                    {student.dsaLevel}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <span className="text-slate-500 shrink-0">Status</span>
+                  <StatusBadge status={student.status} size="sm" />
+                </div>
               </div>
             </div>
 
-            <div className="space-y-2 text-xs pt-2">
-              <div className="flex items-center justify-between gap-2 py-1 border-b border-slate-50">
-                <span className="text-slate-500 shrink-0">Team</span>
-                <span className="font-bold text-slate-800 text-right">{student.teamNumber}</span>
+            {/* Professional Accounts (GitHub & LinkedIn) */}
+            <div className="pt-2.5 mt-2.5 border-t border-slate-100 space-y-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Professional Accounts
               </div>
-              <div className="flex items-center justify-between gap-2 py-1 border-b border-slate-50">
-                <span className="text-slate-500 shrink-0">Mentor</span>
-                <span className="font-semibold text-slate-800 text-right truncate max-w-[140px]">{student.mentorName}</span>
-              </div>
-              <div className="flex items-center justify-between gap-2 py-1 border-b border-slate-50">
-                <span className="text-slate-500 shrink-0">DSA Level</span>
-                <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md text-[11px] border border-blue-100/60">
-                  {student.dsaLevel}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2 pt-1">
-                <span className="text-slate-500 shrink-0">Status</span>
-                <StatusBadge status={student.status} size="sm" />
+              <div className="grid grid-cols-2 gap-1.5">
+                {student.githubUrl ? (
+                  <a
+                    href={student.githubUrl.startsWith('http') ? student.githubUrl : `https://${student.githubUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 flex items-center justify-between text-slate-800 transition-colors group"
+                    title={student.githubUrl}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <GithubIcon className="w-3.5 h-3.5 text-slate-900 shrink-0" />
+                      <span className="text-[11px] font-semibold truncate">GitHub</span>
+                    </div>
+                    <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-slate-700 shrink-0" />
+                  </a>
+                ) : (
+                  <button
+                    onClick={() => setActiveTab('profile')}
+                    className="p-1.5 rounded-xl bg-rose-50/70 hover:bg-rose-100/80 border border-rose-200 text-rose-700 flex items-center justify-between transition-colors text-left cursor-pointer"
+                    title="GitHub not connected. Click to link"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <GithubIcon className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                      <span className="text-[11px] font-semibold truncate">+ GitHub</span>
+                    </div>
+                    <span className="text-[9px] font-bold uppercase bg-rose-200/60 px-1 rounded">Required</span>
+                  </button>
+                )}
+
+                {student.linkedinUrl ? (
+                  <a
+                    href={student.linkedinUrl.startsWith('http') ? student.linkedinUrl : `https://${student.linkedinUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 rounded-xl bg-blue-50/60 hover:bg-blue-100/60 border border-blue-200/80 flex items-center justify-between text-blue-900 transition-colors group"
+                    title={student.linkedinUrl}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <LinkedinIcon className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+                      <span className="text-[11px] font-semibold truncate">LinkedIn</span>
+                    </div>
+                    <ExternalLink className="w-3 h-3 text-blue-500 group-hover:text-blue-700 shrink-0" />
+                  </a>
+                ) : (
+                  <button
+                    onClick={() => setActiveTab('profile')}
+                    className="p-1.5 rounded-xl bg-amber-50/80 hover:bg-amber-100/80 border border-amber-200 text-amber-800 flex items-center justify-between transition-colors text-left cursor-pointer"
+                    title="LinkedIn not connected. Click to link"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <LinkedinIcon className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                      <span className="text-[11px] font-semibold truncate">+ LinkedIn</span>
+                    </div>
+                    <span className="text-[9px] font-bold uppercase bg-amber-200/60 px-1 rounded">Required</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>

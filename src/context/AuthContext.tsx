@@ -40,6 +40,7 @@ import {
   verifyTeamProblemApi,
   addMentorNoteApi,
   updateStudentGithubApi,
+  updateStudentSocialProfilesApi,
   getStudentMeDetailApi,
   getDeanStudentsAllApi,
   getDeanTeamsApi,
@@ -83,6 +84,7 @@ interface AuthContextType {
   removeStudent: (studentId: string) => Promise<void>;
   updateAvatar: (newAvatarUrl: string) => Promise<void>;
   updateGithubLink: (repoLink: string) => Promise<void>;
+  updateSocialProfiles: (profiles: { githubUrl?: string; linkedinUrl?: string }) => Promise<void>;
   solveProblem: (problem: Problem) => Promise<boolean>;
   toggleMentorProblemVerification: (studentId: string, problemId: string, verified: boolean) => void;
   batchVerifyDayProblems: (studentId: string, dayNumber: number, verified: boolean) => void;
@@ -350,11 +352,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               ALL_STUDENTS.unshift(s);
             }
           }
-          return parsed;
+          return parsed.map((s: any) => ({
+            ...s,
+            githubUrl: s.githubUrl || (typeof localStorage !== 'undefined' ? localStorage.getItem(`gkce_student_github_${s.rollNo}`) : undefined) || (s.githubRepoLink ? s.githubRepoLink : undefined),
+            linkedinUrl: s.linkedinUrl || (typeof localStorage !== 'undefined' ? localStorage.getItem(`gkce_student_linkedin_${s.rollNo}`) : undefined) || undefined,
+          }));
         }
       }
     } catch {}
-    return ALL_STUDENTS;
+    return ALL_STUDENTS.map((s: any) => ({
+      ...s,
+      githubUrl: s.githubUrl || (typeof localStorage !== 'undefined' ? localStorage.getItem(`gkce_student_github_${s.rollNo}`) : undefined) || (s.githubRepoLink ? s.githubRepoLink : undefined),
+      linkedinUrl: s.linkedinUrl || (typeof localStorage !== 'undefined' ? localStorage.getItem(`gkce_student_linkedin_${s.rollNo}`) : undefined) || undefined,
+    }));
   });
 
   useEffect(() => {
@@ -1006,50 +1016,96 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateGithubLink = async (repoLink: string) => {
+  const updateSocialProfiles = async (profiles: { githubUrl?: string; linkedinUrl?: string }) => {
     try {
-      const trimmed = repoLink.trim();
+      const cleanGithub = profiles.githubUrl !== undefined ? profiles.githubUrl.trim() : undefined;
+      const cleanLinkedin = profiles.linkedinUrl !== undefined ? profiles.linkedinUrl.trim() : undefined;
+
+      const extractGithubUsername = (url?: string) => {
+        if (!url) return undefined;
+        return url
+          .replace(/^https?:\/\/(www\.)?github\.com\//i, '')
+          .replace(/\/.*$/, '')
+          .replace(/^@/, '')
+          .trim();
+      };
+
+      const extractedGhHandle = cleanGithub ? extractGithubUsername(cleanGithub) : undefined;
+
       setCurrentUser(prev => {
         const updated = { ...prev };
         if (updated.studentData) {
-          updated.studentData = { ...updated.studentData, githubRepoLink: trimmed, githubUsername: trimmed };
+          updated.studentData = {
+            ...updated.studentData,
+            ...(cleanGithub !== undefined ? { githubUrl: cleanGithub, githubRepoLink: cleanGithub } : {}),
+            ...(extractedGhHandle ? { githubUsername: extractedGhHandle } : {}),
+            ...(cleanLinkedin !== undefined ? { linkedinUrl: cleanLinkedin } : {}),
+          };
         }
         return updated;
       });
+
       if (currentUser.studentData) {
         const sId = currentUser.studentData.id;
+        const rollNo = currentUser.studentData.rollNo;
         setStudents(prev =>
-          prev.map(s => (s.id === sId || s.rollNo === currentUser.studentData?.rollNo ? { ...s, githubRepoLink: trimmed, githubUsername: trimmed } : s))
+          prev.map(s =>
+            s.id === sId || s.rollNo === rollNo
+              ? {
+                  ...s,
+                  ...(cleanGithub !== undefined ? { githubUrl: cleanGithub, githubRepoLink: cleanGithub } : {}),
+                  ...(extractedGhHandle ? { githubUsername: extractedGhHandle } : {}),
+                  ...(cleanLinkedin !== undefined ? { linkedinUrl: cleanLinkedin } : {}),
+                }
+              : s
+          )
         );
+
+        setSelectedStudent(prev => {
+          if (!prev) return null;
+          if (prev.id === sId || prev.rollNo === rollNo) {
+            return {
+              ...prev,
+              ...(cleanGithub !== undefined ? { githubUrl: cleanGithub, githubRepoLink: cleanGithub } : {}),
+              ...(extractedGhHandle ? { githubUsername: extractedGhHandle } : {}),
+              ...(cleanLinkedin !== undefined ? { linkedinUrl: cleanLinkedin } : {}),
+            };
+          }
+          return prev;
+        });
       }
-      // Persist to backend DB so it syncs across all devices
+
+      // Persist to backend DB
       try {
         if (currentUser.role === 'STUDENT') {
-          await updateStudentGithubApi(trimmed);
-        } else {
-          const numId = currentUser.studentData
-            ? parseInt(currentUser.studentData.id.replace(/\D/g, ''), 10)
-            : NaN;
-          if (!isNaN(numId)) {
-            await updateStudentApi(numId, { github_url: trimmed, github_username: trimmed } as any);
-          }
+          await updateStudentSocialProfilesApi({
+            githubUrl: cleanGithub,
+            linkedinUrl: cleanLinkedin,
+          });
         }
       } catch (apiErr) {
-        console.warn('[updateGithubLink] Backend persist deferred, falling back to localStorage:', apiErr);
+        console.warn('[updateSocialProfiles] Backend persist deferred, falling back to localStorage:', apiErr);
       }
-      // Write-through localStorage cache for instant reads on the same device
+
+      // Write-through localStorage cache for instant reads
       try {
-        const key = `gkce_github_link_${currentUser.studentData?.rollNo || currentUser.id}`;
-        if (trimmed) {
-          localStorage.setItem(key, trimmed);
-        } else {
-          localStorage.removeItem(key);
+        const roll = currentUser.studentData?.rollNo || currentUser.id;
+        if (cleanGithub !== undefined) {
+          localStorage.setItem(`gkce_student_github_${roll}`, cleanGithub);
+          localStorage.setItem(`gkce_github_link_${roll}`, cleanGithub);
+        }
+        if (cleanLinkedin !== undefined) {
+          localStorage.setItem(`gkce_student_linkedin_${roll}`, cleanLinkedin);
         }
       } catch {}
     } catch (err) {
-      console.error('Error updating github link:', err);
+      console.error('Error updating social profiles:', err);
       throw err;
     }
+  };
+
+  const updateGithubLink = async (repoLink: string) => {
+    return updateSocialProfiles({ githubUrl: repoLink });
   };
 
   // Persist user profile to localStorage whenever it changes
@@ -2329,6 +2385,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         removeStudent,
         updateAvatar,
         updateGithubLink,
+        updateSocialProfiles,
         solveProblem,
         toggleMentorProblemVerification,
         batchVerifyDayProblems,

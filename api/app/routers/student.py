@@ -172,6 +172,8 @@ def update_student_github(
     st = current_user.student_profile
     if payload.github_url or payload.github_username:
         st.github_username = (payload.github_url or payload.github_username or '').strip()
+    if payload.linkedin_url is not None:
+        st.linkedin_url = payload.linkedin_url.strip()
     if payload.leetcode_username:
         st.leetcode_username = payload.leetcode_username.strip()
     if payload.avatar_url:
@@ -185,8 +187,8 @@ def update_student_github(
 @router.put(
     "/me/profile",
     response_model=StudentDetailOut,
-    summary="Update student profile info (GitHub, LeetCode, Avatar)",
-    description="Allows authenticated students to update their GitHub repo link, LeetCode profile, and Avatar.",
+    summary="Update student profile info (GitHub, LinkedIn, LeetCode, Avatar)",
+    description="Allows authenticated students to update their GitHub profile, LinkedIn profile, LeetCode handle, and Avatar.",
 )
 def update_student_profile(
     payload: StudentProfileUpdate,
@@ -196,6 +198,8 @@ def update_student_profile(
     st = current_user.student_profile
     if payload.github_url or payload.github_username:
         st.github_username = (payload.github_url or payload.github_username or '').strip()
+    if payload.linkedin_url is not None:
+        st.linkedin_url = payload.linkedin_url.strip()
     if payload.leetcode_username:
         st.leetcode_username = payload.leetcode_username.strip()
     if payload.avatar_url:

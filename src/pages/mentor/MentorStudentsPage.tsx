@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Student, DSALevel, StudentStatus } from '../../types';
+import { GithubIcon, LinkedinIcon } from '../../components/ui/SocialIcons';
 
 export const MentorStudentsPage: React.FC = () => {
   const { currentUser, students, teams, setSelectedStudent, addStudent, removeStudent } = useAuth();
@@ -43,6 +44,8 @@ export const MentorStudentsPage: React.FC = () => {
   const [nameInput, setNameInput] = useState('');
   const [rollInput, setRollInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
+  const [githubInput, setGithubInput] = useState('');
+  const [linkedinInput, setLinkedinInput] = useState('');
   const [selectedTeamForEnroll, setSelectedTeamForEnroll] = useState<string>(activeTeams[0]?.teamNumber || 'Team 07');
   const [dsaLevelInput, setDsaLevelInput] = useState<DSALevel>('Beginner');
   const [statusInput, setStatusInput] = useState<StudentStatus>('Active');
@@ -89,6 +92,8 @@ export const MentorStudentsPage: React.FC = () => {
     setRollInput(`24F81A05${nextRoll < 1000 ? nextRoll : Math.floor(100 + Math.random() * 899)}`);
     setNameInput('');
     setEmailInput('');
+    setGithubInput('');
+    setLinkedinInput('');
     setSelectedTeamForEnroll(activeTeams[0]?.teamNumber || 'Team 07');
     setDsaLevelInput('Beginner');
     setStatusInput('Active');
@@ -115,12 +120,16 @@ export const MentorStudentsPage: React.FC = () => {
         teamNumber: targetTeam,
         dsaLevel: dsaLevelInput,
         status: statusInput,
+        githubUrl: githubInput.trim() || undefined,
+        linkedinUrl: linkedinInput.trim() || undefined,
       });
 
       setIsEnrollOpen(false);
       setNameInput('');
       setRollInput('');
       setEmailInput('');
+      setGithubInput('');
+      setLinkedinInput('');
       setFilterQuery('');
 
       // Show auto-generated credentials card
@@ -287,6 +296,43 @@ export const MentorStudentsPage: React.FC = () => {
                       <span>•</span>
                       <span>{st.dsaLevel}</span>
                     </div>
+                    {/* Social profiles row */}
+                    <div className="flex items-center gap-1.5 mt-1.5" onClick={(e) => e.stopPropagation()}>
+                      {st.githubUrl ? (
+                        <a
+                          href={st.githubUrl.startsWith('http') ? st.githubUrl : `https://${st.githubUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-1.5 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200 text-[10px] font-semibold inline-flex items-center gap-1 transition-colors"
+                          title={`GitHub: ${st.githubUrl}`}
+                        >
+                          <GithubIcon className="w-3 h-3 text-slate-900" />
+                          <span>GitHub</span>
+                        </a>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded-md bg-slate-50 text-slate-300 border border-slate-100 text-[10px] inline-flex items-center gap-1 cursor-not-allowed">
+                          <GithubIcon className="w-3 h-3 opacity-30" />
+                          <span>No GitHub</span>
+                        </span>
+                      )}
+                      {st.linkedinUrl ? (
+                        <a
+                          href={st.linkedinUrl.startsWith('http') ? st.linkedinUrl : `https://${st.linkedinUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-1.5 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[10px] font-semibold inline-flex items-center gap-1 transition-colors"
+                          title={`LinkedIn: ${st.linkedinUrl}`}
+                        >
+                          <LinkedinIcon className="w-3 h-3 text-blue-700" />
+                          <span>LinkedIn</span>
+                        </a>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded-md bg-slate-50 text-slate-300 border border-slate-100 text-[10px] inline-flex items-center gap-1 cursor-not-allowed">
+                          <LinkedinIcon className="w-3 h-3 opacity-30" />
+                          <span>No LinkedIn</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <StatusBadge status={st.status} size="sm" />
@@ -343,7 +389,7 @@ export const MentorStudentsPage: React.FC = () => {
                 <th className="py-3.5 px-4">Roll Number</th>
                 <th className="py-3.5 px-4">DSA Progress</th>
                 <th className="py-3.5 px-4">Problems Solved</th>
-                <th className="py-3.5 px-4">Current Streak</th>
+                <th className="py-3.5 px-4 text-center">Profiles</th>
                 <th className="py-3.5 px-4">Status</th>
                 <th className="py-3.5 px-4 sm:px-6 text-right">Actions</th>
               </tr>
@@ -392,6 +438,46 @@ export const MentorStudentsPage: React.FC = () => {
                   </td>
                   <td className="py-3.5 px-4">
                     <StreakBadge streak={st.streak} size="sm" />
+                  </td>
+                  <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-center gap-1.5">
+                      {st.githubUrl ? (
+                        <a
+                          href={st.githubUrl.startsWith('http') ? st.githubUrl : `https://${st.githubUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`GitHub: ${st.githubUrl}`}
+                          className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200 transition-colors inline-flex items-center justify-center shadow-2xs"
+                        >
+                          <GithubIcon className="w-3.5 h-3.5" />
+                        </a>
+                      ) : (
+                        <span
+                          title="GitHub not connected by student"
+                          className="p-1.5 rounded-xl bg-slate-50 text-slate-300 border border-slate-100 inline-flex items-center justify-center cursor-not-allowed"
+                        >
+                          <GithubIcon className="w-3.5 h-3.5 opacity-30" />
+                        </span>
+                      )}
+                      {st.linkedinUrl ? (
+                        <a
+                          href={st.linkedinUrl.startsWith('http') ? st.linkedinUrl : `https://${st.linkedinUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`LinkedIn: ${st.linkedinUrl}`}
+                          className="p-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors inline-flex items-center justify-center shadow-2xs"
+                        >
+                          <LinkedinIcon className="w-3.5 h-3.5" />
+                        </a>
+                      ) : (
+                        <span
+                          title="LinkedIn not connected by student"
+                          className="p-1.5 rounded-xl bg-slate-50 text-slate-300 border border-slate-100 inline-flex items-center justify-center cursor-not-allowed"
+                        >
+                          <LinkedinIcon className="w-3.5 h-3.5 opacity-30" />
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3.5 px-4">
                     <StatusBadge status={st.status} size="sm" />
@@ -536,6 +622,30 @@ export const MentorStudentsPage: React.FC = () => {
                       <option value="Active">Active</option>
                       <option value="Needs Attention">Needs Attention</option>
                     </select>
+                  </div>
+                </div>
+
+                {/* Professional Profiles */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">GitHub Profile (Optional)</label>
+                    <input
+                      type="text"
+                      value={githubInput}
+                      onChange={(e) => setGithubInput(e.target.value)}
+                      placeholder="e.g. github.com/user"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">LinkedIn Profile (Optional)</label>
+                    <input
+                      type="text"
+                      value={linkedinInput}
+                      onChange={(e) => setLinkedinInput(e.target.value)}
+                      placeholder="e.g. linkedin.com/in/user"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium font-mono"
+                    />
                   </div>
                 </div>
 

@@ -59,6 +59,8 @@ export interface Student {
   leetcodeUsername?: string;
   githubUsername?: string;
   githubRepoLink?: string; // student-submitted GitHub repo/solution link
+  githubUrl?: string; // student GitHub profile URL
+  linkedinUrl?: string; // student LinkedIn profile URL
 }
 
 export interface Team {

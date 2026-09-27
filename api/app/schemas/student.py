@@ -14,6 +14,8 @@ class StudentCreate(BaseModel):
     password: Optional[str] = Field(default="Student@GKCE2026", min_length=6)
     dsa_level: DSALevel = DSALevel.BEGINNER
     status: StudentStatus = StudentStatus.ACTIVE
+    github_url: Optional[str] = None
+    linkedin_url: Optional[str] = None
 
     @field_validator("dsa_level", mode="before")
     @classmethod
@@ -60,6 +62,7 @@ class StudentUpdate(BaseModel):
     status: Optional[StudentStatus] = None
     github_username: Optional[str] = None
     github_url: Optional[str] = None
+    linkedin_url: Optional[str] = None
     leetcode_username: Optional[str] = None
 
     @field_validator("dsa_level", mode="before")
@@ -104,6 +107,7 @@ class StudentUpdate(BaseModel):
 class StudentProfileUpdate(BaseModel):
     github_username: Optional[str] = Field(default=None, max_length=255)
     github_url: Optional[str] = Field(default=None, max_length=500)
+    linkedin_url: Optional[str] = Field(default=None, max_length=500)
     leetcode_username: Optional[str] = Field(default=None, max_length=255)
     avatar_url: Optional[str] = Field(default=None, max_length=500000)
 
@@ -185,6 +189,8 @@ class StudentOut(BaseModel):
     current_streak: int
     longest_streak: int
     github_username: Optional[str] = None
+    github_url: Optional[str] = None
+    linkedin_url: Optional[str] = None
     leetcode_username: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

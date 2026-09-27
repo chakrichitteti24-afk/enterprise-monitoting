@@ -38,6 +38,7 @@ class Student(Base):
     )
     github_username: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     leetcode_username: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    linkedin_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

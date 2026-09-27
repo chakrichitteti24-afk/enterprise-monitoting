@@ -236,6 +236,17 @@ export async function updateStudentGithubApi(repoLink: string) {
   });
 }
 
+export async function updateStudentSocialProfilesApi(profiles: { githubUrl?: string; linkedinUrl?: string }) {
+  return apiRequest<any>('/student/me/profile', {
+    method: 'PUT',
+    body: JSON.stringify({
+      github_url: profiles.githubUrl,
+      github_username: profiles.githubUrl,
+      linkedin_url: profiles.linkedinUrl,
+    }),
+  });
+}
+
 export async function addMentorNoteApi(studentId: number, note: string) {
   return apiRequest<any>(`/mentor/students/${studentId}/notes`, {
     method: 'POST',

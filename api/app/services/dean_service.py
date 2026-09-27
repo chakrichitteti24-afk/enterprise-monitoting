@@ -537,6 +537,9 @@ class DeanService:
         if student_in.github_username or student_in.github_url:
             student.github_username = (student_in.github_url or student_in.github_username or '').strip()
 
+        if student_in.linkedin_url is not None:
+            student.linkedin_url = student_in.linkedin_url.strip()
+
         if student_in.leetcode_username:
             student.leetcode_username = student_in.leetcode_username.strip()
 

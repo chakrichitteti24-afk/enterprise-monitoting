@@ -67,6 +67,8 @@ class StudentService:
             current_streak=prog.current_streak if prog else 0,
             longest_streak=prog.longest_streak if prog else 0,
             github_username=student.github_username,
+            github_url=f"https://github.com/{student.github_username}" if (student.github_username and not str(student.github_username).startswith("http")) else student.github_username,
+            linkedin_url=student.linkedin_url,
             leetcode_username=student.leetcode_username,
         )
 

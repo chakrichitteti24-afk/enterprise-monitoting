@@ -1096,7 +1096,9 @@ export const ALL_STUDENTS: any[] = [
     "mentorFeedbackNotes": [],
     "verifiedProblemIds": [],
     "leetcodeUsername": "ch__chakri_0522",
-    "githubUsername": "chchakri_0522"
+    "githubUsername": "chchakri_0522",
+    "githubUrl": "https://github.com/chchakri24",
+    "linkedinUrl": "https://linkedin.com/in/ch-chakri"
   },
   {
     "id": "student-29",
