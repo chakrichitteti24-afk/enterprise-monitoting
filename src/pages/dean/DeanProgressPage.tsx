@@ -56,70 +56,97 @@ export const DeanProgressPage: React.FC = () => {
 
       {/* Top 3 KPI Bento Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-        <BentoCard title="Cohort Completion Rate" subtitle={`${students.length} Student Average`} className="col-span-1">
-          <div className="flex flex-col items-center justify-center py-3 text-center">
-            <ProgressRing percentage={avgProgress} size={130} strokeWidth={10} color="#1d4ed8" />
-            <div className="mt-3">
-              <div className="text-sm font-bold text-slate-900">{avgProgress}% Batch Completion</div>
-              <div className="text-[11px] text-slate-400">{totalProblemsSolved} Total Problems Verified</div>
+        <BentoCard title="Cohort Completion Rate" subtitle={`${students.length} Student Average`} className="col-span-1 h-full">
+          <div className="flex flex-col justify-between h-full pt-1">
+            <div className="flex flex-col items-center justify-center my-auto py-2 text-center">
+              <ProgressRing percentage={avgProgress} size={124} strokeWidth={10} color="#1d4ed8" label="Batch Avg" />
+              <div className="mt-2.5">
+                <div className="text-sm font-bold text-slate-900">{avgProgress}% Batch Completion</div>
+                <div className="text-[11px] text-slate-400">{totalProblemsSolved} Total Problems Verified</div>
+              </div>
+            </div>
+
+            <div className="w-full mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span className="text-slate-500 font-medium">Institution Status</span>
+              <span className="px-2 py-0.5 rounded-full font-bold text-[11px] bg-blue-50 text-blue-700 border border-blue-200">
+                Active Term
+              </span>
             </div>
           </div>
         </BentoCard>
 
         {/* Status Distribution */}
-        <BentoCard title="Engagement Segmentation" subtitle="Active vs Risk Breakdown" className="col-span-1">
-          <div className="space-y-3 pt-2">
-            <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <span className="text-xs font-medium text-emerald-900">Active Students</span>
+        <BentoCard title="Engagement Segmentation" subtitle="Active vs Risk Breakdown" className="col-span-1 h-full">
+          <div className="flex flex-col justify-between h-full pt-1">
+            <div className="space-y-2.5">
+              <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <span className="text-xs font-medium text-emerald-900">Active Students</span>
+                </div>
+                <span className="text-sm font-bold text-emerald-900 font-mono">{activeCount} / {students.length}</span>
               </div>
-              <span className="text-sm font-bold text-emerald-900">{activeCount} / {students.length}</span>
+
+              <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  <span className="text-xs font-medium text-amber-900">Needs Attention</span>
+                </div>
+                <span className="text-sm font-bold text-amber-900 font-mono">{attentionCount} / {students.length}</span>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
+                  <span className="text-xs font-medium text-slate-800">Inactive</span>
+                </div>
+                <span className="text-sm font-bold text-slate-900 font-mono">{inactiveCount} / {students.length}</span>
+              </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                <span className="text-xs font-medium text-amber-900">Needs Attention</span>
-              </div>
-              <span className="text-sm font-bold text-amber-900">{attentionCount} / {students.length}</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
-                <span className="text-xs font-medium text-slate-800">Inactive / Low Solve</span>
-              </div>
-              <span className="text-sm font-bold text-slate-900">{inactiveCount} / {students.length}</span>
+            <div className="w-full mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span className="text-slate-500 font-medium">Health Index</span>
+              <span className="font-bold text-emerald-700 font-mono">
+                {Number(((activeCount / Math.max(1, students.length)) * 100).toFixed(1))}% active
+              </span>
             </div>
           </div>
         </BentoCard>
 
         {/* Difficulty Distribution Across All Students */}
-        <BentoCard title="Difficulty Solves (Student Average)" subtitle="Average solutions per student" className="col-span-1">
-          <div className="space-y-3 pt-2">
-            <div>
-              <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
-                <span>Easy Solves</span>
-                <span className="font-bold text-emerald-700">{Number((easyTotalSolved / Math.max(1, students.length)).toFixed(1))} / {DIFFICULTY_TOTALS.easy}</span>
+        <BentoCard title="Difficulty Solves (Student Average)" subtitle="Average solutions per student" className="col-span-1 h-full">
+          <div className="flex flex-col justify-between h-full pt-1">
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
+                  <span>Easy Solves</span>
+                  <span className="font-bold text-emerald-700">{Number((easyTotalSolved / Math.max(1, students.length)).toFixed(1))} / {DIFFICULTY_TOTALS.easy}</span>
+                </div>
+                <ProgressBar percentage={(Number((easyTotalSolved / Math.max(1, students.length)).toFixed(1)) / Math.max(1, DIFFICULTY_TOTALS.easy)) * 100} color="emerald" height="xs" />
               </div>
-              <ProgressBar percentage={(Number((easyTotalSolved / Math.max(1, students.length)).toFixed(1)) / Math.max(1, DIFFICULTY_TOTALS.easy)) * 100} color="emerald" height="xs" />
+
+              <div>
+                <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
+                  <span>Medium Solves</span>
+                  <span className="font-bold text-amber-700">{Number((mediumTotalSolved / Math.max(1, students.length)).toFixed(1))} / {DIFFICULTY_TOTALS.medium}</span>
+                </div>
+                <ProgressBar percentage={(Number((mediumTotalSolved / Math.max(1, students.length)).toFixed(1)) / Math.max(1, DIFFICULTY_TOTALS.medium)) * 100} color="amber" height="xs" />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
+                  <span>Hard Solves</span>
+                  <span className="font-bold text-rose-700">{Number((hardTotalSolved / Math.max(1, students.length)).toFixed(1))} / {DIFFICULTY_TOTALS.hard}</span>
+                </div>
+                <ProgressBar percentage={(Number((hardTotalSolved / Math.max(1, students.length)).toFixed(1)) / Math.max(1, DIFFICULTY_TOTALS.hard)) * 100} color="slate" height="xs" />
+              </div>
             </div>
 
-            <div>
-              <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
-                <span>Medium Solves</span>
-                <span className="font-bold text-amber-700">{Number((mediumTotalSolved / Math.max(1, students.length)).toFixed(1))} / {DIFFICULTY_TOTALS.medium}</span>
-              </div>
-              <ProgressBar percentage={(Number((mediumTotalSolved / Math.max(1, students.length)).toFixed(1)) / Math.max(1, DIFFICULTY_TOTALS.medium)) * 100} color="amber" height="xs" />
-            </div>
-
-            <div>
-              <div className="flex justify-between text-xs font-medium text-slate-700 mb-1">
-                <span>Hard Solves</span>
-                <span className="font-bold text-rose-700">{Number((hardTotalSolved / Math.max(1, students.length)).toFixed(1))} / {DIFFICULTY_TOTALS.hard}</span>
-              </div>
-              <ProgressBar percentage={(Number((hardTotalSolved / Math.max(1, students.length)).toFixed(1)) / Math.max(1, DIFFICULTY_TOTALS.hard)) * 100} color="slate" height="xs" />
+            <div className="w-full mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span className="text-slate-500 font-medium">Aggregate Solves</span>
+              <span className="font-bold text-slate-900 font-mono">
+                {totalProblemsSolved} Total
+              </span>
             </div>
           </div>
         </BentoCard>

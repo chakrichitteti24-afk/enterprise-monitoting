@@ -164,28 +164,30 @@ export const DeanDashboard: React.FC = () => {
           action={
             <button
               onClick={() => setActiveTab('analytics')}
-              className="text-xs text-blue-600 hover:underline font-semibold"
+              className="text-xs text-blue-600 hover:underline font-semibold cursor-pointer"
             >
               Analytics →
             </button>
           }
-          className="col-span-1"
+          className="col-span-1 h-full"
         >
-          <div className="flex flex-col items-center justify-center py-3 text-center">
-            <ProgressRing
-              percentage={overallProgress}
-              size={140}
-              strokeWidth={11}
-              color="#1d4ed8"
-              label="Completed"
-              subLabel={`${totalStudents} Students`}
-            />
-            <div className="mt-3 space-y-1">
-              <div className="text-sm font-bold text-slate-900">
-                {overallProgress}% DSA Completion
-              </div>
-              <div className="text-[11px] text-slate-500">
-                Across {totalStudents} students in {totalTeams} mentored teams
+          <div className="flex flex-col justify-between h-full pt-1">
+            <div className="flex flex-col items-center justify-center my-auto py-2 text-center">
+              <ProgressRing
+                percentage={overallProgress}
+                size={136}
+                strokeWidth={11}
+                color="#1d4ed8"
+                label="Completed"
+                subLabel={`${totalStudents} Students`}
+              />
+              <div className="mt-2.5 space-y-1">
+                <div className="text-sm font-bold text-slate-900">
+                  {overallProgress}% DSA Completion
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Across {totalStudents} students in {totalTeams} mentored teams
+                </div>
               </div>
             </div>
 
@@ -217,7 +219,7 @@ export const DeanDashboard: React.FC = () => {
           title="Team Benchmarks & Alerts"
           subtitle="Performance Outliers & Support Queue"
           icon={<Award className="w-4 h-4 text-amber-600" />}
-          className="col-span-1 lg:col-span-2 flex flex-col justify-between"
+          className="col-span-1 lg:col-span-2 h-full flex flex-col justify-between"
         >
           <div className="space-y-4 pt-1">
             {/* Top 3 Teams */}
@@ -267,7 +269,7 @@ export const DeanDashboard: React.FC = () => {
                 {needsAttentionTeams.length > 0 && (
                   <button
                     onClick={() => setTeamStatusFilter('Needs Attention')}
-                    className="px-2.5 py-1 bg-white border border-amber-300 text-amber-900 rounded-xl text-xs font-semibold hover:bg-amber-100 shrink-0 shadow-2xs"
+                    className="px-2.5 py-1 bg-white border border-amber-300 text-amber-900 rounded-xl text-xs font-semibold hover:bg-amber-100 shrink-0 shadow-2xs cursor-pointer"
                   >
                     Filter
                   </button>
@@ -276,11 +278,11 @@ export const DeanDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 mt-4">
             <span>{totalTeams} Teams • Monitored Cohorts</span>
             <button
               onClick={() => setActiveTab('teams')}
-              className="text-blue-600 hover:underline font-bold"
+              className="text-blue-600 hover:underline font-bold cursor-pointer"
             >
               View Full Team Roster →
             </button>
@@ -307,7 +309,7 @@ export const DeanDashboard: React.FC = () => {
                 <button
                   key={st}
                   onClick={() => setTeamStatusFilter(st)}
-                  className={`px-3 py-1 rounded-xl transition-all text-[11px] font-semibold ${
+                  className={`px-3 py-1 rounded-xl transition-all text-[11px] font-semibold cursor-pointer ${
                     teamStatusFilter === st
                       ? 'bg-white text-slate-900 shadow-2xs'
                       : 'text-slate-500 hover:text-slate-900'
@@ -333,7 +335,7 @@ export const DeanDashboard: React.FC = () => {
         </div>
 
         {/* Teams Bento Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4 items-stretch">
           {filteredTeams.map((team) => {
             const teamStudentCount = students.filter(s => s.teamId === team.id || s.teamNumber === team.teamNumber).length;
             return (
@@ -342,9 +344,9 @@ export const DeanDashboard: React.FC = () => {
                 whileHover={{ y: -2, scale: 1.01 }}
                 whileTap={{ scale: 0.985 }}
                 onClick={() => setSelectedTeam(team)}
-                className="p-4 sm:p-5 rounded-3xl border border-slate-200/90 bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group gpu-layer"
+                className="p-4 sm:p-5 rounded-3xl border border-slate-200/90 bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group gpu-layer h-full"
               >
-                <div>
+                <div className="flex flex-col flex-1">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors truncate">
                       {team.teamNumber}
@@ -352,23 +354,27 @@ export const DeanDashboard: React.FC = () => {
                     <StatusBadge status={team.status} size="sm" />
                   </div>
 
-                  <div className="text-xs text-slate-600 font-semibold">
-                    {teamStudentCount} Students
-                  </div>
-                  <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                    Mentor: {team.mentorName}
+                  <div className="min-h-[38px] flex flex-col justify-center">
+                    <div className="text-xs text-slate-600 font-semibold">
+                      {teamStudentCount} Students
+                    </div>
+                    <div className="text-[11px] text-slate-400 truncate mt-0.5" title={team.mentorName}>
+                      Mentor: {team.mentorName}
+                    </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-500 font-medium">Avg Progress</span>
-                      <span className="font-bold text-slate-900">{team.avgProgress}%</span>
+                  <div className="mt-4 pt-3 border-t border-slate-100 space-y-2 flex-1 flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-500 font-medium">Avg Progress</span>
+                        <span className="font-bold text-slate-900">{team.avgProgress}%</span>
+                      </div>
+                      <ProgressBar
+                        percentage={team.avgProgress}
+                        height="xs"
+                        color={team.avgProgress >= 80 ? 'emerald' : team.avgProgress >= 70 ? 'indigo' : 'amber'}
+                      />
                     </div>
-                    <ProgressBar
-                      percentage={team.avgProgress}
-                      height="xs"
-                      color={team.avgProgress >= 80 ? 'emerald' : team.avgProgress >= 70 ? 'indigo' : 'amber'}
-                    />
 
                     <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
                       <span>Problems:</span>

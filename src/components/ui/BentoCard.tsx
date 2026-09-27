@@ -83,7 +83,7 @@ export const BentoCard: React.FC<BentoCardProps> = ({
         </div>
       )}
 
-      <div className="relative z-10 flex-1">{children}</div>
+      <div className="relative z-10 flex-1 flex flex-col">{children}</div>
     </motion.div>
   );
 };

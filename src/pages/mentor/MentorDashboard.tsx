@@ -160,20 +160,45 @@ export const MentorDashboard: React.FC = () => {
           title="Team Progress"
           subtitle="Overall Cohort Mastery"
           icon={<TrendingUp className="w-4 h-4 text-blue-600" />}
-          className="col-span-1"
+          className="col-span-1 h-full"
         >
-          <div className="flex flex-col items-center justify-center my-auto py-3 text-center">
-            <ProgressRing
-              percentage={avgProgress}
-              size={130}
-              strokeWidth={10}
-              color="#2563eb"
-              label="Team Average"
-            />
-            <div className="mt-3">
-              <div className="text-sm font-bold text-slate-900">{avgProgress}% Team Progress</div>
-              <div className="text-[11px] text-slate-500 mt-0.5">
-                Target: &gt;70% milestone for GKCE Term Evaluation
+          <div className="flex flex-col justify-between h-full pt-1">
+            <div className="flex flex-col items-center justify-center my-auto py-2 text-center">
+              <ProgressRing
+                percentage={avgProgress}
+                size={120}
+                strokeWidth={10}
+                color="#2563eb"
+                label="Team Average"
+              />
+              <div className="mt-2.5">
+                <div className="text-sm font-bold text-slate-900">{avgProgress}% Team Progress</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">
+                  Target: &gt;70% milestone for GKCE Term Evaluation
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3 pt-3 border-t border-slate-100/90 w-full space-y-2">
+              <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
+                <span className="text-slate-500 font-medium">Cohort Status</span>
+                <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
+                  avgProgress >= 70 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                }`}>
+                  {avgProgress >= 70 ? 'On Target (≥70%)' : 'Needs Intervention'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-center">
+                <div className="p-2 rounded-2xl bg-slate-50 border border-slate-100">
+                  <div className="text-[10px] text-slate-400 font-medium">Cohort Solves</div>
+                  <div className="text-sm font-bold text-slate-900 font-mono mt-0.5">{totalProblemsSolved}</div>
+                </div>
+                <div className="p-2 rounded-2xl bg-slate-50 border border-slate-100">
+                  <div className="text-[10px] text-slate-400 font-medium">Active Students</div>
+                  <div className="text-sm font-bold text-emerald-700 font-mono mt-0.5">
+                    {teamStudents.filter(s => s.status === 'Active').length}/{teamStudents.length}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -184,66 +209,68 @@ export const MentorDashboard: React.FC = () => {
           title="Team Analytics"
           subtitle="Aggregate Performance"
           icon={<BarChart3 className="w-4 h-4 text-indigo-600" />}
-          className="col-span-1 lg:col-span-3"
+          className="col-span-1 lg:col-span-3 h-full"
         >
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
-              <div className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider truncate">Avg Progress</div>
-              <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">{avgProgress}%</div>
-              <div className="text-[10px] text-emerald-600 font-bold mt-1">
-                {teamStudents.filter(s => s.progress >= 70).length} / {teamStudents.length} On Target
+          <div className="flex flex-col justify-between h-full pt-1">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                <div className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider truncate">Avg Progress</div>
+                <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">{avgProgress}%</div>
+                <div className="text-[10px] text-emerald-600 font-bold mt-1">
+                  {teamStudents.filter(s => s.progress >= 70).length} / {teamStudents.length} On Target
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                <div className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider truncate">Problems Solved</div>
+                <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">{totalProblemsSolved}</div>
+                <div className="text-[10px] text-slate-400 font-medium mt-1">Across {teamStudents.length} students</div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                <div className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider truncate">Average Streak</div>
+                <div className="text-xl sm:text-2xl font-extrabold text-amber-700 mt-1">{avgStreak}d</div>
+                <div className="text-[10px] text-amber-600 font-bold mt-1">Daily consistency</div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                <div className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider truncate">Active Cohort</div>
+                <div className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-1">
+                  {teamStudents.filter(s => s.status === 'Active').length} / {teamStudents.length}
+                </div>
+                <div className="text-[10px] text-slate-400 font-medium mt-1">
+                  {teamStudents.length > 0 ? Number(((teamStudents.filter(s => s.status === 'Active').length / teamStudents.length) * 100).toFixed(1)) : 0}% active rate
+                </div>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
-              <div className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider truncate">Problems Solved</div>
-              <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">{totalProblemsSolved}</div>
-              <div className="text-[10px] text-slate-400 font-medium mt-1">Across {teamStudents.length} students</div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
-              <div className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider truncate">Average Streak</div>
-              <div className="text-xl sm:text-2xl font-extrabold text-amber-700 mt-1">{avgStreak}d</div>
-              <div className="text-[10px] text-amber-600 font-bold mt-1">Daily consistency</div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
-              <div className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider truncate">Active Cohort</div>
-              <div className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-1">
-                {teamStudents.filter(s => s.status === 'Active').length} / {teamStudents.length}
+            {/* Quick Topic Overview */}
+            <div className="mt-4 pt-3 border-t border-slate-100">
+              <div className="flex justify-between items-center text-xs font-bold text-slate-800 mb-2">
+                <span>Topic Performance Overview</span>
+                <button
+                  onClick={() => setActiveTab('progress')}
+                  className="text-blue-600 hover:underline text-[11px] font-semibold cursor-pointer"
+                >
+                  Deep Analytics →
+                </button>
               </div>
-              <div className="text-[10px] text-slate-400 font-medium mt-1">
-                {teamStudents.length > 0 ? Number(((teamStudents.filter(s => s.status === 'Active').length / teamStudents.length) * 100).toFixed(1)) : 0}% active rate
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Topic Overview */}
-          <div className="mt-4 pt-3 border-t border-slate-100">
-            <div className="flex justify-between items-center text-xs font-bold text-slate-800 mb-2">
-              <span>Topic Performance Overview</span>
-              <button
-                onClick={() => setActiveTab('progress')}
-                className="text-blue-600 hover:underline text-[11px] font-semibold"
-              >
-                Deep Analytics →
-              </button>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {DSA_TOPICS.filter(t => (TOPIC_CURRICULUM_TOTALS[t] ?? 0) > 0).map((topic) => {
-                const perc = teamStudents.length > 0
-                  ? Number((teamStudents.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / teamStudents.length).toFixed(1))
-                  : (displayedTeams[0]?.topicPerformance?.[topic] || 0);
-                return (
-                  <div key={topic} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                    <div className="flex justify-between text-[11px] font-medium text-slate-700 mb-1">
-                      <span className="truncate pr-1">{topic}</span>
-                      <span className="font-bold shrink-0">{perc}%</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {DSA_TOPICS.filter(t => (TOPIC_CURRICULUM_TOTALS[t] ?? 0) > 0).map((topic) => {
+                  const perc = teamStudents.length > 0
+                    ? Number((teamStudents.reduce((sum, st) => sum + (st.topicProgress[topic]?.percentage || 0), 0) / teamStudents.length).toFixed(1))
+                    : (displayedTeams[0]?.topicPerformance?.[topic] || 0);
+                  return (
+                    <div key={topic} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                      <div className="flex justify-between text-[11px] font-medium text-slate-700 mb-1">
+                        <span className="truncate pr-1">{topic}</span>
+                        <span className="font-bold shrink-0">{perc}%</span>
+                      </div>
+                      <ProgressBar percentage={perc} height="xs" color={perc >= 80 ? 'emerald' : 'indigo'} />
                     </div>
-                    <ProgressBar percentage={perc} height="xs" color={perc >= 80 ? 'emerald' : 'indigo'} />
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
         </BentoCard>
@@ -259,16 +286,16 @@ export const MentorDashboard: React.FC = () => {
           </div>
 
           {/* 5 Student Bento Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5 sm:gap-4 items-stretch">
             {teamStudents.map((st) => (
               <motion.div
                 key={st.id}
                 whileHover={{ y: -2, scale: 1.01 }}
                 whileTap={{ scale: 0.985 }}
                 onClick={() => handleStudentClick(st)}
-                className="p-4 sm:p-5 rounded-3xl border border-slate-200/90 bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group gpu-layer"
+                className="p-4 sm:p-5 rounded-3xl border border-slate-200/90 bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group gpu-layer h-full"
               >
-                <div>
+                <div className="flex flex-col flex-1">
                   {/* Top: Avatar, Name, Roll No, Status */}
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <UserAvatar
@@ -281,15 +308,17 @@ export const MentorDashboard: React.FC = () => {
                     <StatusBadge status={st.status} size="sm" />
                   </div>
 
-                  <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate leading-snug">
-                    {st.name}
-                  </h3>
-                  <div className="text-xs font-mono text-slate-500 mt-0.5">
-                    {st.rollNo}
+                  <div className="min-h-[46px] flex flex-col justify-center">
+                    <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate leading-snug" title={st.name}>
+                      {st.name}
+                    </h3>
+                    <div className="text-xs font-mono text-slate-500 mt-0.5">
+                      {st.rollNo}
+                    </div>
                   </div>
 
                   {/* Core Metrics: Progress & Problems Solved */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 space-y-2.5">
+                  <div className="mt-4 pt-3 border-t border-slate-100 space-y-2.5 flex-1 flex flex-col justify-between">
                     <div>
                       <div className="flex justify-between items-center text-xs mb-1">
                         <span className="text-slate-500 font-medium">Progress</span>
