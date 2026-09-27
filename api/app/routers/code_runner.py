@@ -354,7 +354,13 @@ def run_code_sandbox(req: CodeRunRequest, current_user: Optional[User] = None):
             if uses_stdin:
                 tmp_py = tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8', dir=_get_runner_temp_dir())
                 try:
-                    tmp_py.write(code)
+                    # Suppress interactive prompt strings (e.g. input("enter your number")) to prevent corrupting judge output
+                    preamble = (
+                        "import builtins as _builtins\n"
+                        "_orig_input = _builtins.input\n"
+                        "_builtins.input = lambda prompt=None: _orig_input()\n"
+                    )
+                    tmp_py.write(preamble + code)
                     tmp_py.close()
                     tc_t0 = time.time()
                     rc, stdout, stderr, timed_out = _run_process_safe(
