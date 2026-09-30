@@ -346,15 +346,18 @@ def auto_end_exam(
 
 def is_untouched_starter_template(code: str, language: str = "") -> bool:
     cleaned = (code or "").strip()
-    if not cleaned:
+    if not cleaned or len(cleaned) <= 25:
         return True
+    # If the user has written substantial code or control structures, they are not untouched even if starter comments remain
+    if len(cleaned) > 90 and any(keyword in cleaned for keyword in ("return ", "for ", "while ", "if ", "sc.next", "cin >>", "input(", "sys.stdin.read")):
+        return False
     if "TODO: Implement" in cleaned:
         return True
     if "TODO: Read input from sc" in cleaned and ("System.out.println(0);" in cleaned or "sc.next" not in cleaned):
         return True
     if "TODO: Read input from cin" in cleaned and ("cout << 0 << endl;" in cleaned or "cin >>" not in cleaned):
         return True
-    if "TODO: Read input from sys.stdin" in cleaned and ("print(0)" in cleaned and cleaned.count("print(") <= 1):
+    if "TODO: Read input from sys.stdin" in cleaned and ("print(0)" in cleaned and cleaned.count("print(") <= 1 and "input(" not in cleaned):
         return True
     return False
 
@@ -404,8 +407,18 @@ def submit_exam_solution(
 
     for q in questions:
         q_id = str(q.get("id", ""))
+        orig_id = str(q.get("originalProblemId", ""))
+        stripped_id = q_id.replace("exam-q-", "")
         marks = int(q.get("marks", 20))
-        student_ans = payload.answers.get(q_id, {})
+
+        # Robust answer lookup supporting all ID variants (exam-q-prob-X, prob-X, etc.)
+        student_ans = (
+            payload.answers.get(q_id)
+            or (payload.answers.get(orig_id) if orig_id else None)
+            or payload.answers.get(stripped_id)
+            or payload.answers.get(f"exam-q-{q_id}")
+            or {}
+        )
         code_str = student_ans if isinstance(student_ans, str) else student_ans.get("code", "")
         
         cleaned = code_str.strip()

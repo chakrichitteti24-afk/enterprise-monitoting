@@ -122,16 +122,39 @@ export const StudentExamsPage: React.FC = () => {
       const currentDefaultLang = selectedLanguageRef.current;
 
       currentQuestions.forEach(q => {
-        const lang = currentLanguages[q.id] || currentDefaultLang;
+        const preferredLang = currentLanguages[q.id] || currentDefaultLang;
+        let chosenLang = preferredLang;
+        const qAnswers = currentAnswers[q.id];
+
+        // Check if preferred language has actual non-starter code
+        const prefCode = (qAnswers?.[preferredLang] || '').trim();
+        const prefStarter = getStarterCode(q, preferredLang).trim();
+
+        if (!prefCode || prefCode === prefStarter || prefCode.length <= 25) {
+          // If the preferred language is untouched/empty, check if student answered in another language
+          for (const l of ['python', 'cpp', 'java'] as const) {
+            const altCode = (qAnswers?.[l] || '').trim();
+            const altStarter = getStarterCode(q, l).trim();
+            if (altCode && altCode !== altStarter && altCode.length > 25) {
+              chosenLang = l;
+              break;
+            }
+          }
+        }
+
+        const studentCode = qAnswers?.[chosenLang] ?? getStarterCode(q, chosenLang);
         structuredAnswers[q.id] = {
-          code: currentAnswers[q.id]?.[lang] || getStarterCode(q, lang),
-          language: lang,
+          code: studentCode,
+          language: chosenLang,
         };
       });
 
       const result = await submitExamSolution(currentExamId, structuredAnswers);
       // ✅ Clear autosaved answers upon successful submission
-      try { localStorage.removeItem(`gkce_exam_answers_${currentExamId}`); } catch {}
+      try {
+        localStorage.removeItem(`gkce_exam_answers_${currentExamId}`);
+        localStorage.removeItem(`gkce_exam_langs_${currentExamId}`);
+      } catch {}
       setCompletedSubmissionResult(result);
       setActiveLiveExam(null);
       setShowSubmitConfirmModal(false);
@@ -204,14 +227,16 @@ export const StudentExamsPage: React.FC = () => {
     return () => clearInterval(timer);
   }, [activeLiveExam, exams, executeFinalSubmit]);
 
-  // ✅ Autosave student's exam code answers to localStorage every change
+  // ✅ Autosave student's exam code answers and language choices to localStorage
   useEffect(() => {
     if (!activeLiveExam || Object.keys(codeAnswers).length === 0) return;
     const saveKey = `gkce_exam_answers_${activeLiveExam.id}`;
+    const langKey = `gkce_exam_langs_${activeLiveExam.id}`;
     try {
       localStorage.setItem(saveKey, JSON.stringify(codeAnswers));
+      localStorage.setItem(langKey, JSON.stringify(questionLanguages));
     } catch {}
-  }, [codeAnswers, activeLiveExam?.id]);
+  }, [codeAnswers, questionLanguages, activeLiveExam?.id]);
 
   // Start a live exam with Anti-Cheating Random Shuffling per student
   const handleStartExam = (exam: WeeklyExam) => {
@@ -254,25 +279,45 @@ export const StudentExamsPage: React.FC = () => {
 
     // Check if any answers were autosaved locally (e.g. from page refresh)
     let savedAnswers: Record<string, Record<'java' | 'cpp' | 'python', string>> | null = null;
+    let savedLangs: Record<string, 'java' | 'cpp' | 'python'> | null = null;
     try {
       const raw = localStorage.getItem(`gkce_exam_answers_${exam.id}`);
       if (raw) savedAnswers = JSON.parse(raw);
+      const rawLangs = localStorage.getItem(`gkce_exam_langs_${exam.id}`);
+      if (rawLangs) savedLangs = JSON.parse(rawLangs);
     } catch {}
 
     // Populate starter code or restored autosaved code for each question
     const initialCode: Record<string, Record<'java' | 'cpp' | 'python', string>> = {};
     const initialLangs: Record<string, 'java' | 'cpp' | 'python'> = {};
     randomizedQs.forEach(q => {
+      const javaStarter = getStarterCode(q, 'java');
+      const cppStarter = getStarterCode(q, 'cpp');
+      const pythonStarter = getStarterCode(q, 'python');
+
       initialCode[q.id] = {
-        java: savedAnswers?.[q.id]?.java || getStarterCode(q, 'java'),
-        cpp: savedAnswers?.[q.id]?.cpp || getStarterCode(q, 'cpp'),
-        python: savedAnswers?.[q.id]?.python || getStarterCode(q, 'python'),
+        java: savedAnswers?.[q.id]?.java ?? javaStarter,
+        cpp: savedAnswers?.[q.id]?.cpp ?? cppStarter,
+        python: savedAnswers?.[q.id]?.python ?? pythonStarter,
       };
-      initialLangs[q.id] = 'java';
+
+      // Restore the language the student was actually working in:
+      let detectedLang: 'java' | 'cpp' | 'python' = savedLangs?.[q.id] || 'java';
+      if (!savedLangs?.[q.id] && savedAnswers?.[q.id]) {
+        const saved = savedAnswers[q.id];
+        if (saved.python && saved.python.trim() !== pythonStarter.trim()) {
+          detectedLang = 'python';
+        } else if (saved.cpp && saved.cpp.trim() !== cppStarter.trim()) {
+          detectedLang = 'cpp';
+        } else if (saved.java && saved.java.trim() !== javaStarter.trim()) {
+          detectedLang = 'java';
+        }
+      }
+      initialLangs[q.id] = detectedLang;
     });
     setCodeAnswers(initialCode);
     setQuestionLanguages(initialLangs);
-    setSelectedLanguage('java');
+    setSelectedLanguage(initialLangs[randomizedQs[0]?.id] || 'java');
   };
 
   const currentQuestion = shuffledQuestions[selectedQuestionIdx];
@@ -294,7 +339,7 @@ export const StudentExamsPage: React.FC = () => {
           ...prev,
           [currentQuestion.id]: {
             ...qAnswers,
-            [newLang]: qAnswers[newLang] || getStarterCode(currentQuestion, newLang),
+            [newLang]: qAnswers[newLang] ?? getStarterCode(currentQuestion, newLang),
           },
         };
       });
@@ -306,7 +351,23 @@ export const StudentExamsPage: React.FC = () => {
     setSelectedQuestionIdx(idx);
     const targetQ = shuffledQuestions[idx];
     if (targetQ) {
-      const qLang = questionLanguages[targetQ.id] || selectedLanguage;
+      let qLang = questionLanguages[targetQ.id] || selectedLanguage;
+      // If targetQ only has starter code in qLang, but student wrote actual code in another language, switch to that language!
+      const qAns = codeAnswers[targetQ.id];
+      if (qAns) {
+        const curCode = (qAns[qLang] || '').trim();
+        const curStarter = getStarterCode(targetQ, qLang).trim();
+        if (!curCode || curCode === curStarter || curCode.length <= 25) {
+          for (const l of ['python', 'cpp', 'java'] as const) {
+            const altCode = (qAns[l] || '').trim();
+            const altStarter = getStarterCode(targetQ, l).trim();
+            if (altCode && altCode !== altStarter && altCode.length > 25) {
+              qLang = l;
+              break;
+            }
+          }
+        }
+      }
       setSelectedLanguage(qLang);
     }
   };
@@ -315,7 +376,7 @@ export const StudentExamsPage: React.FC = () => {
     if (!currentQuestion || isExamPaused) return;
     setIsRunningTest(true);
     const activeLang = questionLanguages[currentQuestion.id] || selectedLanguage;
-    const currentCode = (codeAnswers[currentQuestion.id]?.[activeLang] || getStarterCode(currentQuestion, activeLang)).trim();
+    const currentCode = (codeAnswers[currentQuestion.id]?.[activeLang] ?? getStarterCode(currentQuestion, activeLang)).trim();
 
     const sampleIn = currentQuestion.testCases?.[0]?.input || '5';
     const sampleExpected = currentQuestion.testCases?.[0]?.output || '';
@@ -345,12 +406,13 @@ export const StudentExamsPage: React.FC = () => {
 
   const answeredCount = useMemo(() => {
     return shuffledQuestions.filter(q => {
-      const lang = questionLanguages[q.id] || selectedLanguage;
-      const code = (codeAnswers[q.id]?.[lang] || '').trim();
-      const starter = getStarterCode(q, lang).trim();
-      return code.length > 25 && code !== starter;
+      return (['java', 'cpp', 'python'] as const).some(l => {
+        const code = (codeAnswers[q.id]?.[l] || '').trim();
+        const starter = getStarterCode(q, l).trim();
+        return code.length > 25 && code !== starter;
+      });
     }).length;
-  }, [shuffledQuestions, codeAnswers, questionLanguages, selectedLanguage, getStarterCode]);
+  }, [shuffledQuestions, codeAnswers, getStarterCode]);
 
   const formatTimer = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -831,10 +893,11 @@ export const StudentExamsPage: React.FC = () => {
                     <div className="flex items-center gap-1.5 shrink-0">
                       {shuffledQuestions.map((q, idx) => {
                         const isCurrent = selectedQuestionIdx === idx;
-                        const qLang = questionLanguages[q.id] || selectedLanguage;
-                        const ansCode = (codeAnswers[q.id]?.[qLang] || '').trim();
-                        const starter = getStarterCode(q, qLang).trim();
-                        const isAnswered = ansCode.length > 25 && ansCode !== starter;
+                        const isAnswered = (['java', 'cpp', 'python'] as const).some(l => {
+                          const code = (codeAnswers[q.id]?.[l] || '').trim();
+                          const starter = getStarterCode(q, l).trim();
+                          return code.length > 25 && code !== starter;
+                        });
                         const isTested = testedQuestions[q.id];
 
                         return (
