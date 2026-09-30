@@ -34,6 +34,7 @@ import {
   updateWeeklyExamApi,
   deleteWeeklyExamApi,
   submitExamSolutionApi,
+  autoEndExamApi,
   getVerificationsApi,
   toggleMentorVerificationApi,
   batchVerifyMentorApi,
@@ -2202,16 +2203,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Persist to Neon PostgreSQL with automatic create fallback
     try {
-      await updateWeeklyExamApi(examId, payload);
+      if (currentUser.role === 'DEAN') {
+        await updateWeeklyExamApi(examId, payload);
+      } else if (isSystemAutoEnd) {
+        await autoEndExamApi(examId);
+      }
     } catch (err) {
-      console.warn('[Neon DB] updateWeeklyExamApi failed, attempting create fallback:', err);
-      try {
-        await createWeeklyExamApi({
-          ...targetExam,
-          ...payload,
-        });
-      } catch (createErr) {
-        console.error('[Neon DB] Failed to save exam status update:', createErr);
+      console.warn('[Neon DB] setExamStatus persist deferred:', err);
+      if (currentUser.role === 'DEAN') {
+        try {
+          await createWeeklyExamApi({
+            ...targetExam,
+            ...payload,
+          });
+        } catch (createErr) {
+          console.error('[Neon DB] Failed to save exam status update:', createErr);
+        }
       }
     }
 

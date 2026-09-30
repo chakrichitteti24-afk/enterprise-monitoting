@@ -303,6 +303,12 @@ export async function submitExamSolutionApi(examId: string, payload: any) {
   });
 }
 
+export async function autoEndExamApi(examId: string) {
+  return apiRequest<any>(`/exams/${examId}/auto-end`, {
+    method: 'POST',
+  });
+}
+
 // -------------------------------------------------------------
 // Mentor Problem Verification Operations (Shared across all devices via Neon)
 // -------------------------------------------------------------

@@ -92,49 +92,97 @@ export const StudentExamsPage: React.FC = () => {
     }
   }, []);
 
-  const executeFinalSubmit = useCallback(async () => {
-    if (!activeLiveExam) return;
+  const [isAutoSubmittingDueToTime, setIsAutoSubmittingDueToTime] = useState(false);
+  const isSubmittingRef = React.useRef(false);
+
+  // Synchronize state to refs for non-stuttering timer callbacks
+  const codeAnswersRef = React.useRef(codeAnswers);
+  codeAnswersRef.current = codeAnswers;
+  const questionLanguagesRef = React.useRef(questionLanguages);
+  questionLanguagesRef.current = questionLanguages;
+  const selectedLanguageRef = React.useRef(selectedLanguage);
+  selectedLanguageRef.current = selectedLanguage;
+  const shuffledQuestionsRef = React.useRef(shuffledQuestions);
+  shuffledQuestionsRef.current = shuffledQuestions;
+
+  const executeFinalSubmit = useCallback(async (isTimeExpired: boolean = false) => {
+    if (!activeLiveExam || isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
+    if (isTimeExpired) {
+      setIsAutoSubmittingDueToTime(true);
+    }
+    const currentExamId = activeLiveExam.id;
+    const currentExamObj = activeLiveExam;
     try {
       const structuredAnswers: Record<string, any> = {};
-      shuffledQuestions.forEach(q => {
-        const lang = questionLanguages[q.id] || selectedLanguage;
+      const currentQuestions = shuffledQuestionsRef.current;
+      const currentAnswers = codeAnswersRef.current;
+      const currentLanguages = questionLanguagesRef.current;
+      const currentDefaultLang = selectedLanguageRef.current;
+
+      currentQuestions.forEach(q => {
+        const lang = currentLanguages[q.id] || currentDefaultLang;
         structuredAnswers[q.id] = {
-          code: codeAnswers[q.id]?.[lang] || getStarterCode(q, lang),
+          code: currentAnswers[q.id]?.[lang] || getStarterCode(q, lang),
           language: lang,
         };
       });
-      const result = await submitExamSolution(activeLiveExam.id, structuredAnswers);
+
+      const result = await submitExamSolution(currentExamId, structuredAnswers);
       // ✅ Clear autosaved answers upon successful submission
-      try { localStorage.removeItem(`gkce_exam_answers_${activeLiveExam.id}`); } catch {}
+      try { localStorage.removeItem(`gkce_exam_answers_${currentExamId}`); } catch {}
       setCompletedSubmissionResult(result);
       setActiveLiveExam(null);
       setShowSubmitConfirmModal(false);
+
+      // Immediately display official scorecard to student
+      const matchedExam = exams.find(e => e.id === currentExamId) || currentExamObj;
+      setViewScorecardSubmission({
+        exam: matchedExam,
+        submission: result,
+      });
     } catch (err: any) {
-      alert(err.message || 'Error submitting exam.');
+      console.error('Error submitting exam:', err);
+      if (!isTimeExpired) {
+        alert(err.message || 'Error submitting exam.');
+      } else {
+        // Guarantee closing live exam modal when time expires
+        setActiveLiveExam(null);
+        setShowSubmitConfirmModal(false);
+      }
     } finally {
       setIsSubmitting(false);
+      setIsAutoSubmittingDueToTime(false);
+      isSubmittingRef.current = false;
     }
-  }, [activeLiveExam, codeAnswers, questionLanguages, selectedLanguage, shuffledQuestions, submitExamSolution, getStarterCode]);
+  }, [activeLiveExam, exams, submitExamSolution, getStarterCode]);
 
   // Lock body scroll while live exam or scorecard is open
   useEffect(() => {
-    if (activeLiveExam || viewScorecardSubmission || completedSubmissionResult) {
+    if (activeLiveExam || viewScorecardSubmission || completedSubmissionResult || isAutoSubmittingDueToTime) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => {
         document.body.style.overflow = originalOverflow;
       };
     }
-  }, [activeLiveExam, viewScorecardSubmission, completedSubmissionResult]);
+  }, [activeLiveExam, viewScorecardSubmission, completedSubmissionResult, isAutoSubmittingDueToTime]);
 
-  // Countdown timer for active exam synchronized with 90-min official launch timeline
+  // Countdown timer for active exam synchronized with official launch timeline
   useEffect(() => {
     if (!activeLiveExam) return;
 
     const latest = exams.find(e => e.id === activeLiveExam.id) || activeLiveExam;
     if (latest.status === 'COMPLETED') {
-      executeFinalSubmit();
+      executeFinalSubmit(true);
+      return;
+    }
+
+    const currentRemaining = calculateExamRemainingSeconds(latest);
+    setTimeLeftSeconds(currentRemaining);
+    if (currentRemaining <= 0) {
+      executeFinalSubmit(true);
       return;
     }
 
@@ -142,14 +190,14 @@ export const StudentExamsPage: React.FC = () => {
       const currentSync = exams.find(e => e.id === activeLiveExam.id) || activeLiveExam;
       if (currentSync.status === 'COMPLETED') {
         clearInterval(timer);
-        executeFinalSubmit();
+        executeFinalSubmit(true);
         return;
       }
       const remaining = calculateExamRemainingSeconds(currentSync);
       setTimeLeftSeconds(remaining);
       if (remaining <= 0) {
         clearInterval(timer);
-        executeFinalSubmit();
+        executeFinalSubmit(true);
       }
     }, 1000);
 
@@ -1065,6 +1113,41 @@ export const StudentExamsPage: React.FC = () => {
       </AnimatePresence>
 
       {/* ------------------------------------------------------------- */}
+      {/* Auto-Submitting Overlay when Time Expires                     */}
+      {/* ------------------------------------------------------------- */}
+      <AnimatePresence>
+        {isAutoSubmittingDueToTime && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-200 text-center space-y-4"
+            >
+              <div className="w-16 h-16 rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+                <Clock className="w-8 h-8 animate-pulse text-amber-600" />
+              </div>
+              <div className="space-y-1">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold uppercase font-mono">
+                  Time Expired (00:00)
+                </span>
+                <h3 className="text-lg font-bold text-slate-900 pt-1">
+                  Exam Concluded & Auto-Submitting
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  The allocated examination timeline has concluded. Your latest code solutions are being automatically submitted and evaluated against institutional test cases.
+                </p>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center gap-2 text-xs font-semibold text-blue-600">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                <span>Executing automated test harness...</span>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ------------------------------------------------------------- */}
       {/* Final Submit Confirmation Modal                                */}
       {/* ------------------------------------------------------------- */}
       <AnimatePresence>
@@ -1105,7 +1188,7 @@ export const StudentExamsPage: React.FC = () => {
                   Return to Exam
                 </button>
                 <button
-                  onClick={executeFinalSubmit}
+                  onClick={() => executeFinalSubmit(false)}
                   disabled={isSubmitting}
                   className="px-5 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
                 >

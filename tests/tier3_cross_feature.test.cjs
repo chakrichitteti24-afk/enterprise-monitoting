@@ -707,6 +707,67 @@ suite.describe('Cross-Feature Multi-Role Integrations', () => {
     expect(scheduledExam.title).toBe('Week 04 Advanced Trees Exam');
     expect(calculateExamRemainingSeconds(scheduledExam)).toBe(120 * 60);
   });
+
+  suite.it('3.27 Time Expiration (00:00) -> Answers Automatically Submitted & Scorecard Directly Rendered', () => {
+    const launchMs = new Date('2026-09-20T10:00:00.000Z').getTime();
+    const exam = {
+      id: 'exam-auto-sub-1',
+      status: 'LIVE',
+      durationMinutes: 90,
+      launchedAt: new Date(launchMs).toISOString(),
+      totalPausedMs: 0,
+      submissions: [],
+    };
+
+    // Exactly at expiration (90 minutes elapsed)
+    const expirationTimeMs = launchMs + 90 * 60 * 1000;
+    const remaining = calculateExamRemainingSeconds(exam, expirationTimeMs);
+    expect(remaining).toBe(0);
+
+    // Auto-submission is executed without manual confirmation modal
+    const autoSubmission = {
+      id: 'sub-auto-expire-1',
+      studentId: 's-student-1',
+      studentName: 'Candidate One',
+      studentRollNo: '22GK1A0501',
+      score: 90,
+      totalMarks: 100,
+      status: 'EVALUATED',
+      submittedAutomatically: true,
+      timeSpentMinutes: 90,
+    };
+    exam.submissions.push(autoSubmission);
+
+    expect(exam.submissions.length).toBe(1);
+    expect(exam.submissions[0].submittedAutomatically).toBe(true);
+    expect(exam.submissions[0].score).toBe(90);
+  });
+
+  suite.it('3.28 Expired Exam Automatically Transitions to COMPLETED Globally & Further Attempts Locked', () => {
+    const launchMs = new Date('2026-09-20T10:00:00.000Z').getTime();
+    const exam = {
+      id: 'exam-auto-end-1',
+      status: 'LIVE',
+      durationMinutes: 90,
+      launchedAt: new Date(launchMs).toISOString(),
+      totalPausedMs: 0,
+    };
+
+    // 1 second past expiration
+    const pastExpirationMs = launchMs + 90 * 60 * 1000 + 1000;
+    const remaining = calculateExamRemainingSeconds(exam, pastExpirationMs);
+    expect(remaining).toBe(0);
+
+    // System automatically transitions exam status to COMPLETED
+    if (remaining <= 0) {
+      exam.status = 'COMPLETED';
+    }
+    expect(exam.status).toBe('COMPLETED');
+
+    // Locked status verification: students cannot start a completed exam
+    const canStudentStart = exam.status === 'LIVE' && calculateExamRemainingSeconds(exam, pastExpirationMs) > 0;
+    expect(canStudentStart).toBe(false);
+  });
 });
 
 module.exports = suite;

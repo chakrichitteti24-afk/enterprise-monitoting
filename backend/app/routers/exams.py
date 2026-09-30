@@ -311,6 +311,39 @@ def delete_exam(
     return {"detail": f"Exam {exam_id} deleted successfully."}
 
 
+@router.post("/exams/{exam_id}/auto-end", summary="Auto-end exam when duration concludes")
+def auto_end_exam(
+    exam_id: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_user),
+):
+    exam = db.query(WeeklyExam).filter(WeeklyExam.id == exam_id).first()
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found.")
+
+    is_dean = bool(current_user and getattr(current_user, "role", "") == "DEAN")
+    now_utc = datetime.now(timezone.utc)
+    if exam.status == "LIVE" and getattr(exam, "launched_at", None):
+        duration_secs = (exam.duration_minutes or 90) * 60
+        total_paused_secs = (getattr(exam, "total_paused_ms", 0) or 0) / 1000.0
+        launch_time = exam.launched_at
+        if launch_time.tzinfo is None:
+            launch_time = launch_time.replace(tzinfo=timezone.utc)
+        elapsed_active_secs = (now_utc - launch_time).total_seconds() - total_paused_secs
+        if elapsed_active_secs >= duration_secs or is_dean:
+            exam.status = "COMPLETED"
+            db.commit()
+            db.refresh(exam)
+            return format_exam(exam, current_user)
+    elif is_dean:
+        exam.status = "COMPLETED"
+        db.commit()
+        db.refresh(exam)
+        return format_exam(exam, current_user)
+
+    return format_exam(exam, current_user)
+
+
 def is_untouched_starter_template(code: str, language: str = "") -> bool:
     cleaned = (code or "").strip()
     if not cleaned:
@@ -481,6 +514,19 @@ def submit_exam_solution(
         time_spent_minutes=min(exam.duration_minutes, 45),
         answers=answer_details,
     )
+
+    # Auto-conclude exam if duration has expired
+    now_utc = datetime.now(timezone.utc)
+    if exam.status == "LIVE" and getattr(exam, "launched_at", None):
+        duration_secs = (exam.duration_minutes or 90) * 60
+        total_paused_secs = (getattr(exam, "total_paused_ms", 0) or 0) / 1000.0
+        launch_time = exam.launched_at
+        if launch_time.tzinfo is None:
+            launch_time = launch_time.replace(tzinfo=timezone.utc)
+        elapsed_active_secs = (now_utc - launch_time).total_seconds() - total_paused_secs
+        if elapsed_active_secs >= duration_secs:
+            exam.status = "COMPLETED"
+
     db.add(submission)
     db.commit()
     db.refresh(submission)
