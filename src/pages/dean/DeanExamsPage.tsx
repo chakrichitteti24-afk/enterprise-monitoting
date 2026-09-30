@@ -20,6 +20,9 @@ import {
   Shuffle,
   Download,
   Clock,
+  Edit3,
+  Save,
+  AlertCircle,
 } from 'lucide-react';
 
 export const DeanExamsPage: React.FC = () => {
@@ -27,6 +30,7 @@ export const DeanExamsPage: React.FC = () => {
     exams,
     refreshExams,
     createWeeklyExam,
+    updateWeeklyExam,
     deleteWeeklyExam,
     setExamStatus,
   } = useAuth();
@@ -37,6 +41,15 @@ export const DeanExamsPage: React.FC = () => {
   const [selectedExamForResults, setSelectedExamForResults] = useState<WeeklyExam | null>(null);
   const [inspectQuestionsExam, setInspectQuestionsExam] = useState<WeeklyExam | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // Edit Exam Timing / Details State
+  const [editingExamForTime, setEditingExamForTime] = useState<WeeklyExam | null>(null);
+  const [editDurationMins, setEditDurationMins] = useState<number>(90);
+  const [editScheduledDate, setEditScheduledDate] = useState<string>('');
+  const [editStartTime, setEditStartTime] = useState<string>('10:00 AM');
+  const [editTitle, setEditTitle] = useState<string>('');
+  const [editTopicFocus, setEditTopicFocus] = useState<string>('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Sync exams from backend on mount
   React.useEffect(() => {
@@ -74,14 +87,14 @@ export const DeanExamsPage: React.FC = () => {
 
   // Lock body scroll while modals are open
   React.useEffect(() => {
-    if (isCreateModalOpen || selectedExamForResults || inspectQuestionsExam || deleteConfirmId) {
+    if (isCreateModalOpen || selectedExamForResults || inspectQuestionsExam || deleteConfirmId || editingExamForTime) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => {
         document.body.style.overflow = originalOverflow;
       };
     }
-  }, [isCreateModalOpen, selectedExamForResults, inspectQuestionsExam, deleteConfirmId]);
+  }, [isCreateModalOpen, selectedExamForResults, inspectQuestionsExam, deleteConfirmId, editingExamForTime]);
 
   const currentTierInfo = useMemo(() => getExamTier(weekNum), [weekNum]);
 
@@ -251,6 +264,59 @@ export const DeanExamsPage: React.FC = () => {
     link.click();
   };
 
+  const formatTimer = (s: number) => {
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  const handleOpenEditModal = (exam: WeeklyExam) => {
+    setEditingExamForTime(exam);
+    setEditDurationMins(exam.durationMinutes || 90);
+    setEditScheduledDate(exam.scheduledDate || new Date().toISOString().split('T')[0]);
+    setEditStartTime(exam.startTime || '10:00 AM');
+    setEditTitle(exam.title || '');
+    setEditTopicFocus(exam.topicFocus || '');
+  };
+
+  const handleQuickExtend = async (exam: WeeklyExam, addMinutes: number) => {
+    try {
+      setIsSavingEdit(true);
+      const newDuration = (exam.durationMinutes || 90) + addMinutes;
+      await updateWeeklyExam(exam.id, { durationMinutes: newDuration });
+      await refreshExams();
+    } catch (err: any) {
+      alert(err.message || 'Failed to extend exam duration');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleSaveExamTiming = async () => {
+    if (!editingExamForTime) return;
+    if (editDurationMins <= 0 || isNaN(editDurationMins)) {
+      alert('Please enter a valid positive duration in minutes.');
+      return;
+    }
+    try {
+      setIsSavingEdit(true);
+      const updates: Partial<WeeklyExam> = {
+        durationMinutes: Number(editDurationMins),
+        scheduledDate: editScheduledDate,
+        startTime: editStartTime,
+        title: editTitle.trim() || editingExamForTime.title,
+        topicFocus: editTopicFocus.trim() || editingExamForTime.topicFocus,
+      };
+      await updateWeeklyExam(editingExamForTime.id, updates);
+      await refreshExams();
+      setEditingExamForTime(null);
+    } catch (err: any) {
+      alert(err.message || 'Failed to update exam timing');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const allTopics = Array.from(new Set(PROBLEMS_BANK_100.map(p => p.dayTopic || p.topic)));
 
   return (
@@ -405,12 +471,6 @@ export const DeanExamsPage: React.FC = () => {
           const elapsedSecs = Math.max(0, totalDurationSecs - remainingSecs);
           const progressPercent = Math.min(100, Math.max(0, (elapsedSecs / totalDurationSecs) * 100));
 
-          const formatTimer = (s: number) => {
-            const mins = Math.floor(s / 60);
-            const secs = s % 60;
-            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-          };
-
           return (
             <motion.div
               key={exam.id}
@@ -468,14 +528,14 @@ export const DeanExamsPage: React.FC = () => {
                   {exam.description}
                 </p>
 
-                {/* 90-Minute Official Timeline Bar (Active / Paused) */}
+                {/* Duration & Timeline Bar (Active / Paused) */}
                 {(isLive || isPaused) && (
-                  <div className="p-3 rounded-2xl bg-slate-900 text-white space-y-2 border border-slate-800 shadow-inner">
+                  <div className="p-3.5 rounded-2xl bg-slate-900 text-white space-y-2.5 border border-slate-800 shadow-inner">
                     <div className="flex items-center justify-between text-xs">
                       <span className="flex items-center gap-1.5 font-bold">
                         <Clock className={`w-3.5 h-3.5 ${isLive ? 'text-emerald-400' : 'text-amber-400'}`} />
                         <span className={isLive ? 'text-emerald-400' : 'text-amber-400'}>
-                          {isLive ? '90-MIN TIMELINE ACTIVE' : 'EXAM PAUSED BY ROOT'}
+                          {isLive ? `${exam.durationMinutes || 90}-MIN TIMELINE ACTIVE` : 'EXAM PAUSED BY ROOT'}
                         </span>
                       </span>
                       <span className="font-mono font-extrabold text-sm tracking-wider text-white">
@@ -488,9 +548,27 @@ export const DeanExamsPage: React.FC = () => {
                         style={{ width: `${progressPercent}%` }}
                       />
                     </div>
-                    <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>Duration: {exam.durationMinutes || 90} mins</span>
-                      <span>Auto-ends at 00:00</span>
+                    <div className="flex items-center justify-between text-[11px] text-slate-300 pt-0.5">
+                      <span>Duration: <strong className="text-white font-mono">{exam.durationMinutes || 90}m</strong></span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase">Quick Add:</span>
+                        <button
+                          onClick={() => handleQuickExtend(exam, 15)}
+                          disabled={isSavingEdit}
+                          className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-emerald-600 text-emerald-400 hover:text-white text-[10px] font-mono font-bold border border-slate-700 hover:border-emerald-500 transition-colors cursor-pointer"
+                          title="Instantly add +15 minutes for all students"
+                        >
+                          +15m
+                        </button>
+                        <button
+                          onClick={() => handleQuickExtend(exam, 30)}
+                          disabled={isSavingEdit}
+                          className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-emerald-600 text-emerald-400 hover:text-white text-[10px] font-mono font-bold border border-slate-700 hover:border-emerald-500 transition-colors cursor-pointer"
+                          title="Instantly add +30 minutes for all students"
+                        >
+                          +30m
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -533,7 +611,7 @@ export const DeanExamsPage: React.FC = () => {
                       className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95"
                     >
                       <Play className="w-3 h-3 fill-white" />
-                      <span>Launch Exam (90 Mins)</span>
+                      <span>Launch Exam ({exam.durationMinutes || 90} Mins)</span>
                     </button>
                   )}
 
@@ -577,6 +655,16 @@ export const DeanExamsPage: React.FC = () => {
                       </button>
                     </>
                   )}
+
+                  {/* Edit Exam Timing & Details Button */}
+                  <button
+                    onClick={() => handleOpenEditModal(exam)}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Root: Edit exam time, scheduled date, or duration"
+                  >
+                    <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Edit Time</span>
+                  </button>
 
                   {/* Inspect Questions Button */}
                   <button
@@ -1247,6 +1335,241 @@ export const DeanExamsPage: React.FC = () => {
                   className="px-4 py-2 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs"
                 >
                   Confirm Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Exam Timing & Specifications Modal */}
+      <AnimatePresence>
+        {editingExamForTime && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isSavingEdit && setEditingExamForTime(null)}
+              className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="relative w-full max-w-lg bg-white rounded-3xl p-6 z-10 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto"
+            >
+              {/* Modal Header */}
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                      Edit Exam Timing & Schedule
+                    </h3>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-mono text-[11px] font-extrabold border border-blue-100">
+                        WEEK {String(editingExamForTime.weekNumber).padStart(2, '0')}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                        editingExamForTime.status === 'LIVE'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : editingExamForTime.status === 'PAUSED'
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : 'bg-slate-100 text-slate-700 border border-slate-200'
+                      }`}>
+                        {editingExamForTime.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => !isSavingEdit && setEditingExamForTime(null)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Status Alert Banner */}
+              {(editingExamForTime.status === 'LIVE' || editingExamForTime.status === 'PAUSED') ? (
+                <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1.5">
+                  <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Live / Paused Examination Notice</span>
+                  </div>
+                  <p className="text-[11px] text-amber-700 leading-relaxed">
+                    Extending or updating the duration will <strong>immediately update the active countdown timer</strong> for all students currently writing the exam.
+                  </p>
+                  <div className="pt-1 flex items-center justify-between font-mono text-[11px] font-bold text-amber-800">
+                    <span>Current Active Duration: {editingExamForTime.durationMinutes || 90}m</span>
+                    <span>Remaining: {formatTimer(calculateExamRemainingSeconds(editingExamForTime, currentTime))}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 text-xs">
+                  <span className="font-semibold text-blue-800">Root Scheduling Authority:</span> Set the official date, launch window, and allocated duration for students.
+                </div>
+              )}
+
+              {/* Inputs Form */}
+              <div className="space-y-4 text-xs">
+                {/* Title */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                    Exam Title
+                  </label>
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Exam Title"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-900"
+                  />
+                </div>
+
+                {/* Topic Focus */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                    Topic Focus
+                  </label>
+                  <input
+                    type="text"
+                    value={editTopicFocus}
+                    onChange={(e) => setEditTopicFocus(e.target.value)}
+                    placeholder="e.g. Arrays, Two Pointers & Sliding Window"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-900"
+                  />
+                </div>
+
+                {/* Scheduled Date & Start Time Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                      Scheduled Date
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={editScheduledDate}
+                        onChange={(e) => setEditScheduledDate(e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                      Start Time
+                    </label>
+                    <input
+                      type="text"
+                      value={editStartTime}
+                      onChange={(e) => setEditStartTime(e.target.value)}
+                      placeholder="e.g. 10:00 AM"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-900"
+                    />
+                    {/* Time presets */}
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                      {['09:00 AM', '10:00 AM', '02:00 PM', '04:00 PM'].map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setEditStartTime(t)}
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${
+                            editStartTime === t
+                              ? 'bg-indigo-600 text-white border-indigo-600'
+                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Duration Section with Presets & Quick Add */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-slate-700 uppercase">
+                      Exam Duration (Minutes)
+                    </label>
+                    <span className="font-mono font-bold text-xs text-indigo-700">
+                      {editDurationMins} minutes ({Math.floor(editDurationMins / 60)}h {editDurationMins % 60}m)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min={10}
+                      max={360}
+                      step={5}
+                      value={editDurationMins}
+                      onChange={(e) => setEditDurationMins(Math.max(10, parseInt(e.target.value) || 0))}
+                      className="w-28 px-3 py-2 rounded-xl border border-slate-300 bg-white font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                    />
+
+                    {/* Presets */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {[45, 60, 90, 120, 150, 180].map((mins) => (
+                        <button
+                          key={mins}
+                          type="button"
+                          onClick={() => setEditDurationMins(mins)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                            editDurationMins === mins
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          {mins}m
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Quick Add for Live/Paused extensions */}
+                  {(editingExamForTime.status === 'LIVE' || editingExamForTime.status === 'PAUSED') && (
+                    <div className="pt-2 border-t border-slate-200 flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">Quick Add to Duration:</span>
+                      {[10, 15, 30, 45, 60].map((addM) => (
+                        <button
+                          key={addM}
+                          type="button"
+                          onClick={() => setEditDurationMins((prev) => prev + addM)}
+                          className="px-2 py-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10px] font-bold font-mono transition-colors cursor-pointer"
+                        >
+                          +{addM} mins
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  disabled={isSavingEdit}
+                  onClick={() => setEditingExamForTime(null)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingEdit}
+                  onClick={handleSaveExamTiming}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{isSavingEdit ? 'Saving...' : 'Save Timing & Details'}</span>
                 </button>
               </div>
             </motion.div>

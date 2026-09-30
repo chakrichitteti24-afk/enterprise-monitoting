@@ -651,6 +651,62 @@ suite.describe('Cross-Feature Multi-Role Integrations', () => {
     expect(exam.submissions.length).toBe(1);
     expect(exam.submissions[0].score).toBe(85);
   });
+
+  suite.it('3.25 Root Edits Live Exam Duration (+15m / +30m) -> Remaining Countdown Dynamically Extends', () => {
+    const launchMs = new Date('2026-09-20T10:00:00.000Z').getTime();
+    const exam = {
+      id: 'exam-edit-live-1',
+      status: 'LIVE',
+      durationMinutes: 90,
+      launchedAt: new Date(launchMs).toISOString(),
+      totalPausedMs: 0,
+    };
+
+    // 40 minutes into exam: 50 minutes (3000 seconds) remaining
+    const current40Ms = launchMs + 40 * 60 * 1000;
+    const initialRemaining = calculateExamRemainingSeconds(exam, current40Ms);
+    expect(initialRemaining).toBe(50 * 60);
+
+    // Root executes quick extend +15m -> durationMinutes becomes 105
+    exam.durationMinutes = 105;
+    const extended15Remaining = calculateExamRemainingSeconds(exam, current40Ms);
+    expect(extended15Remaining).toBe(65 * 60);
+    expect(extended15Remaining - initialRemaining).toBe(15 * 60);
+
+    // Root executes quick extend +30m -> durationMinutes becomes 135
+    exam.durationMinutes = 135;
+    const extended30Remaining = calculateExamRemainingSeconds(exam, current40Ms);
+    expect(extended30Remaining).toBe(95 * 60);
+    expect(extended30Remaining - initialRemaining).toBe(45 * 60);
+  });
+
+  suite.it('3.26 Root Edits Scheduled Exam Date, Start Time & Duration -> Reflected in Exam Specs', () => {
+    const scheduledExam = {
+      id: 'exam-edit-sched-1',
+      status: 'SCHEDULED',
+      weekNumber: 4,
+      title: 'Week 04 Assessment',
+      topicFocus: 'Trees & Graph Traversal',
+      scheduledDate: '2026-10-05',
+      startTime: '10:00 AM',
+      durationMinutes: 90,
+    };
+
+    // Scheduled remaining seconds returns full allocated duration
+    expect(calculateExamRemainingSeconds(scheduledExam)).toBe(90 * 60);
+
+    // Root edits specs via Edit Timing modal
+    scheduledExam.scheduledDate = '2026-10-08';
+    scheduledExam.startTime = '02:30 PM';
+    scheduledExam.durationMinutes = 120;
+    scheduledExam.title = 'Week 04 Advanced Trees Exam';
+
+    expect(scheduledExam.scheduledDate).toBe('2026-10-08');
+    expect(scheduledExam.startTime).toBe('02:30 PM');
+    expect(scheduledExam.durationMinutes).toBe(120);
+    expect(scheduledExam.title).toBe('Week 04 Advanced Trees Exam');
+    expect(calculateExamRemainingSeconds(scheduledExam)).toBe(120 * 60);
+  });
 });
 
 module.exports = suite;
