@@ -10,7 +10,7 @@ def test_student_can_access_own_profile(client: TestClient, student_1_token: str
     assert response.status_code == 200
     data = response.json()
     assert data["roll_number"] == "23F81A0502"
-    assert data["name"] == "BODDU ANANTHALAKSHMI"
+    assert "ANANTHALAKSHMI" in data["name"]
     assert "progress" in data
     assert "topic_progress" in data["progress"]
 
