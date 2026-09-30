@@ -39,8 +39,13 @@ export const StudentDashboard: React.FC = () => {
       </div>
     );
   }
+  const storedGh = student.rollNo ? (() => { try { return localStorage.getItem(`gkce_student_github_${student.rollNo}`) || localStorage.getItem(`gkce_github_link_${student.rollNo}`); } catch { return null; } })() : null;
+  const storedLi = student.rollNo ? (() => { try { return localStorage.getItem(`gkce_student_linkedin_${student.rollNo}`); } catch { return null; } })() : null;
 
-  const isSocialMissing = !student.githubUrl || !student.linkedinUrl;
+  const resolvedGithub = student.githubUrl || student.githubRepoLink || (student.githubUsername ? `https://github.com/${student.githubUsername}` : '') || storedGh || '';
+  const resolvedLinkedin = student.linkedinUrl || storedLi || '';
+
+  const isSocialMissing = !resolvedGithub || !resolvedLinkedin;
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -104,7 +109,13 @@ export const StudentDashboard: React.FC = () => {
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-amber-800 mt-0.5 leading-relaxed">
-                Connect your <strong>GitHub</strong> & <strong>LinkedIn</strong> accounts so Faculty Mentors and Root (Dean) can review your coding repositories and placement readiness.
+                {!resolvedGithub && !resolvedLinkedin ? (
+                  <>Connect your <strong>GitHub</strong> & <strong>LinkedIn</strong> accounts so Faculty Mentors and Root (Dean) can review your coding repositories and placement readiness.</>
+                ) : !resolvedGithub ? (
+                  <>Connect your <strong>GitHub</strong> account so Faculty Mentors and Root (Dean) can review your coding repositories.</>
+                ) : (
+                  <>Connect your <strong>LinkedIn</strong> account so Faculty Mentors and Root (Dean) can verify your professional profile.</>
+                )}
               </p>
             </div>
           </div>
@@ -213,13 +224,13 @@ export const StudentDashboard: React.FC = () => {
                 Professional Accounts
               </div>
               <div className="grid grid-cols-2 gap-1.5">
-                {student.githubUrl ? (
+                {resolvedGithub ? (
                   <a
-                    href={student.githubUrl.startsWith('http') ? student.githubUrl : `https://${student.githubUrl}`}
+                    href={resolvedGithub.startsWith('http') ? resolvedGithub : `https://${resolvedGithub}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 flex items-center justify-between text-slate-800 transition-colors group"
-                    title={student.githubUrl}
+                    title={resolvedGithub}
                   >
                     <div className="flex items-center gap-1.5 min-w-0">
                       <GithubIcon className="w-3.5 h-3.5 text-slate-900 shrink-0" />
@@ -241,13 +252,13 @@ export const StudentDashboard: React.FC = () => {
                   </button>
                 )}
 
-                {student.linkedinUrl ? (
+                {resolvedLinkedin ? (
                   <a
-                    href={student.linkedinUrl.startsWith('http') ? student.linkedinUrl : `https://${student.linkedinUrl}`}
+                    href={resolvedLinkedin.startsWith('http') ? resolvedLinkedin : `https://${resolvedLinkedin}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-1.5 rounded-xl bg-blue-50/60 hover:bg-blue-100/60 border border-blue-200/80 flex items-center justify-between text-blue-900 transition-colors group"
-                    title={student.linkedinUrl}
+                    title={resolvedLinkedin}
                   >
                     <div className="flex items-center gap-1.5 min-w-0">
                       <LinkedinIcon className="w-3.5 h-3.5 text-blue-700 shrink-0" />

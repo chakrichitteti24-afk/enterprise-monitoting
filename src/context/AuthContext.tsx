@@ -275,9 +275,11 @@ const backendStudentToFrontend = (s: any, existingStudents?: Student[]): Student
       note: n.note,
     })) || existing?.mentorFeedbackNotes || [],
     verifiedProblemIds: existing?.verifiedProblemIds || [],
-    leetcodeUsername: s.leetcode_username,
-    githubUsername: s.github_username || s.github_url,
-    githubRepoLink: s.github_url || s.github_username || existing?.githubRepoLink,
+    leetcodeUsername: s.leetcode_username || existing?.leetcodeUsername,
+    githubUsername: s.github_username || (s.github_url ? s.github_url.replace(/^https?:\/\/(www\.)?github\.com\//i, '').replace(/\/.*$/, '') : existing?.githubUsername),
+    githubUrl: s.github_url || existing?.githubUrl || (s.roll_number ? (() => { try { return localStorage.getItem(`gkce_student_github_${s.roll_number}`) || localStorage.getItem(`gkce_github_link_${s.roll_number}`); } catch { return undefined; } })() : undefined) || (s.github_username ? (s.github_username.startsWith('http') ? s.github_username : `https://github.com/${s.github_username}`) : undefined),
+    githubRepoLink: s.github_url || existing?.githubRepoLink || (s.roll_number ? (() => { try { return localStorage.getItem(`gkce_github_link_${s.roll_number}`); } catch { return undefined; } })() : undefined),
+    linkedinUrl: s.linkedin_url || existing?.linkedinUrl || (s.roll_number ? (() => { try { return localStorage.getItem(`gkce_student_linkedin_${s.roll_number}`); } catch { return undefined; } })() : undefined),
   };
 };
 
@@ -1124,6 +1126,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           teamNumber: currentUser.teamNumber,
           roll_number: currentUser.studentData?.rollNo,
           rollNo: currentUser.studentData?.rollNo,
+          githubUrl: currentUser.studentData?.githubUrl,
+          linkedinUrl: currentUser.studentData?.linkedinUrl,
         }));
       } catch {}
     }
@@ -1186,16 +1190,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           s.id === userPayload?.id
       ) || DEFAULT_STUDENT_USER.studentData!;
 
+      // Hydrate GitHub & LinkedIn from localStorage or payload if missing
+      const roll = foundStudent.rollNo;
+      let storedGh: string | null = null;
+      let storedLi: string | null = null;
+      try {
+        storedGh = localStorage.getItem(`gkce_student_github_${roll}`) || localStorage.getItem(`gkce_github_link_${roll}`);
+        storedLi = localStorage.getItem(`gkce_student_linkedin_${roll}`);
+      } catch {}
+
+      const resolvedGithub = foundStudent.githubUrl || userPayload?.github_url || storedGh || (foundStudent.githubUsername ? (foundStudent.githubUsername.startsWith('http') ? foundStudent.githubUsername : `https://github.com/${foundStudent.githubUsername}`) : undefined);
+      const resolvedLinkedin = foundStudent.linkedinUrl || userPayload?.linkedin_url || storedLi || undefined;
+
+      const hydratedStudent: Student = {
+        ...foundStudent,
+        githubUrl: resolvedGithub,
+        githubRepoLink: resolvedGithub || foundStudent.githubRepoLink,
+        linkedinUrl: resolvedLinkedin,
+      };
+
       newUser = {
-        id: foundStudent.id,
-        name: userPayload?.name || foundStudent.name,
-        email: userPayload?.email || foundStudent.email,
+        id: hydratedStudent.id,
+        name: userPayload?.name || hydratedStudent.name,
+        email: userPayload?.email || hydratedStudent.email,
         role: 'STUDENT',
         title: 'B.Tech Student, GKCE',
-        avatar: userPayload?.avatar_url || userPayload?.avatar || foundStudent.avatar,
-        studentData: foundStudent,
-        teamId: foundStudent.teamId,
-        teamNumber: foundStudent.teamNumber,
+        avatar: userPayload?.avatar_url || userPayload?.avatar || hydratedStudent.avatar,
+        studentData: hydratedStudent,
+        teamId: hydratedStudent.teamId,
+        teamNumber: hydratedStudent.teamNumber,
       };
     }
 
@@ -1214,6 +1237,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         teamNumber: newUser.teamNumber,
         roll_number: newUser.studentData?.rollNo,
         rollNo: newUser.studentData?.rollNo,
+        githubUrl: newUser.studentData?.githubUrl,
+        linkedinUrl: newUser.studentData?.linkedinUrl,
       }));
     } catch {}
   };
