@@ -380,7 +380,7 @@ export const MentorStudentsPage: React.FC = () => {
       </div>
 
       {/* Cohort Table (>=md) */}
-      <div className="hidden md:block bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="hidden md:block bg-white rounded-3xl border border-slate-200/80 shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>

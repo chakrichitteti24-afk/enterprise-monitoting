@@ -191,7 +191,7 @@ export const DeanProgressPage: React.FC = () => {
               <span className="w-14 sm:w-16 font-bold text-slate-900 font-mono shrink-0 truncate">
                 {tm.teamNumber}
               </span>
-              <span className="w-24 sm:w-32 text-slate-500 truncate shrink-0 hidden sm:block">
+              <span className="w-32 sm:w-48 text-slate-500 truncate shrink-0 hidden sm:block">
                 {tm.mentorName}
               </span>
               <div className="flex-1 min-w-0">

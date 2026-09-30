@@ -77,7 +77,7 @@ export const StudentDashboard: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('exams')}
-            className="px-5 py-3 bg-white hover:bg-rose-50 text-rose-700 rounded-2xl text-xs font-black shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+            className="w-full sm:w-auto px-5 py-3 bg-white hover:bg-rose-50 text-rose-700 rounded-2xl text-xs font-black shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 shrink-0 cursor-pointer"
           >
             <span>Start Live Exam</span>
             <ArrowUpRight className="w-4 h-4" />
@@ -418,7 +418,7 @@ export const StudentDashboard: React.FC = () => {
           className="col-span-1 sm:col-span-2 lg:col-span-2 h-full"
         >
           <div className="flex flex-col justify-between h-full pt-1">
-            <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
               {student.recentActivities.length === 0 ? (
                 <div className="py-8 text-center text-slate-400 text-xs bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
                   No activity recorded yet. Click <strong>Solve Problems</strong> above to start your practice!

@@ -226,7 +226,7 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
           <table className="w-full text-left text-xs border-collapse min-w-[660px]">
             <thead>
               <tr className="border-b border-slate-200/90 bg-slate-100/70 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                <th className="py-3 px-2 sm:py-3.5 sm:px-4 w-36 sm:w-48 md:w-56 sticky left-0 bg-slate-100/95 backdrop-blur-md z-20 sticky-col-shadow">
+                <th className="py-3 px-2 sm:py-3.5 sm:px-4 w-36 sm:w-48 md:w-56 sticky left-0 bg-slate-50 z-20 sticky-col-shadow">
                   Student
                 </th>
 
@@ -301,7 +301,7 @@ export const MentorDailyVerificationGrid: React.FC<MentorDailyVerificationGridPr
                     {/* Student Column (Sticky Left) */}
                     <td
                       onClick={() => onStudentClick?.(st)}
-                      className="py-2.5 px-2 sm:py-3 sm:px-4 w-36 sm:w-48 md:w-56 sticky left-0 bg-white group-hover:bg-slate-50/95 transition-colors z-20 sticky-col-shadow cursor-pointer border-r border-slate-100"
+                      className="py-2.5 px-2 sm:py-3 sm:px-4 w-36 sm:w-48 md:w-56 sticky left-0 bg-white group-hover:bg-slate-50 transition-colors z-20 sticky-col-shadow cursor-pointer border-r border-slate-100"
                     >
                       <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                         <UserAvatar

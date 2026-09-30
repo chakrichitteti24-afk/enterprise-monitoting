@@ -283,7 +283,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 type="checkbox"
                 checked={rememberDevice}
                 onChange={(e) => setRememberDevice(e.target.checked)}
-                className="w-3.5 h-3.5 rounded-sm bg-slate-950 border-slate-700 text-blue-600 focus:ring-0 cursor-pointer"
+                className="w-3.5 h-3.5 rounded-sm bg-slate-950 border-slate-700 text-blue-600 focus:ring-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
               />
               <span>Remember workstation</span>
             </label>

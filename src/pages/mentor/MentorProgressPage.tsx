@@ -63,7 +63,7 @@ export const MentorProgressPage: React.FC = () => {
         </div>
 
         {/* View Switcher Tabs */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/80 shrink-0 self-start md:self-auto">
+        <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/80 shrink-0 w-full sm:w-auto justify-start">
           <button
             onClick={() => setActiveSubTab('daily-tasks')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
@@ -144,7 +144,7 @@ export const MentorProgressPage: React.FC = () => {
             <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-blue-200">{ACTIVE_TOPICS_COUNT} Topics</span>
           </div>
 
-          <div className="overflow-x-auto pt-1 touch-scroll-x custom-scrollbar">
+          <div className="overflow-x-auto pt-1 touch-scroll-x custom-scrollbar isolate">
             <table className="w-full text-left text-xs border-collapse min-w-[680px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">

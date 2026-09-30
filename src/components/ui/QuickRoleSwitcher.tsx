@@ -16,11 +16,21 @@ export const QuickRoleSwitcher: React.FC = () => {
   const { currentUser, role, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   return (
     <div className="relative inline-flex items-center">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`h-9 inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 rounded-2xl text-xs font-semibold transition-all shadow-2xs border shrink-0 cursor-pointer select-none active:scale-97 ${
+        className={`h-9 sm:h-9 min-h-[44px] sm:min-h-0 inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 rounded-2xl text-xs font-semibold transition-all shadow-2xs border shrink-0 cursor-pointer select-none active:scale-97 ${
           role === 'DEAN'
             ? 'bg-slate-900 text-white border-blue-500/40 hover:bg-slate-800'
             : role === 'MENTOR'
@@ -75,6 +85,7 @@ export const QuickRoleSwitcher: React.FC = () => {
             <div
               className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-2xs"
               onClick={() => setIsOpen(false)}
+              aria-hidden="true"
             />
             
             {/* Dropdown Modal Container — perfectly centered on mobile, docked below on desktop */}

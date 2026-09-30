@@ -92,8 +92,8 @@ export const MobileNav: React.FC = () => {
                 <Icon
                   className="z-10 shrink-0 transition-all duration-200"
                   style={{
-                    width: 20,
-                    height: 20,
+                    width: 24,
+                    height: 24,
                     color: isActive ? '#2563eb' : '#64748b',
                     strokeWidth: isActive ? 2.5 : 1.75,
                     transform: isActive ? 'scale(1.08)' : 'scale(1)',

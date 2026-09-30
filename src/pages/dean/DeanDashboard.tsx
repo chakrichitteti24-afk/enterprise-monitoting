@@ -66,7 +66,7 @@ export const DeanDashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2 shrink-0 flex-col sm:flex-row flex-wrap sm:flex-nowrap">
           <button
             onClick={() => setIsCreateMentorOpen(true)}
             className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-2xl text-xs font-bold transition-colors flex items-center gap-1.5 border border-purple-200 shadow-2xs"
@@ -164,7 +164,7 @@ export const DeanDashboard: React.FC = () => {
           action={
             <button
               onClick={() => setActiveTab('analytics')}
-              className="text-xs text-blue-600 hover:underline font-semibold cursor-pointer"
+              className="text-xs text-blue-600 hover:underline font-semibold cursor-pointer focus-visible:outline-2 focus-visible:outline-blue-600 focus-visible:outline-offset-2"
             >
               Analytics →
             </button>
@@ -282,7 +282,7 @@ export const DeanDashboard: React.FC = () => {
             <span>{totalTeams} Teams • Monitored Cohorts</span>
             <button
               onClick={() => setActiveTab('teams')}
-              className="text-blue-600 hover:underline font-bold cursor-pointer"
+              className="text-blue-600 hover:underline font-bold cursor-pointer focus-visible:outline-2 focus-visible:outline-blue-600 focus-visible:outline-offset-2"
             >
               View Full Team Roster →
             </button>
@@ -328,7 +328,7 @@ export const DeanDashboard: React.FC = () => {
                 value={searchTeam}
                 onChange={(e) => setSearchTeam(e.target.value)}
                 placeholder="Find team..."
-                className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden"
+                className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
               />
             </div>
           </div>

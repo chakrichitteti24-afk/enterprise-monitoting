@@ -28,8 +28,16 @@ export const TopicProgressList: React.FC<TopicProgressListProps> = ({
           <div
             key={topic}
             onClick={() => onTopicClick?.(topic)}
+            role={onTopicClick ? 'button' : undefined}
+            tabIndex={onTopicClick ? 0 : undefined}
+            onKeyDown={(e) => {
+              if (onTopicClick && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                onTopicClick(topic);
+              }
+            }}
             className={`p-3 sm:p-3.5 rounded-2xl border border-slate-100 bg-slate-50/70 hover:bg-slate-100/80 transition-all ${
-              onTopicClick ? 'cursor-pointer' : ''
+              onTopicClick ? 'cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none' : ''
             }`}
           >
             <div className="flex items-center justify-between gap-2 text-xs mb-2">

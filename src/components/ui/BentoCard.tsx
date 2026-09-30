@@ -38,6 +38,14 @@ export const BentoCard: React.FC<BentoCardProps> = ({
   return (
     <motion.div
       onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       whileHover={
         hoverable || onClick
           ? { y: -3, transition: { type: 'spring', stiffness: 400, damping: 25 } }
@@ -48,7 +56,7 @@ export const BentoCard: React.FC<BentoCardProps> = ({
         clsx(
           'glass-panel rounded-[24px] sm:rounded-[28px] transition-colors duration-200 flex flex-col justify-between overflow-hidden relative group gpu-layer',
           hoverable && 'glass-card-hover cursor-pointer',
-          onClick && 'cursor-pointer',
+          onClick && 'cursor-pointer focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-blue-500',
           paddingClasses,
           className
         )

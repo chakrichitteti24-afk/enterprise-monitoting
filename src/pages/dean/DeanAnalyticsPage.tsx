@@ -142,8 +142,8 @@ export const DeanAnalyticsPage: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topicData} margin={{ top: 10, right: 10, left: -20, bottom: 45 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} tickMargin={10} angle={-40} textAnchor="end" />
-                <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 100]} />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} tickMargin={10} angle={-40} textAnchor="end" />
+                <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} domain={[0, 100]} />
                 <Tooltip
                   cursor={{ fill: '#f8fafc' }}
                   contentStyle={{ borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
@@ -166,7 +166,7 @@ export const DeanAnalyticsPage: React.FC = () => {
               <BarChart data={difficultyData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="tier" tick={{ fontSize: 11, fontWeight: 'bold' }} tickMargin={10} />
-                <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 100]} />
+                <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} domain={[0, 100]} />
                 <Tooltip
                   cursor={{ fill: '#f8fafc' }}
                   contentStyle={{ borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
@@ -257,8 +257,8 @@ export const DeanAnalyticsPage: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={teamVelocityData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} tickMargin={10} />
-                <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 100]} />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} tickMargin={10} />
+                <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} domain={[0, 100]} />
                 <Tooltip
                   contentStyle={{ borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
                   formatter={(val: any) => [`${val}%`, 'Team Avg Progress']}

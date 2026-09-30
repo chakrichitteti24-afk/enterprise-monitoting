@@ -247,13 +247,13 @@ export const DeanTeamsPage: React.FC = () => {
           />
         </div>
 
-        <div className="flex items-center gap-2.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 touch-scroll-x no-scrollbar flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 touch-scroll-x no-scrollbar flex-nowrap">
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500 font-semibold whitespace-nowrap">Status:</span>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden"
+              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
             >
               <option value="All">All Statuses ({teams.length})</option>
               <option value="Active">Active</option>
@@ -267,7 +267,7 @@ export const DeanTeamsPage: React.FC = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden"
+              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
             >
               <option value="progress">Average Progress (High to Low)</option>
               <option value="solved">Problems Solved</option>

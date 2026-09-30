@@ -403,7 +403,7 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
         {/* ----------------------------------------------------------- */}
         {/* Dual-Layer Synced Editor: Syntax Highlighting + Interactive  */}
         {/* ----------------------------------------------------------- */}
-        <div className="relative flex-1 h-full min-h-0 overflow-hidden bg-[#0d1522]">
+        <div className="relative flex-1 h-full min-h-0 overflow-hidden bg-[#0d1522]" style={{ fontVariantLigatures: 'none' }}>
           {/* Active Line Background Highlight */}
           <div
             aria-hidden="true"
@@ -412,6 +412,7 @@ export const CodeEditorWithSyntax: React.FC<CodeEditorWithSyntaxProps> = ({
               top: `${paddingPx + (cursorPosition.line - 1) * lineHeightPx - scrollTop}px`,
               height: `${lineHeightPx}px`,
               zIndex: 1,
+              fontVariantLigatures: 'none',
             }}
           />
 

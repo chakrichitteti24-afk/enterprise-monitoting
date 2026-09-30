@@ -60,7 +60,7 @@ export const DeanSettingsPage: React.FC = () => {
                 type="text"
                 value={academicTerm}
                 onChange={(e) => setAcademicTerm(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-hidden"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
               />
             </div>
 
@@ -73,7 +73,7 @@ export const DeanSettingsPage: React.FC = () => {
                   type="text"
                   disabled
                   value={`${students.length} Students`}
-                  className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600 font-mono"
+                  className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600 font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
                 />
               </div>
               <div>
@@ -84,7 +84,7 @@ export const DeanSettingsPage: React.FC = () => {
                   type="text"
                   disabled
                   value={`${teams.length} Teams`}
-                  className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600 font-mono"
+                  className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600 font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
                 />
               </div>
             </div>
@@ -109,7 +109,7 @@ export const DeanSettingsPage: React.FC = () => {
                 max="90"
                 value={minPassThreshold}
                 onChange={(e) => setMinPassThreshold(Number(e.target.value))}
-                className="w-full accent-blue-600"
+                className="w-full accent-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               />
               <div className="text-[11px] text-slate-400 mt-1">
                 Students below this threshold are automatically flagged as &ldquo;Needs Attention&rdquo;.
@@ -127,7 +127,7 @@ export const DeanSettingsPage: React.FC = () => {
                 max="7"
                 value={alertLowActivityDays}
                 onChange={(e) => setAlertLowActivityDays(Number(e.target.value))}
-                className="w-full accent-amber-500"
+                className="w-full accent-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               />
               <div className="text-[11px] text-slate-400 mt-1">
                 Trigger mentor notification when no problems solved in this duration.

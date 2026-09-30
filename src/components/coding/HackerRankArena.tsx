@@ -285,7 +285,7 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
               <select
                 value={selectedLanguage}
                 onChange={e => setSelectedLanguage(e.target.value as SupportedLanguage)}
-                className="px-1.5 sm:px-3 py-1 sm:py-1.5 bg-[#122235] border border-white/10 hover:border-white/20 text-white rounded-xl text-[10px] sm:text-xs font-mono font-bold focus:outline-hidden appearance-none pr-5 sm:pr-8 cursor-pointer transition-colors"
+                className="px-1.5 sm:px-3 py-1 sm:py-1.5 bg-[#122235] border border-white/10 hover:border-white/20 text-white rounded-xl text-[10px] sm:text-xs font-mono font-bold focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 appearance-none pr-5 sm:pr-8 cursor-pointer transition-colors"
               >
                 <option value="java">Java</option>
                 <option value="cpp">C++</option>
@@ -544,7 +544,7 @@ export const HackerRankArena: React.FC<HackerRankArenaProps> = ({
                       <Cpu className="w-3.5 h-3.5 text-blue-400" />
                       <span>Constraints & Targets</span>
                     </div>
-                    <ul className="list-disc list-inside text-[11px] text-slate-300 space-y-1 font-mono">
+                    <ul className="list-disc list-outside pl-4 text-[11px] text-slate-300 space-y-1 font-mono">
                       {dossier.constraints.map((c, i) => (
                         <li key={i}>{c}</li>
                       ))}

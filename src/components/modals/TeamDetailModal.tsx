@@ -283,7 +283,7 @@ export const TeamDetailModal: React.FC = () => {
                         <select
                           value={selectedMentorIdInput}
                           onChange={(e) => setSelectedMentorIdInput(e.target.value)}
-                          className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden font-medium text-slate-800"
+                          className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 font-medium text-slate-800"
                         >
                           {mentors.map((m) => (
                             <option key={m.id} value={m.id}>

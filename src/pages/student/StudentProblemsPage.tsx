@@ -164,7 +164,7 @@ export const StudentProblemsPage: React.FC = () => {
             <select
               value={selectedTopic}
               onChange={(e) => setSelectedTopic(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden shrink-0 font-medium"
+              className="min-w-[130px] px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden shrink-0 font-medium"
             >
               <option value="All">All Topics ({DSA_TOPICS.length})</option>
               {DSA_TOPICS.map((top) => (
@@ -175,7 +175,7 @@ export const StudentProblemsPage: React.FC = () => {
             <select
               value={selectedDifficulty}
               onChange={(e) => setSelectedDifficulty(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden shrink-0 font-medium"
+              className="min-w-[130px] px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden shrink-0 font-medium"
             >
               <option value="All">All Difficulties</option>
               <option value="Easy">Easy</option>
@@ -186,7 +186,7 @@ export const StudentProblemsPage: React.FC = () => {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value as any)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden shrink-0 font-medium"
+              className="min-w-[130px] px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden shrink-0 font-medium"
             >
               <option value="All">All Statuses ({verifiedCount}/{PROBLEMS_BANK.length})</option>
               <option value="Solved">✓ Solved ({verifiedCount})</option>
@@ -231,7 +231,7 @@ export const StudentProblemsPage: React.FC = () => {
                 key={prob.id}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setActiveProblem(prob)}
-                className="p-3.5 sm:p-4 md:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white active:border-blue-300 hover:border-blue-300 hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between group"
+                className="p-3.5 sm:p-4 md:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white active:border-blue-300 hover:border-blue-300 hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between group focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:outline-hidden"
                 style={{ minHeight: 100 }}
               >
                 <div>

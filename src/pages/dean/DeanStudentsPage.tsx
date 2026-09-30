@@ -312,7 +312,7 @@ export const DeanStudentsPage: React.FC = () => {
                 setSelectedTeam(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden shrink-0"
+              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 shrink-0"
             >
               <option value="All">All Teams ({teams.length})</option>
               {teams.map((t) => (
@@ -328,7 +328,7 @@ export const DeanStudentsPage: React.FC = () => {
                 setSelectedStatus(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden shrink-0"
+              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 shrink-0"
             >
               <option value="All">All Statuses</option>
               <option value="Active">Active</option>
@@ -342,7 +342,7 @@ export const DeanStudentsPage: React.FC = () => {
                 setSelectedLevel(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden shrink-0"
+              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 shrink-0"
             >
               <option value="All">All DSA Levels</option>
               <option value="Beginner">Beginner</option>
@@ -648,7 +648,7 @@ export const DeanStudentsPage: React.FC = () => {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between flex-wrap gap-2">
+        <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center sm:justify-between flex-wrap gap-2">
           <span className="text-xs text-slate-500">
             Page <strong>{safeCurrentPage}</strong> of <strong>{totalPages}</strong>
           </span>

@@ -99,7 +99,7 @@ export const MentorDashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap">
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap">
           <button
             onClick={() => setActiveTab('students')}
             className="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs active:scale-98"
@@ -119,7 +119,7 @@ export const MentorDashboard: React.FC = () => {
 
       {/* Multi-Cohort Selector Tabs if Mentor has > 1 Team */}
       {activeTeams.length > 1 && (
-        <div className="bg-white/80 backdrop-blur-md p-2 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-1.5 flex-wrap">
+        <div className="bg-white/80 backdrop-blur-md p-2 sm:p-3 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold text-slate-500 px-3 flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5 text-indigo-600" />
             <span>Select Cohort:</span>

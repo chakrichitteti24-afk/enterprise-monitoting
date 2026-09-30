@@ -88,11 +88,11 @@ export const StudentActivityPage: React.FC = () => {
           className="col-span-1 md:col-span-2"
         >
           <div className="space-y-3 pt-2">
-            <div className="grid grid-cols-7 gap-1 sm:gap-2">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2 overflow-x-auto">
               {days.map((d) => (
                 <div
                   key={d.day}
-                  className={`h-9 sm:h-10 rounded-xl flex flex-col items-center justify-center border transition-all text-xs font-mono min-w-0 ${
+                  className={`h-9 sm:h-10 rounded-xl flex flex-col items-center justify-center border transition-all text-xs font-mono min-w-[2.5rem] ${
                     d.solvedCount > 2
                       ? 'bg-blue-600 text-white border-blue-700 font-bold shadow-2xs'
                       : d.solvedCount > 0

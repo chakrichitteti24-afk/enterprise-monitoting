@@ -29,7 +29,7 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
 
   return (
     <div className="relative inline-flex items-center justify-center select-none">
-      <svg width={size} height={size} className="transform -rotate-90">
+      <svg width={size} height={size} className="transform -rotate-90" role="img" aria-label={`Progress: ${clampedProgress}%`}>
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#3b82f6" />

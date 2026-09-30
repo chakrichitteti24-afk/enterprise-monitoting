@@ -21,6 +21,18 @@ import {
   Pause,
 } from 'lucide-react';
 
+interface NotificationItem {
+  id: string | number;
+  title?: string;
+  desc?: string;
+  text?: string;
+  time: string;
+  read?: boolean;
+  icon?: any;
+  color?: string;
+  isLive?: boolean;
+}
+
 interface HeaderProps {
   onMobileMenuToggle?: () => void;
   isMobileMenuOpen?: boolean;
@@ -129,7 +141,7 @@ export const Header: React.FC<HeaderProps> = ({
               {!isPaused && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>}
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
             </span>
-            <span className="truncate">
+            <span className="line-clamp-1">
               {isPaused ? (
                 <>
                   ⏸️ <strong>EXAMINATION PAUSED:</strong> Root (Dean) has paused <strong>{activeExam.title}</strong> — {timeStr} frozen remaining.
@@ -171,7 +183,17 @@ export const Header: React.FC<HeaderProps> = ({
                 setSelectedStudent(null);
                 setSelectedTeam(null);
               }}
-              className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group shrink-0"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setActiveTab('dashboard');
+                  setSelectedStudent(null);
+                  setSelectedTeam(null);
+                }
+              }}
+              className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group shrink-0 focus-visible:ring-2 focus-visible:ring-blue-500 focus:outline-none"
             >
               <AppLogo size="md" showGlow animated />
               <div>
@@ -272,7 +294,7 @@ export const Header: React.FC<HeaderProps> = ({
                       </span>
                     </div>
                     <div className="mt-2 space-y-2 max-h-[60vh] overflow-y-auto">
-                      {notifications.map((n: any) => (
+                      {notifications.map((n: NotificationItem) => (
                         <div
                           key={n.id}
                           onClick={() => {
@@ -281,7 +303,18 @@ export const Header: React.FC<HeaderProps> = ({
                             }
                             setShowNotifications(false);
                           }}
-                          className={`p-2.5 rounded-2xl flex items-start gap-3 transition-colors cursor-pointer ${
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              if (n.id === 'live-exam-alert') {
+                                setActiveTab('exams');
+                              }
+                              setShowNotifications(false);
+                            }
+                          }}
+                          className={`p-2.5 rounded-2xl flex items-start gap-3 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500 focus:outline-none ${
                             n.isLive ? 'bg-rose-50/80 hover:bg-rose-100/80 border border-rose-200/60' : 'hover:bg-slate-50'
                           }`}
                         >

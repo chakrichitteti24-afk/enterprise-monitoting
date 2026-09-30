@@ -201,7 +201,7 @@ export const MentorExamsPage: React.FC = () => {
       {/* Selected Exam Information & Cohort KPI Grid */}
       {selectedExam && (
         <div className="space-y-4">
-          <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 bg-gradient-to-r from-white via-indigo-50/20 to-white">
+          <div className="rounded-3xl border border-slate-200/80 p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 bg-gradient-to-r from-white via-indigo-50/20 to-white">
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono font-bold text-indigo-600 uppercase">
@@ -262,7 +262,7 @@ export const MentorExamsPage: React.FC = () => {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+              <table className="w-full text-left text-xs border-collapse min-w-[700px]">
                 <thead>
                   <tr className="border-b border-slate-200/90 bg-slate-100/70 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                     <th className="py-3 px-4">Student</th>

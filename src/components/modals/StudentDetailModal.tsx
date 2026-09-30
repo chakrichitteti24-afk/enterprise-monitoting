@@ -231,7 +231,7 @@ export const StudentDetailModal: React.FC = () => {
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 text-xs font-bold inline-flex items-center gap-1.5 transition-colors shadow-2xs"
+                    className="px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 text-xs font-bold inline-flex items-center gap-1.5 transition-colors shadow-2xs focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400"
                     title={`De-enroll ${selectedStudent.name}`}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -242,18 +242,18 @@ export const StudentDetailModal: React.FC = () => {
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={handleClose}
-                    className="px-2.5 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 text-xs font-bold inline-flex items-center gap-1.5 transition-colors shadow-2xs"
+                    className="px-2.5 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 text-xs font-bold inline-flex items-center gap-1.5 transition-colors shadow-2xs focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400"
                     title={`Return to ${selectedTeam.teamNumber}`}
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
-                    <span className="hidden xs:inline">Back to {selectedTeam.teamNumber}</span>
-                    <span className="xs:hidden">Back</span>
+                    <span className="hidden sm:inline">Back to {selectedTeam.teamNumber}</span>
+                    <span className="sm:hidden">Back</span>
                   </motion.button>
                 )}
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={handleClose}
-                  className="p-2 rounded-2xl bg-white border border-slate-200 text-slate-400 hover:text-slate-700 transition-colors shrink-0 shadow-2xs"
+                  className="p-2 rounded-2xl bg-white border border-slate-200 text-slate-400 hover:text-slate-700 transition-colors shrink-0 shadow-2xs focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400"
                   aria-label="Close dialog"
                 >
                   <X className="w-4 h-4 sm:w-5 sm:h-5" />
