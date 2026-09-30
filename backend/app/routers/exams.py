@@ -391,7 +391,17 @@ def submit_exam_solution(
                 has_syntax_error = True
 
         detected_lang = "Java"
-        if "#include" in cleaned or "cout <<" in cleaned or "using namespace std" in cleaned:
+        if isinstance(student_ans, dict) and student_ans.get("language"):
+            raw_l = str(student_ans["language"]).strip().lower()
+            if raw_l in ("cpp", "c++"):
+                detected_lang = "C++"
+            elif raw_l in ("python", "py"):
+                detected_lang = "Python"
+            elif raw_l in ("javascript", "js"):
+                detected_lang = "JavaScript"
+            elif raw_l == "java":
+                detected_lang = "Java"
+        elif "#include" in cleaned or "cout <<" in cleaned or "using namespace std" in cleaned or "std::" in cleaned:
             detected_lang = "C++"
         elif "def " in cleaned or "import sys" in cleaned or ("print(" in cleaned and "System.out" not in cleaned):
             detected_lang = "Python"

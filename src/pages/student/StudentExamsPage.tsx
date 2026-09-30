@@ -96,12 +96,15 @@ export const StudentExamsPage: React.FC = () => {
     if (!activeLiveExam) return;
     setIsSubmitting(true);
     try {
-      const flatAnswers: Record<string, string> = {};
+      const structuredAnswers: Record<string, any> = {};
       shuffledQuestions.forEach(q => {
         const lang = questionLanguages[q.id] || selectedLanguage;
-        flatAnswers[q.id] = codeAnswers[q.id]?.[lang] || getStarterCode(q, lang);
+        structuredAnswers[q.id] = {
+          code: codeAnswers[q.id]?.[lang] || getStarterCode(q, lang),
+          language: lang,
+        };
       });
-      const result = await submitExamSolution(activeLiveExam.id, flatAnswers);
+      const result = await submitExamSolution(activeLiveExam.id, structuredAnswers);
       // ✅ Clear autosaved answers upon successful submission
       try { localStorage.removeItem(`gkce_exam_answers_${activeLiveExam.id}`); } catch {}
       setCompletedSubmissionResult(result);

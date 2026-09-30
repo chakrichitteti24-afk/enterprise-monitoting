@@ -9,7 +9,7 @@ import math
 from typing import List, Dict, Any, Optional, Tuple
 from fastapi import APIRouter, status, Depends
 from pydantic import BaseModel
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_optional_user
 from app.models.user import User
 
 router = APIRouter(prefix="/code", tags=["Code Execution Sandbox"])
@@ -864,7 +864,7 @@ public class Main {{
                 f.write(java_source)
 
             comp_rc, comp_out, comp_err, comp_timed_out = _run_process_safe(
-                [javac_cmd, java_file], timeout=8.0, cwd=tmpdir
+                [javac_cmd, java_file], timeout=12.0, cwd=tmpdir
             )
 
             if comp_rc != 0 or comp_timed_out:
@@ -1063,7 +1063,7 @@ extern "C" __declspec(dllexport) int gkce_run_entry() {{
                 run_cmd_base = [bin_file]
 
             comp_rc, comp_out, comp_err, comp_timed_out = _run_process_safe(
-                compile_cmd, timeout=10.0, cwd=tmpdir
+                compile_cmd, timeout=15.0, cwd=tmpdir
             )
 
             if comp_rc != 0 or comp_timed_out:
@@ -1164,7 +1164,7 @@ extern "C" __declspec(dllexport) int gkce_run_entry() {{
 @router.post("/run", summary="Execute code against test cases in sandbox")
 def run_code_endpoint(
     req: CodeRunRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_optional_user),
 ):
     return run_code_sandbox(req, current_user=current_user)
 

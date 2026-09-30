@@ -95,7 +95,7 @@ interface AuthContextType {
   updateWeeklyExam: (examId: string, updates: Partial<WeeklyExam>) => Promise<void>;
   deleteWeeklyExam: (examId: string) => Promise<void>;
   setExamStatus: (examId: string, status: ExamStatus, isSystemAutoEnd?: boolean) => Promise<void>;
-  submitExamSolution: (examId: string, answers: Record<string, string>) => Promise<StudentExamSubmission>;
+  submitExamSolution: (examId: string, answers: Record<string, any>) => Promise<StudentExamSubmission>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -2243,7 +2243,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const submitExamSolution = async (
     examId: string,
-    answers: Record<string, string>
+    answers: Record<string, any>
   ): Promise<StudentExamSubmission> => {
     const student = currentUser.studentData;
     if (!student) {
@@ -2263,14 +2263,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const answerDetails: Record<string, any> = {};
 
     questions.forEach((q) => {
-      const code = (answers[q.id] || '').trim();
-      let detectedLang = 'Java';
-      if (code.includes('#include') || code.includes('cout <<') || code.includes('using namespace std')) {
-        detectedLang = 'C++';
-      } else if (code.includes('def ') || code.includes('import sys') || (code.includes('print(') && !code.includes('System.out'))) {
-        detectedLang = 'Python';
-      } else if (code.includes('function ') || code.includes('console.log')) {
-        detectedLang = 'JavaScript';
+      const studentAns: any = answers[q.id];
+      const code = (typeof studentAns === 'object' && studentAns !== null ? studentAns.code : (studentAns || '')).trim();
+      let detectedLang = typeof studentAns === 'object' && studentAns !== null && studentAns.language ? studentAns.language : 'Java';
+      if (typeof studentAns !== 'object' || !studentAns?.language) {
+        if (code.includes('#include') || code.includes('cout <<') || code.includes('using namespace std')) {
+          detectedLang = 'C++';
+        } else if (code.includes('def ') || code.includes('import sys') || (code.includes('print(') && !code.includes('System.out'))) {
+          detectedLang = 'Python';
+        } else if (code.includes('function ') || code.includes('console.log')) {
+          detectedLang = 'JavaScript';
+        }
       }
 
       answerDetails[q.id] = {

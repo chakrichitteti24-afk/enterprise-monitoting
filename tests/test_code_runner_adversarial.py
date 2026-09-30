@@ -2,10 +2,10 @@ import sys
 import os
 import time
 
-# Ensure root directory is in sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from backend.app.routers.code_runner import run_code_sandbox, compare_outputs, CodeRunRequest, TestCaseItem
+from app.routers.code_runner import run_code_sandbox, compare_outputs, CodeRunRequest, TestCaseItem
 
 
 def run_tests():
